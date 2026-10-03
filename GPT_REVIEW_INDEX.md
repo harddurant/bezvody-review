@@ -20,6 +20,7 @@ raw-ссылки и нарезка с номерами строк оригина
 ## Audit
 
 - [AUDIT_2026-10.md](https://github.com/harddurant/bezvody-review/blob/main/AUDIT_2026-10.md) — аудит фактического состояния, 03.10.2026 (raw: https://raw.githubusercontent.com/harddurant/bezvody-review/main/AUDIT_2026-10.md).
+- [PRODUCT_TEARDOWN.md](https://github.com/harddurant/bezvody-review/blob/main/PRODUCT_TEARDOWN.md) — продуктовый разбор поверх аудита, 03.10.2026: доказанное ядро, петли, лишнее, аудитория, минимум для App Store; в приложении — агрегаты реального использования (raw: https://raw.githubusercontent.com/harddurant/bezvody-review/main/PRODUCT_TEARDOWN.md).
 - [AUDIT_POINT_A.md](https://github.com/harddurant/bezvody-review/blob/main/AUDIT_POINT_A.md) — более ранний сквозной аудит интерфейса (v601, 14.09).
 - [PROGRAM_AUDIT.md](https://github.com/harddurant/bezvody-review/blob/main/PROGRAM_AUDIT.md) — аудит генератора программ (§3 сокращён: личные данные).
 
