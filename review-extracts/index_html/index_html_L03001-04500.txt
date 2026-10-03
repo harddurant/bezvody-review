@@ -1,0 +1,1501 @@
+// ИЗВЛЕЧЕНИЕ ДЛЯ ЧТЕНИЯ: index.html, строки 3001–4500 из 31008. Номера строк совпадают с оригиналом. Код не менялся.
+ 3001|     <div id="dLog"></div>
+ 3002|     </div>
+ 3003|   </details>
+ 3004| 
+ 3005|   <!-- v636: карточки «Рецепты · Что съесть · Покупки · Кладовая» и короткого
+ 3006|        списка своих продуктов на первом экране больше нет (решение автора по
+ 3007|        Кодексу: первый экран — шкала → вода → шаги → дневник). Четыре входа
+ 3008|        живут рядом чипов в листе «Записать еду», список своих продуктов там же
+ 3009|        стоит полным. Кнопки сохранили id: на них завязаны ярлык ?go=meal,
+ 3010|        перерисовка «Что съесть» при смене дня и правила гейта. -->
+ 3011| 
+ 3012|   <!-- База продуктов — про еду, а не про коуча: переехала из «Коуча» 03.09. -->
+ 3013|   <details class="det pro" id="libDet" style="margin-bottom:12px"><summary>Мои продукты — база и правка</summary>
+ 3014|     <div style="margin-top:12px">
+ 3015|     <div class="row" style="margin-bottom:12px">
+ 3016|       <input type="text" id="libS" placeholder="Поиск...">
+ 3017|       <button class="btn sm" id="bNewF" style="flex:0 0 auto">+ Новый</button>
+ 3018|     </div>
+ 3019|     <div id="libL" style="max-height:340px;overflow-y:auto"></div>
+ 3020|     </div>
+ 3021|   </details>
+ 3022|   <div class="simponly" style="margin:12px 0 0">
+ 3023|     <button class="btn gho sm" data-ui-full style="width:100%">Показать всё — полный режим</button>
+ 3024|     <div class="note" style="margin:8px 0 0">Сейчас включён простой режим: на виду только то, что нужно каждый день. Объём, аналитика, замеры и здоровье никуда не делись — вернутся одной кнопкой.</div>
+ 3025|   </div>
+ 3026| 
+ 3027|   <!-- Панель ввода: живёт внутри вкладки, поэтому на других её нет вовсе. -->
+ 3028|   <div class="fbar" id="foodBar">
+ 3029|     <button type="button" class="fbar-q" id="qSearch"><span style="font-size:var(--fs3);line-height:var(--lh3);font-weight:var(--fwb);line-height:1">+</span> Записать еду</button>
+ 3030|     <button type="button" class="fbar-i" id="bVoice" aria-label="Записать голосом"><svg class="ic"><use href="#i-mic"/></svg></button>
+ 3031|     <button type="button" class="fbar-i" id="bScan" aria-label="Снять камерой"><svg class="ic"><use href="#i-cam"/></svg></button>
+ 3032|   </div>
+ 3033| </section>
+ 3034| 
+ 3035| <!-- ══════════ TRAIN ══════════ -->
+ 3036| <section class="view" id="v-train">
+ 3037|   <!-- ── ОГРАНИЧЕНИЕ ПЛАТФОРМЫ НАЗЫВАЕТСЯ ВСЛУХ (правило CRAFT) ──
+ 3038|        Владелец проверил таймер в зале и написал: «экран точно не вибрировал».
+ 3039|        Он и не мог: navigator.vibrate в Safari на айфоне не существует, ни в
+ 3040|        браузере, ни в установленном PWA. Я знал это и написал в комментарии
+ 3041|        к коду — а человеку не сказал, и он потратил тренировку на проверку
+ 3042|        того, чего быть не может. Молчать об ограничении хуже, чем признать
+ 3043|        его: молчание человек читает как поломку.
+ 3044|        Живёт как .note — значит на рабочем экране его нет, оно собрано
+ 3045|        в «Справку» и лежит там, где его ищут, когда вопрос уже возник. -->
+ 3046|   <div class="note" style="display:none">Таймер отдыха на айфоне: звук, вспышка на весь экран и <b>голос</b> есть, <b>вибрации нет и не будет</b> — Safari её веб-страницам не даёт. Экран не гаснет, пока идёт отдых, поэтому цифру видно со скамьи. Если телефон лежит экраном вниз, включи «Говорить вслух» в настройках зала: в конце отдыха приложение назовёт упражнение и вес. Голос идёт по медиаканалу — при выключенном звуке телефона его не будет, это честный предел, а не недоделка.</div>
+ 3047|   <div id="deloadBox"></div>
+ 3048|   <div class="seg">
+ 3049|     <button class="on" data-tr="log">Тренировка</button>
+ 3050|     <button data-tr="prog">Программа</button>
+ 3051|   </div>
+ 3052| 
+ 3053|   <div id="tr-prog" style="display:none">
+ 3054|     <div class="card pro">
+ 3055|       <div class="hd"><h2>Что отстаёт</h2><button class="btn sec sm" id="bFocus">Настроить блок</button></div>
+ 3056|       <div id="lagBox"></div>
+ 3057|     </div>
+ 3058|     <details class="det"><summary>История программы <span class="mini" id="progHistCnt" style="margin-left:auto"></span></summary>
+ 3059|       <div id="progHistBox" style="margin-top:8px"></div>
+ 3060|     </details>
+ 3061|     <div class="card pro" id="revCard" style="display:none">
+ 3062|       <h2>Разбор блока</h2>
+ 3063|       <div id="revBox"></div>
+ 3064|     </div>
+ 3065|     <div class="card">
+ 3066|       <!-- Каталог отвечает на вопрос «а мне-то что делать», анкета «Собрать» —
+ 3067|            на «я знаю, чего хочу». Первым идёт каталог: он нужен чаще. -->
+ 3068|       <div class="hd pcard-hd"><h2>Моя программа</h2><span style="display:flex;gap:8px;margin-left:auto">
+ 3069|         <button class="btn sm" id="bCatProg">Каталог</button>
+ 3070|         <button class="btn sec sm" id="bGenProg">Собрать сам</button></span></div>
+ 3071|       <div id="progBox"></div>
+ 3072|     </div>
+ 3073|     <div class="card" id="argCard" style="display:none">
+ 3074|       <h2>Что делать на этой неделе</h2>
+ 3075|       <div id="argBox"></div>
+ 3076|     </div>
+ 3077|     <details class="det"><summary>Почему программа по опроснику, а не по фото</summary>
+ 3078|       <div class="wb" style="margin-top:8px">
+ 3079|         <b>Почему программа строится по опроснику, а не по фото.</b> Фото не содержит ничего из того, что определяет программу: сколько дней в неделю ты можешь ходить, какое железо доступно, сколько лет тренируешься, что у тебя болело. Максимум, что даёт фото, — грубый процент жира. Это не входные данные для программы, это картинка.<br><br>
+ 3080|         <b>И почему она корректируется по штанге, а не по замерам.</b> Нет валидированной модели, связывающей «талия выросла на 1 см» с «добавь два подхода махов». Такую формулу можно написать за минуту, она будет солидно выглядеть и ничего не значить. Работает другое: <b>растут ли рабочие веса</b> и <b>как ты восстанавливаешься</b>. По этим двум я и кручу объём.
+ 3081|       </div>
+ 3082|     </details>
+ 3083|   </div>
+ 3084| 
+ 3085|   <div id="tr-log" data-disp="flex">
+ 3086|     <div id="nextBox"></div>
+ 3087|     <!-- Сообщения тренера стоят ПОД тренировкой, а не над ней. Это служебные
+ 3088|          карточки (боль, ограничения, починка программы, что ушло) — они важны,
+ 3089|          но ни одна из них не нужна с гантелей в руке, а место занимали первым
+ 3090|          экраном: 53 px над всем остальным (замер 28.08). Сначала работа,
+ 3091|          потом разбор. Всё, что меняет СЕГОДНЯШНЮЮ тренировку, и так стоит
+ 3092|          внутри карточки упражнения — заменой, а не сообщением. -->
+ 3093|     <div id="startBox"></div>
+ 3094|     <div id="gymBox" style="display:none"></div>
+ 3095|     <div class="card" style="display:none">
+ 3096|       <span id="wkStat"></span><button id="bAddSet" style="display:none"></button>
+ 3097|       <div id="setLog"></div>
+ 3098|     </div>
+ 3099|     <!-- v611: подвал действий «Зала» — последний в колонке #tr-log и прижат к панели
+ 3100|          вкладок (margin-top:auto). Собирает его rNext (gymFootHtml). -->
+ 3101|     <div id="gymFoot"></div>
+ 3102|   </div>
+ 3103| 
+ 3104|   <div class="simponly" style="margin:12px 0 0">
+ 3105|     <button class="btn gho sm" data-ui-full style="width:100%">Показать всё — полный режим</button>
+ 3106|     <div class="note" style="margin:8px 0 0">Сейчас включён простой режим: на виду только то, что нужно каждый день. Объём, аналитика, замеры и здоровье никуда не делись — вернутся одной кнопкой.</div>
+ 3107|   </div>
+ 3108| </section>
+ 3109| 
+ 3110| <!-- ══════════ BODY ══════════ -->
+ 3111| <section class="view" id="v-body">
+ 3112|   <div class="seg">
+ 3113|     <button class="on" data-bd="w">Вес</button>
+ 3114|     <!-- Подписи называют то, что внутри: «Прогресс» и «Режим» — слова из
+ 3115|          оглавления, а не из жизни. Под «Прогрессом» лежат замеры лентой,
+ 3116|          состав тела и фото; под «Режимом» — шаги и сон. -->
+ 3117|     <button data-bd="prg">Замеры</button>
+ 3118|     <button data-bd="reg" class="pro">Шаги и сон</button>
+ 3119|   </div>
+ 3120| 
+ 3121|   <div id="bd-w">
+ 3122|     <!-- Записать вес можно прямо здесь. До 19.08 ввод жил только на «Еде» в
+ 3123|          свёрнутой раскрывашке: человек приходил на «Тело» за весом, читал
+ 3124|          «нужно минимум 2 взвешивания» и не имел на экране ни одного способа
+ 3125|          их сделать. Принцип контекста — действие живёт там, где о нём речь. -->
+ 3126|     <div class="card">
+ 3127|       <div class="hd" style="margin-bottom:12px"><h2>Записать вес</h2><span class="mini">утром, натощак</span></div>
+ 3128|       <div class="row">
+ 3129|         <input type="text" step="0.05" inputmode="decimal" id="wIn2" placeholder="кг">
+ 3130|         <button class="btn" style="flex:0 0 auto" id="bW2">Записать</button>
+ 3131|       </div>
+ 3132|       <div class="note">Каждый день — алгоритму нужен поток, а не идеальные цифры. Дневной вес шумит на ±1–2 кг из-за воды: тренд ниже сглаживает этот шум.</div>
+ 3133|     </div>
+ 3134|     <!-- Отметка цикла стоит ЗДЕСЬ по решению владельца 30.08: она нужна ровно
+ 3135|          в тот момент, когда человек встал на весы и увидел +1.5 кг. Держать её
+ 3136|          в «Здоровье», подальше от глаз, значит не дать ответа там, где задан
+ 3137|          вопрос. Мужчине не показывается вовсе. -->
+ 3138|     <div id="cycBox"></div>
+ 3139|     <!-- ── ПУСТОЙ ЭКРАН БЕЗ ЗАПИСЕЙ ──
+ 3140|          Замер в настоящем браузере 25.08: вкладка «Тело» у нового человека —
+ 3141|          110 знаков и 49% пустого экрана, самая пустая во всём приложении
+ 3142|          («Еда» 472, «Коуч» 717). Карточку тренда мы прячем намеренно с 19.08:
+ 3143|          пустой график с двумя прочерками читается как поломка. Но на её месте
+ 3144|          оставалась дыра, и человек не понимал, зачем сюда возвращаться.
+ 3145|          Показываем не прибор без данных, а ПРЕДПРОСМОТР того, что он получит:
+ 3146|          призрак линии, одна причина и веха с числом. -->
+ 3147|     <div class="card" id="trGhost" style="display:none">
+ 3148|       <div class="hd" style="margin-bottom:12px"><h2>Здесь появится твой тренд</h2>
+ 3149|         <span class="mini">через 5 взвешиваний</span></div>
+ 3150|       <svg viewBox="0 0 300 92" style="width:100%;height:auto;display:block" aria-hidden="true">
+ 3151|         <defs><linearGradient id="ghg" x1="0" y1="0" x2="0" y2="1">
+ 3152|           <stop offset="0%" stop-color="var(--wt)" stop-opacity=".18"/>
+ 3153|           <stop offset="100%" stop-color="var(--wt)" stop-opacity="0"/></linearGradient></defs>
+ 3154|         <path d="M8 66 L74 54 L140 58 L206 42 L292 30 L292 92 L8 92 Z" fill="url(#ghg)"/>
+ 3155|         <path d="M8 66 L74 54 L140 58 L206 42 L292 30" fill="none" stroke="var(--wt)"
+ 3156|               stroke-opacity=".45" stroke-width="2.5" stroke-linecap="round"
+ 3157|               stroke-linejoin="round" stroke-dasharray="6 7"/>
+ 3158|         <g fill="var(--t3)" fill-opacity=".55">
+ 3159|           <circle cx="8" cy="72" r="3"/><circle cx="74" cy="46" r="3"/><circle cx="140" cy="64" r="3"/>
+ 3160|           <circle cx="206" cy="36" r="3"/><circle cx="292" cy="38" r="3"/></g>
+ 3161|       </svg>
+ 3162|       <div class="mini" style="margin-top:12px;text-align:center;color:var(--t3)">
+ 3163|         <span style="color:var(--t3)">● сырой вес</span> &nbsp; <span style="color:var(--wt);opacity:.6">— — тренд</span></div>
+ 3164|       <!-- Закон экрана: объяснение «почему тренд, а не вес» — про ЦИФРУ, а не
+ 3165|            про интерфейс, поэтому живёт за жестом, а не лежит абзацем. -->
+ 3166|       <div class="note" style="margin-top:12px">
+ 3167|         Дневной вес скачет на ±1–2 кг из-за воды, соли и сна — по нему нельзя понять,
+ 3168|         худеешь ты или нет. Тренд снимает этот шум. Точность каждой цифры не важна,
+ 3169|         важен поток: вставай на весы утром, натощак.</div>
+ 3170|     </div>
+ 3171|     <div class="card" id="trCard">
+ 3172|       <div style="display:flex;justify-content:space-between;align-items:flex-start">
+ 3173|         <div><div class="mini">Тренд</div><div class="bn" id="trV" style="color:var(--wt)">—</div></div>
+ 3174|         <div style="text-align:right"><div class="mini" id="trDL">за 7 дней</div>
+ 3175|           <div style="margin-top:8px"><span class="dl nu" id="trD">—</span></div></div>
+ 3176|       </div>
+ 3177|       <canvas id="wCh" height="340" style="margin-top:16px"></canvas>
+ 3178|       <div class="mini" style="margin-top:8px;text-align:center">
+ 3179|         <span style="color:var(--t3)">● сырой вес</span> &nbsp; <span style="color:var(--wt)">— тренд</span> &nbsp; <span style="color:var(--wt);opacity:.5">▬ разброс</span></div>
+ 3180|       <div class="mini" id="trRate" style="margin-top:8px;text-align:center"></div>
+ 3181|       <div class="mini" id="trFc" style="margin-top:4px;text-align:center;color:var(--t2)"></div>
+ 3182|     </div>
+ 3183|     <details class="det"><summary>История веса <span class="mini" id="wCnt"></span></summary>
+ 3184|       <div id="wList" style="max-height:280px;overflow-y:auto;margin-top:8px"></div>
+ 3185|     </details>
+ 3186|   </div>
+ 3187| 
+ 3188|   <!-- ── «ПРОГРЕСС» В ПРОСТОМ РЕЖИМЕ БЫЛ ПУСТЫМ ЭКРАНОМ ──
+ 3189|        Замер 25.08: 16 знаков собственного содержимого — единственный мёртвый
+ 3190|        экран во всём приложении. Причина: обе панели «Прогресса» (замеры и
+ 3191|        фото) помечены как полный режим, а кнопка-переключатель осталась. Живая
+ 3192|        кнопка, ведущая в пустоту. Прятать кнопку — потерять самое мотивирующее,
+ 3193|        что есть у новичка, поэтому в простом режиме здесь объяснение и один шаг. -->
+ 3194|   <div id="bd-g" class="lite" style="display:none">
+ 3195|     <div class="card">
+ 3196|       <div class="hd" style="margin-bottom:14px"><h2>Прогресс — это не только весы</h2></div>
+ 3197|       <!-- Закон экрана: было три пронумерованных абзаца — интерфейс объяснял
+ 3198|            сам себя. Осталось то, что человек считывает за секунду: три вещи,
+ 3199|            которые здесь появятся, и их периодичность. «Почему сантиметр
+ 3200|            честнее весов» — про цифру, а не про кнопку: живёт за жестом. -->
+ 3201|       <div style="display:grid;gap:14px">
+ 3202|         <div style="display:flex;gap:12px;align-items:center">
+ 3203|           <span style="flex:0 0 40px;height:40px;border-radius:var(--r2);background:var(--c2);color:var(--t2);
+ 3204|             display:flex;align-items:center;justify-content:center"><svg class="ic" style="width:20px;height:20px;vertical-align:0"><use href="#i-scan"/></svg></span>
+ 3205|           <div><div style="font-weight:var(--fwm)">Талия</div>
+ 3206|             <div class="mini" style="color:var(--t3)">раз в неделю</div></div></div>
+ 3207|         <div style="display:flex;gap:12px;align-items:center">
+ 3208|           <span style="flex:0 0 40px;height:40px;border-radius:var(--r2);background:var(--c2);color:var(--t2);
+ 3209|             display:flex;align-items:center;justify-content:center"><svg class="ic" style="width:20px;height:20px;vertical-align:0"><use href="#i-cam"/></svg></span>
+ 3210|           <div><div style="font-weight:var(--fwm)">Фото</div>
+ 3211|             <div class="mini" style="color:var(--t3)">раз в месяц</div></div></div>
+ 3212|         <div style="display:flex;gap:12px;align-items:center">
+ 3213|           <span style="flex:0 0 40px;height:40px;border-radius:var(--r2);background:var(--c2);color:var(--t2);
+ 3214|             display:flex;align-items:center;justify-content:center"><svg class="ic" style="width:20px;height:20px;vertical-align:0"><use href="#i-chart"/></svg></span>
+ 3215|           <div><div style="font-weight:var(--fwm)">Состав тела</div>
+ 3216|             <div class="mini" style="color:var(--t3)">считается сам</div></div></div>
+ 3217|       </div>
+ 3218|       <div class="note" style="margin-top:14px">
+ 3219|         Вес может стоять неделями, пока меняется состав тела: уходит жир, остаются
+ 3220|         мышцы. Сантиметр и фотография видят это раньше весов.</div>
+ 3221|       <button class="btn" id="bdGoFull" style="width:100%;margin-top:16px">Включить замеры и фото</button>
+ 3222| 
+ 3223|     </div>
+ 3224|   </div>
+ 3225| 
+ 3226|   <div id="bd-m" style="display:none">
+ 3227|     <div class="card pro">
+ 3228|       <!-- Дата в шапке показывала значение поля формы (по умолчанию сегодня),
+ 3229|            а строкой ниже стояло «последний — 17.08»: две разные даты рядом,
+ 3230|            и шапочная читалась как дата замера (19.08). Дата формы живёт
+ 3231|            внутри самой формы, рядом с полем. -->
+ 3232|       <div class="hd"><h2>Замеры лентой</h2></div>
+ 3233|       <div id="mLast" class="mini" style="margin:-6px 0 10px"></div>
+ 3234|       <details class="det" id="mForm" style="margin-bottom:0">
+ 3235|         <summary>+ Внести замер</summary>
+ 3236|         <div style="margin-top:12px">
+ 3237|         <div class="field" style="margin-bottom:12px"><label>Дата</label><input type="date" id="mPick"></div>
+ 3238|         <div class="g2">
+ 3239|           <div class="field"><label>Талия</label><input type="text" step="0.5" inputmode="decimal" id="m_waist"></div>
+ 3240|           <div class="field"><label>Плечи</label><input type="text" step="0.5" inputmode="decimal" id="m_shoulders"></div>
+ 3241|           <div class="field"><label>Грудь</label><input type="text" step="0.5" inputmode="decimal" id="m_chest"></div>
+ 3242|           <div class="field"><label>Бёдра</label><input type="text" step="0.5" inputmode="decimal" id="m_hips"></div>
+ 3243|           <div class="field"><label>Бицепс</label><input type="text" step="0.5" inputmode="decimal" id="m_arm"></div>
+ 3244|           <div class="field"><label>Бедро</label><input type="text" step="0.5" inputmode="decimal" id="m_thigh"></div>
+ 3245|           <div class="field"><label>Шея</label><input type="text" step="0.5" inputmode="decimal" id="m_neck"></div>
+ 3246|         </div>
+ 3247|         <button class="btn" id="bM">Сохранить</button>
+ 3248|         <div class="note">Талия — на уровне пупка, на выдохе, не втягивая. Раз в 1–2 недели. При стабильном весе талия — лучший бытовой индикатор смены состава тела.</div>
+ 3249|         </div>
+ 3250|       </details>
+ 3251|     </div>
+ 3252|     <div class="card pro">
+ 3253|       <div class="hd"><h2>Состав тела</h2><span class="mini">по обхватам</span></div>
+ 3254|       <div id="bfBox"></div>
+ 3255|     </div>
+ 3256|     <details class="det pro" id="mDet"><summary>Динамика замеров</summary>
+ 3257|       <div class="scr" id="mChips" style="margin:8px 0 4px;padding:0"></div>
+ 3258|       <canvas id="mCh" height="150"></canvas>
+ 3259|       <div id="mList" style="margin-top:8px"></div></details>
+ 3260|     <!-- v615: рычаги — это замеры тела (рулетка, один раз в жизни), поэтому живут здесь.
+ 3261|          Статья «Зачем измерять рычаги» снята: совет под замером говорит сам. -->
+ 3262|     <details class="det pro" id="levDet">
+ 3263|       <summary>Рычаги<span class="mini" id="levSt" style="margin-left:auto"></span></summary>
+ 3264|       <div style="margin-top:8px">
+ 3265|       <div id="levBox"></div>
+ 3266|       <div id="levForm" style="margin-top:12px"></div>
+ 3267|       <button class="btn" id="bLev">Сохранить</button>
+ 3268|       <div class="note">
+ 3269|         Делается <b>один раз в жизни</b> — кости не растут. Нужна рулетка и пять минут.
+ 3270|         Из фото это не измеряется: ракурс и перспектива врут на 10–15%, а тут важны единицы процентов.
+ 3271|       </div>
+ 3272|       </div>
+ 3273|     </details>
+ 3274|   </div>
+ 3275| 
+ 3276|   <div id="bd-s" style="display:none">
+ 3277|     <div class="card">
+ 3278|       <!-- Дата в шапке дублировала поле «Дата» прямо под ней (как в «Замерах
+ 3279|            лентой», 19.08): два одинаковых значения рядом, одно из которых
+ 3280|            нельзя нажать. -->
+ 3281|       <div class="hd"><h2>Шаги</h2></div>
+ 3282|       <div class="field" style="margin-bottom:12px"><label>Дата</label><input type="date" id="stPick"></div>
+ 3283|       <div class="row">
+ 3284|         <input type="number" id="stIn" placeholder="8500" inputmode="numeric">
+ 3285|         <button class="btn" style="flex:0 0 auto" id="bSt">Записать</button>
+ 3286|       </div>
+ 3287|       <!-- Остатки автошагов видит ТОЛЬКО тот, у кого команда уже настроена
+ 3288|            (есть личный код). Инструкцию мы убрали, но ломать тех, у кого всё
+ 3289|            работает, незачем — они просто не увидят ничего нового, а новые
+ 3290|            люди не увидят ничего лишнего (23.08). -->
+ 3291|       <!-- v677: строки одного набора (CRAFT §4) вместо серой пилюли, поля с
+ 3292|            подписью-объяснением и абзаца. Поле имени команды живёт на экране
+ 3293|            (31.08); объяснение — в вопросе перед запуском команды, не подписью (браузерный закон «проза вне жеста»). -->
+ 3294|       <div id="stScBox" style="display:none">
+ 3295|         <div class="lst" style="margin-top:12px">
+ 3296|           <button class="lrow" id="bStSync"><span class="g"><span class="t">Обновить из «Здоровья»</span></span><span class="ch"></span></button>
+ 3297|           <label class="lrow inp" for="scName"><span class="g"><span class="t">Команда</span></span><input id="scName" placeholder="Шаги"></label>
+ 3298|         </div>
+ 3299|         <div class="lst-f" id="stSyncSt"></div>
+ 3300|       </div>
+ 3301|       <details class="det" style="margin-top:12px"><summary>Шаги и калории</summary>
+ 3302|       <div class="ib" style="margin-top:8px">
+ 3303|         <b>Шаги НЕ идут в расчёт калорий — и это не баг.</b> Адаптивный алгоритм считает расход из фактического изменения веса, а значит уже включает твои шаги, тренировки и всё остальное. Добавить шаги отдельно = посчитать их дважды и завысить таргет.<br><br>
+ 3304|         Зачем они тогда: на дефиците бытовая активность (NEAT) подсознательно падает на 300–500 ккал/день — меньше ходишь, меньше ёрзаешь. Это <b>главная причина застоя</b> на сушке, и видно её только по шагам.
+ 3305|       </div>
+ 3306|       </details>
+ 3307|     </div>
+ 3308|     <!-- ИНСТРУКЦИИ ПО АВТОШАГАМ БОЛЬШЕ НЕТ (23.08, решение владельца).
+ 3309|          Здесь стояли пять шагов настройки «Команд»: поиск действий по словам,
+ 3310|          ловушка с Apple Watch (без фильтра «Источник» шаги телефона и часов
+ 3311|          складываются и цифра выходит вдвое больше правды) и отдельная
+ 3312|          автоматизация по времени. Делали три раза — три раза разваливалось.
+ 3313|          Пока эта инструкция висела на экране, приложение обещало автоматику,
+ 3314|          которой у него нет: Safari не даёт сайтам доступ к «Здоровью», это
+ 3315|          ограничение Apple, а не наша недоделка.
+ 3316|          Тем, у кого команда ещё жива, ничего не сломано: тихий фоновый pull
+ 3317|          работает и число подтягивается само. Мы просто перестали это
+ 3318|          рекламировать и обещать. -->
+ 3319|     <div class="note" style="margin:12px 0">
+ 3320|       <b>Шаги вносятся руками — одним тапом.</b> Карточка «Шаги» на вкладке «Еда»:
+ 3321|       тап открывает поле, рядом видно вчерашнее число — для ориентира. Ломаться там
+ 3322|       нечему — ни настроек, ни разрешений, ни внешних сервисов.<br><br>
+ 3323|       Читать «Здоровье» автоматически умеет только нативное приложение: Safari сайтам
+ 3324|       такого доступа не даёт, и это ограничение Apple. Обходы через «Команды» мы
+ 3325|       пробовали трижды, и трижды они разваливались — поэтому больше не предлагаем.
+ 3326|       Автоматика вернётся вместе с приложением в App Store.
+ 3327|     </div>
+ 3328|     <details class="det pro"><summary>NEAT-диагностика</summary>
+ 3329|       <div style="margin-top:8px">
+ 3330|       <div class="g2 mgrid" style="margin-bottom:8px">
+ 3331|         <div class="card"><div class="wcard-h"><span><svg class="ic" style="color:var(--rg3)"><use href="#i-walk"/></svg> Сейчас</span></div>
+ 3332|           <div class="mval" id="st14" style="color:var(--rg3)">—</div><div class="mgoal">среднее за 14 дней</div></div>
+ 3333|         <div class="card"><div class="wcard-h"><span><svg class="ic" style="color:var(--rg3)"><use href="#i-walk"/></svg> База</span></div>
+ 3334|           <div class="mval" id="stBase" style="color:var(--rg3)">—</div><div class="mgoal">первые 14 дней</div></div>
+ 3335|       </div>
+ 3336|       <div id="stBox"></div>
+ 3337|       <canvas id="stCh" height="260" style="margin-top:14px"></canvas>
+ 3338|       </div>
+ 3339|     </details>
+ 3340|     <!-- v615: активность вне зала (бег, падел) — движение, как и шаги; из «Разбора» уехала сюда.
+ 3341|          v677: плита-раскрывашка, как «NEAT-диагностика» рядом, а не карточка с
+ 3342|          висящей чертой; заголовок в три слова, кнопка записи — основная. -->
+ 3343|     <details class="det pro" id="actDet">
+ 3344|       <summary>Активность вне зала</summary>
+ 3345|       <div style="margin-top:12px">
+ 3346|         <div id="actChips" class="scr" style="margin:0 0 8px;padding:0"></div>
+ 3347|         <div class="g2">
+ 3348|           <div class="field"><label>Минуты</label><input type="number" id="act_min" inputmode="numeric" placeholder="45"></div>
+ 3349|           <div class="field"><label>Тяжесть 1–10 (RPE)</label><input type="number" id="act_rpe" min="1" max="10" inputmode="numeric" placeholder="6"></div>
+ 3350|         </div>
+ 3351|         <button class="btn" id="bAct" style="width:100%">Записать</button>
+ 3352|       </div>
+ 3353|     </details>
+ 3354|   </div>
+ 3355| 
+ 3356|   <div id="bd-z" style="display:none">
+ 3357|     <div class="card pro">
+ 3358|       <div class="hd"><h2>Сон</h2></div>
+ 3359|       <div class="field" style="margin-bottom:12px"><label>Утро после сна</label><input type="date" id="zPick"></div>
+ 3360|       <div class="g2">
+ 3361|         <div class="field"><label>Лёг</label><input type="time" id="z_bed"></div>
+ 3362|         <div class="field"><label>Проснулся</label><input type="time" id="z_wake"></div>
+ 3363|       </div>
+ 3364|       <div id="zPrev" class="ib" style="margin-bottom:12px"></div>
+ 3365|       <button class="btn" id="bZ">Записать</button>
+ 3366|       <div class="note">Пиши время <b>отхода ко сну</b>, а не засыпания — засыпание ты всё равно не знаешь. Главное — вести одинаково каждый день, тренд важнее точности.</div>
+ 3367|     </div>
+ 3368|     <details class="det pro"><summary>Сон за месяц</summary>
+ 3369|       <canvas id="zCh" height="260" style="margin-top:8px"></canvas>
+ 3370|       <div id="zStat" style="margin-top:12px"></div>
+ 3371|     </details>
+ 3372|     <details class="det pro"><summary>История сна</summary>
+ 3373|       <div id="zList" style="max-height:240px;overflow-y:auto;margin-top:8px"></div>
+ 3374|     </details>
+ 3375|   </div>
+ 3376| 
+ 3377|   <div id="bd-p" style="display:none">
+ 3378|     <!-- Фото и сравнение видны в обоих режимах (решение владельца 02.09).
+ 3379|          Это самая наглядная обратная связь, какая у нас есть, и понимания
+ 3380|          она не требует. Месяц числилась «не сделанной» ровно потому, что
+ 3381|          была спрятана за режимом. -->
+ 3382|     <div class="card">
+ 3383|       <div class="hd"><h2>Прогресс-фото</h2><span class="mini" id="phCnt"></span></div>
+ 3384|       <!-- Единственные данные, которые не уезжают в облако, — и единственные,
+ 3385|            которые нельзя ввести заново. Предупреждение живёт ЗДЕСЬ, а не только
+ 3386|            в настройках синхронизации (23.08). -->
+ 3387|       <div id="phLocalBox"></div>
+ 3388|       <div id="phDueBox"></div>
+ 3389|       <label class="btn" style="display:block;text-align:center;cursor:pointer">+ Снять / выбрать
+ 3390|         <input type="file" accept="image/*" id="phIn" style="display:none"></label>
+ 3391|       <div id="phRefBox"></div>
+ 3392|       <details class="det" style="margin-top:12px"><summary>Фото и калории</summary>
+ 3393|       <div class="wb" style="margin-top:8px">
+ 3394|         <b>Фото не влияет на расчёт калорий</b> — и не должно. Свет, поза, пампинг и вода дают разброс больше, чем реальное изменение за 2–3 недели. Таргет корректирует только тренд веса.
+ 3395|       </div></details>
+ 3396|       <div class="note">Для сопоставимости: одно место, тот же свет, утром натощак, та же поза и одежда. Раз в 2 недели. Долгое нажатие на фото — удалить.</div>
+ 3397|     </div>
+ 3398|     <div class="card" id="cmpC" style="display:none">
+ 3399|       <div class="hd"><h2>Сравнение</h2><button class="btn gho sm" id="bClrC">Сбросить</button></div>
+ 3400|       <div class="cmp" id="cmpB"></div>
+ 3401|     </div>
+ 3402|     <!-- Галерея появляется, когда есть что показывать. Пока фото нет, она
+ 3403|          стояла второй пустой карточкой подряд и уговаривала снять фото теми
+ 3404|          же словами, что карточка выше — один призыв, поданный дважды (19.08). -->
+ 3405|     <div class="card" id="phGCard">
+ 3406|       <h2>Галерея <span class="mini" style="text-transform:none;letter-spacing:0">— тапни два фото</span></h2>
+ 3407|       <div class="pg" id="phG"></div>
+ 3408|     </div>
+ 3409|   </div>
+ 3410|   <div class="simponly" style="margin:12px 0 0">
+ 3411|     <button class="btn gho sm" data-ui-full style="width:100%">Показать всё — полный режим</button>
+ 3412|     <div class="note" style="margin:8px 0 0">Сейчас включён простой режим: на виду только то, что нужно каждый день. Объём, аналитика, замеры и здоровье никуда не делись — вернутся одной кнопкой.</div>
+ 3413|   </div>
+ 3414| </section>
+ 3415| 
+ 3416| <!-- ══════════ HEALTH ══════════ -->
+ 3417| <section class="view" id="v-health">
+ 3418|   <div class="seg">
+ 3419|     <button class="on" data-hl="b">Анализы</button>
+ 3420|     <button data-hl="s">Препараты</button>
+ 3421|   </div>
+ 3422| 
+ 3423|   <div id="hl-b">
+ 3424|     <div class="card">
+ 3425|       <!-- Дата стоит В шапке карточки, а не отдельной серой строкой под ней:
+ 3426|            там она читалась как недоделка и вдобавок повторяла подзаголовок
+ 3427|            вкладки («анализы от 19.08») — два одинаковых значения на одном
+ 3428|            экране. Та же правка, что уже делалась для «Шагов» и «Замеров
+ 3429|            лентой» 19.08 (24.08). -->
+ 3430|       <!-- v677: «Последняя сдача от 05.09» с кнопкой не помещались в строку —
+ 3431|            кнопка падала под заголовок. Короткий заголовок, дата рядом. -->
+ 3432|       <div class="hd"><h2>Результаты <span class="mini" id="labDate" style="font-weight:400"></span></h2><button class="btn sm" id="bAddLab">+ Внести</button></div>
+ 3433|       <div id="labBox"></div>
+ 3434|     </div>
+ 3435|     <details class="det"><summary>Что смотреть первым</summary>
+ 3436|       <!-- Женщине с менструациями ферритин смотрят раньше всего остального:
+ 3437|            это самая частая причина «сил нет, выносливость упала», и её
+ 3438|            лечат, а не терпят. Мужчине блок не показывается. -->
+ 3439|       <div class="ib" id="labFerr" style="margin-top:8px;display:none;white-space:normal">
+ 3440|         <b>Ферритин — первым.</b> При менструациях железо уходит каждый месяц, и дефицит
+ 3441|         приходит раньше анемии: гемоглобин ещё в норме, а сил уже нет и пульс на разминке
+ 3442|         выше обычного. Сдай <b>ферритин</b> вместе с общим анализом крови — по одному
+ 3443|         гемоглобину дефицит не виден. Дозу железа без ферритина не считает никто:
+ 3444|         нехватка и перегрузка выглядят одинаково, а лечатся наоборот.
+ 3445|       </div>
+ 3446|       <div class="wb" style="margin-top:8px">
+ 3447|         Если принимаешь AAS, четыре маркера убивают людей чаще остального, и все четыре бессимптомны до последнего:<br><br>
+ 3448|         <b>· Гематокрит</b> — загущение крови, риск тромбоза. Растёт почти у всех на курсе.<br>
+ 3449|         <b>· ЛПВП / ЛПНП</b> — оральные AAS обрушивают «хороший» холестерин в пол за недели.<br>
+ 3450|         <b>· Артериальное давление</b> — тихо ползёт вверх, добивает сердце и почки.<br>
+ 3451|         <b>· АЛТ / АСТ</b> — печень; хотя рост от силовых сам по себе тоже поднимает их, так что интерпретировать нужно с врачом.<br><br>
+ 3452|         Приложение показывает твои цифры и тренды. Оно не ставит диагноз и не назначает лечение — это к врачу с распечаткой.
+ 3453|       </div>
+ 3454|     </details>
+ 3455|     <details class="det"><summary>История сдач <span class="mini" id="labCnt"></span></summary>
+ 3456|       <div id="labHist" style="margin-top:8px"></div>
+ 3457|     </details>
+ 3458|   </div>
+ 3459| 
+ 3460|   <div id="hl-s" style="display:none">
+ 3461|     <div class="card">
+ 3462|       <div class="hd"><h2>Приём добавок</h2><button class="btn sec sm" id="bAddSub">+ Другое</button></div>
+ 3463|       <div id="subQuick"></div>
+ 3464|     </div>
+ 3465|     <details class="det"><summary>Журнал приёмов</summary>
+ 3466|       <div id="subList" style="margin-top:12px"></div>
+ 3467|     </details>
+ 3468|     <details class="det"><summary>Что умеет журнал</summary>
+ 3469|       <div class="mini" style="margin-top:12px;white-space:normal;color:var(--t2)">
+ 3470|         Журнал записывает, что и когда ты принял, и кладёт это рядом с анализами и результатами. Это единственное, что здесь реально полезно.<br><br>
+ 3471|         Дозировок, протоколов курсов, схем ПКТ и советов «что добавить» тут нет и не будет. Дозирование — медицинское решение с последствиями для сердца, печени и собственной эндокринной оси; оно требует анализов и врача, который видит именно тебя. Приложение, уверенно называющее дозу, — ровно тот механизм, которым люди гробят здоровье. Записывать — да, советовать — нет.<br><br>
+ 3472|         Если ты уже принимаешь: сдавай кровь до курса, на 4–6 неделе и через 6–8 недель после. Без значений «до» цифры «во время» ничего не значат.
+ 3473|       </div>
+ 3474|     </details>
+ 3475|   </div>
+ 3476| </section>
+ 3477| 
+ 3478| <!-- ══════════ COACH ══════════ -->
+ 3479| <section class="view" id="v-coach">
+ 3480|   <!-- ── ГЛАВНЫЙ ВХОД РАЗДЕЛА — ЦВЕТНАЯ ПЛИТА ──
+ 3481|        Полевой отчёт владельца 29.08, снимки Fitness+: разделы там открываются
+ 3482|        крупной цветной плитой с заголовком, а не серой кнопкой под абзацем.
+ 3483|        Абзац-объяснение уехал за жест: он говорил то же, что и заголовок.
+ 3484|        Цвет плиты — вольт: тренер это про действие и энергию, тот же цвет,
+ 3485|        что у калорий и у главного действия во всём приложении. -->
+ 3486|   <!-- ── ПЕРВОЕ, ЧТО ВИДНО В «КОУЧЕ», — СЕГОДНЯШНИЕ ЦИФРЫ ──
+ 3487|        Замер 31.08: первым блоком стояла плита «Тренер на связи», за ней разбор
+ 3488|        недели, за ним метод расчёта. Цели на СЕГОДНЯ — сколько есть и сколько
+ 3489|        белка — на первом экране раздела не было вовсе, хотя человек заходит
+ 3490|        сюда ровно с этим вопросом. Одна строка, читается на ходу, всё
+ 3491|        объяснение осталось ниже и за жестом.
+ 3492|        Числа берутся из tg() — того же места, откуда их берёт «Еда». Своего
+ 3493|        расчёта здесь нет и быть не должно: две цифры одного и того же
+ 3494|        однажды разойдутся, и человек не узнает, какая настоящая. -->
+ 3495|   <!-- ── КОУЧ ПО СВОДУ ПРАВИЛ (v565) ──
+ 3496|        Роль вкладки — стратегия и ИИ, НЕ ежедневный учёт: плашка «осталось
+ 3497|        ккал» убрана (дневные цифры живут на «Еде», B1). Наблюдения ИИ («Что я
+ 3498|        заметил») — наверху, это и есть коуч (C5). Ежедневное действие
+ 3499|        «Спросить тренера» — крупной кнопкой; всё остальное одним списком
+ 3500|        (C5), у каждой функции свой цвет В ЗНАЧКЕ, не заливкой (C13); имена
+ 3501|        целиком, без подписей-пересказов (C11/C14). Простой режим показывает
+ 3502|        первые две строки, остальные .pro — в полном (id сохранены, ни одна
+ 3503|        функция не потеряна). -->
+ 3504|   <div id="insBox"></div>
+ 3505|   <button class="chero" id="bAsk">
+ 3506|     <span class="li"><svg class="ic" viewBox="0 0 24 24"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg></span>
+ 3507|     <span class="ct">Спросить тренера</span>
+ 3508|     <span class="ch"></span>
+ 3509|   </button>
+ 3510|   <div class="lst coachlst" id="coachRows">
+ 3511|     <button class="lrow" id="bWeek"><span class="li ci-purp"><svg class="ic"><use href="#i-chart"/></svg></span><span class="g"><span class="t">Итоги недели</span></span><span class="ch"></span></button>
+ 3512|     <button class="lrow" id="bAna"><span class="li ci-blue"><svg class="ic"><use href="#i-bolt"/></svg></span><span class="g"><span class="t">Разбор и план</span></span><span class="ch"></span></button>
+ 3513|     <button class="lrow pro" id="bPlan"><span class="li ci-teal"><svg class="ic"><use href="#i-book"/></svg></span><span class="g"><span class="t">Моя программа</span></span><span class="ch"></span></button>
+ 3514|     <button class="lrow pro" id="bTdee"><span class="li ci-gray"><svg class="ic"><use href="#i-flame"/></svg></span><span class="g"><span class="t">Расход и цель</span></span><span class="ch"></span></button>
+ 3515|     <button class="lrow pro" id="bBody"><span class="li ci-orng"><svg class="ic"><use href="#i-cam"/></svg></span><span class="g"><span class="t">Оценка по фото</span></span><span class="ch"></span></button>
+ 3516|     <button class="lrow pro" id="bPack"><span class="li ci-pink"><svg class="ic"><use href="#i-gear"/></svg></span><span class="g"><span class="t">Настройка по анкете</span></span><span class="ch"></span></button>
+ 3517|     <button class="lrow pro" id="bRep"><span class="li ci-gray"><svg class="ic"><use href="#i-save"/></svg></span><span class="g"><span class="t">Отчёт тренеру</span></span><span class="ch"></span></button>
+ 3518|   </div>
+ 3519| 
+ 3520|   <!-- ── v615: БАЗА ЗНАНИЙ — справочник движений живёт здесь, а не в «Зале» ──
+ 3521|        «Зал» — место работы с гантелей в руке: там из справочника нужен только
+ 3522|        лист одного упражнения (тап по названию карточки → showEx). Полистать
+ 3523|        270 движений, поискать и сравнить — занятие для дивана, то есть «Коуча».
+ 3524|        id прежние (exSearch/exChips/exSubChips/exList): rExList и гейт не тронуты. -->
+ 3525|   <details class="det" id="kbCard">
+ 3526|     <summary>База знаний<span class="mini" id="kbCnt" style="margin-left:auto"></span></summary>
+ 3527|     <div style="margin-top:8px">
+ 3528|     <input type="text" id="exSearch" placeholder="Поиск упражнения...">
+ 3529|     <div id="exChips" class="scr row" style="margin:0 0 8px;padding:0"></div>
+ 3530|     <div id="exSubChips" class="scr" style="margin:0 0 10px;padding:0;display:none"></div>
+ 3531|     <div id="exList"></div>
+ 3532|     </div>
+ 3533|   </details>
+ 3534|   <!-- v615: недельный объём по группам — аналитика, а не работа; из «Зала» уехал сюда.
+ 3535|        Оговорки про MEV/MAV/MRV сняты: цифры и диапазон говорят сами. Раскрывашка —
+ 3536|        закон двух экранов: «Коуч» с двумя простынями был 4.2 экрана. -->
+ 3537|   <details class="det pro" id="volCard">
+ 3538|     <summary>Недельный объём<span class="mini" style="margin-left:auto">за 7 дней</span></summary>
+ 3539|     <div id="volBox" style="margin-top:8px"></div>
+ 3540|   </details>
+ 3541| 
+ 3542|   <div class="card pro" id="leverCard" style="display:none">
+ 3543|     <div class="hd"><h2>Не получается есть по плану?</h2></div>
+ 3544|     <div id="leverBox"></div>
+ 3545|   </div>
+ 3546| 
+ 3547| 
+ 3548|   <div class="simponly" style="margin:12px 0 0">
+ 3549|     <button class="btn gho sm" data-ui-full style="width:100%">Показать всё — полный режим</button>
+ 3550|     <div class="note" style="margin:8px 0 0">Сейчас включён простой режим: на виду только то, что нужно каждый день. Объём, аналитика, замеры и здоровье никуда не делись — вернутся одной кнопкой.</div>
+ 3551|   </div>
+ 3552| </section>
+ 3553| 
+ 3554| </main>
+ 3555| 
+ 3556| <div class="rest" id="restBar">
+ 3557|   <div class="fill" id="restFill"></div>
+ 3558|   <button type="button" class="numbtn" id="restBump" aria-label="Добавить 30 секунд. Долгое нажатие — закончить отдых">
+ 3559|     <span class="col"><b class="num" id="restT">1:30</b><span class="cap" id="restCap">отдых</span></span>
+ 3560|     <span class="plus" aria-hidden="true">+30</span>
+ 3561|   </button>
+ 3562|   <span class="tip">Держи цифру — закончить отдых</span>
+ 3563|   <span class="row">
+ 3564|     <button id="restMinus" aria-label="Минус 30 секунд">−30</button>
+ 3565|     <button id="restPause" aria-label="Пауза">Пауза</button>
+ 3566|     <button id="restSkip" class="stopb" aria-label="Закончить отдых"><svg class="ic"><use href="#i-stop"/></svg></button>
+ 3567|   </span>
+ 3568| </div>
+ 3569| <nav>
+ 3570|   <button class="on" data-v="food"><svg viewBox="0 0 24 24"><path d="M4 3v8a3 3 0 003 3v7"/><path d="M7 3v6"/><path d="M17 3c-1.5 2-2 4-2 6s.7 3 2 3 2-1 2-3-.5-4-2-6z"/><path d="M17 12v9"/></svg>Еда</button>
+ 3571|   <button data-v="train"><svg viewBox="0 0 24 24"><path d="M6 7v10M18 7v10M3 10v4M21 10v4M6 12h12"/></svg>Зал</button>
+ 3572|   <button data-v="body"><svg viewBox="0 0 24 24"><path d="M3 17l6-6 4 4 8-8"/><path d="M21 7v5h-5"/></svg>Тело</button>
+ 3573|   <button data-v="health" class="pro"><svg viewBox="0 0 24 24"><path d="M3 12h4l2-5 4 10 2-5h6"/></svg>Здоровье</button>
+ 3574|   <button data-v="coach"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg>Коуч</button>
+ 3575| </nav>
+ 3576| 
+ 3577| <!-- ═══ SHEETS ═══ -->
+ 3578| <!-- v633: выбор дня уехал с главного экрана в лист. Открывается тапом по
+ 3579|      дате в шапке; здесь же всё, что приложение хочет сказать про этот день. -->
+ 3580| <div class="sheet top" id="sh-day"><div class="in">
+ 3581|   <h3><span id="dDateT">Сегодня</span><button data-close aria-label="Закрыть"><svg class="ic"><use href="#i-close"/></svg></button></h3>
+ 3582|   <div class="wkbar" id="wkRings"></div>
+ 3583|   <div class="daystat" id="dayStat">
+ 3584|     <span id="dayUnit"></span>
+ 3585|     <span id="dayStk" style="display:none"></span>
+ 3586|     <span id="dayNote" style="display:none"></span>
+ 3587|     <span id="tSrc"></span>
+ 3588|   </div>
+ 3589|   <div class="note" id="tWhy" style="display:none;margin:12px 0 0"></div>
+ 3590| </div></div>
+ 3591| <div class="sheet" id="sh-dlg"><div class="in">
+ 3592|   <h3><span id="dlgT">Вопрос</span><button data-close aria-label="Закрыть"><svg class="ic"><use href="#i-close"/></svg></button></h3>
+ 3593|   <div class="mini" id="dlgX" style="margin:0 0 16px"></div>
+ 3594|   <div class="dlg-acts"><button class="btn sec" id="dlgNo">Отмена</button><button class="btn" id="dlgOk">OK</button></div>
+ 3595| </div></div>
+ 3596| <div class="sheet" id="sh-prompt"><div class="in">
+ 3597|   <h3><span id="prT">Ввод</span><button data-close aria-label="Закрыть"><svg class="ic"><use href="#i-close"/></svg></button></h3>
+ 3598|   <div class="field"><label class="mini" id="prL" for="prIn"></label><input id="prIn" type="text" autocomplete="off" autocorrect="off" autocapitalize="sentences" spellcheck="false" enterkeyhint="done"></div>
+ 3599|   <div class="dlg-acts"><button class="btn sec" id="prNo">Отмена</button><button class="btn" id="prOk">Сохранить</button></div>
+ 3600| </div></div>
+ 3601| <div class="sheet" id="sh-f"><div class="in">
+ 3602|   <h3><span id="fdT">Добавить</span><button data-close aria-label="Закрыть"><svg class="ic"><use href="#i-close"/></svg></button></h3>
+ 3603|   <!-- ── ПОРЯДОК ПОЛЕЙ = ПОРЯДОК ВВОДА ──
+ 3604|        Полевой отчёт владельца 29.08: «нажимаю ввод вручную — окно ввода
+ 3605|        поверху, добавки идёт, и не видно общее окно». Замер подтвердил: лист
+ 3606|        занимал 746 px из 844 (88 % экрана), а сверху, ДО единственного числа,
+ 3607|        стояли две вещи, которые почти никогда не нужны: «Бренд
+ 3608|        (необязательно)» и переключатель «Еда / Спортпит». Человек записывает
+ 3609|        название и КБЖУ; бренд он вводит раз в двадцать записей, спортпит —
+ 3610|        реже. Обязательное вверху, редкое — за одним жестом внизу, и лист
+ 3611|        перестал накрывать экран целиком. -->
+ 3612|   <div class="field"><label>Название</label><input id="fd_n" placeholder="Куриная грудка"></div>
+ 3613|   <div class="field"><label>Числа указаны</label><select id="fd_u">
+ 3614|     <option value="g">на 100 г</option>
+ 3615|     <option value="ml">на 100 мл</option>
+ 3616|     <option value="pc">за штуку / порцию / скуп</option></select></div>
+ 3617|   <div class="g2">
+ 3618|     <div class="field"><label>Ккал</label><input type="text" inputmode="decimal" id="fd_k"></div>
+ 3619|     <div class="field"><label>Белок, г</label><input type="text" step="0.1" inputmode="decimal" id="fd_p"></div>
+ 3620|     <div class="field"><label>Жиры, г</label><input type="text" step="0.1" inputmode="decimal" id="fd_f"></div>
+ 3621|     <div class="field"><label>Углеводы, г</label><input type="text" step="0.1" inputmode="decimal" id="fd_c"></div>
+ 3622|   </div>
+ 3623|   <!-- v639: еда не из базы и без фото (кафе, чужая кухня) — КБЖУ на 100 г по
+ 3624|        названию, оценка ИИ по типовой рецептуре; форма помечает её честно. -->
+ 3625|   <!-- v678: строка набора, а не серая «пилюля» между полями (CRAFT §4). -->
+ 3626|   <div class="lst" style="margin:-4px 0 12px"><button type="button" class="lrow" id="bFEst"><svg class="ic lg" style="color:var(--ac)"><use href="#i-bolt"/></svg><span class="g"><span class="t">Оценить по названию</span></span><span class="ch"></span></button></div>
+ 3627|   <div class="note" id="fdWarn" hidden style="margin:-6px 0 10px"></div>
+ 3628|   <div class="field" id="fdAW"><label>Сколько сейчас <span id="fdAU">(г)</span></label>
+ 3629|     <input type="text" step="1" inputmode="decimal" id="fd_a"></div>
+ 3630|   <label style="display:flex;align-items:center;gap:8px;margin-bottom:14px;font-size:var(--fs2);line-height:var(--lh2);color:var(--t2)">
+ 3631|     <input type="checkbox" id="fd_s" checked> Сохранить в базу</label>
+ 3632|   <!-- ── БРЕНД СНОВА НА ВИДУ (31.08, решение владельца) ──
+ 3633|        29.08 бренд и спортпит убрали под раскрывашку: лист занимал 88 % экрана.
+ 3634|        Полевой отчёт 31.08: раскрывашка не окупилась — за ней прячется поле,
+ 3635|        которое человек всё равно ищет, а лишний тап при открытой клавиатуре
+ 3636|        дороже сэкономленных пикселей. Возвращаем на виду.
+ 3637|        Но НЕ наверх, как было до 29.08: обязательное (название, числа) остаётся
+ 3638|        первым, редкое — следом. Порядок полей = порядок ввода, и та жалоба
+ 3639|        («не видно общее окно») этой правкой не воскрешается. -->
+ 3640|   <div class="field"><label>Бренд <span style="color:var(--t3);font-weight:400">(необязательно)</span></label>
+ 3641|     <input id="fd_br" placeholder="Bombbar, Светаево, Barilla…" list="brList"><datalist id="brList"></datalist></div>
+ 3642|   <div class="field"><label>Что это</label>
+ 3643|     <div class="seg" style="margin-bottom:0"><button class="on" data-ft="food">Еда</button><button data-ft="sup">Спортпит</button></div></div>
+ 3644|   <button class="btn" id="bFOk">Добавить</button>
+ 3645| </div></div>
+ 3646| 
+ 3647| <div class="sheet" id="sh-a"><div class="in">
+ 3648|   <h3><span id="amT">Порция</span><button data-close aria-label="Закрыть"><svg class="ic"><use href="#i-close"/></svg></button></h3>
+ 3649|   <div class="field"><label id="amL">Сколько (г)</label><input type="text" step="1" inputmode="decimal" id="am_a"></div>
+ 3650|   <div class="seg" id="amStep" style="margin-bottom:12px"></div>
+ 3651|   <div id="amP" class="ob" style="margin-bottom:14px"></div>
+ 3652|   <button class="btn" id="bAOk">Добавить</button>
+ 3653| </div></div>
+ 3654| 
+ 3655| <div class="sheet" id="sh-le"><div class="in">
+ 3656|   <h3><span id="leT">Правка записи</span><button data-close aria-label="Закрыть"><svg class="ic"><use href="#i-close"/></svg></button></h3>
+ 3657|   <div class="field"><label id="leL">Количество</label><input type="text" inputmode="decimal" id="le_a"></div>
+ 3658|   <div class="g3">
+ 3659|     <div class="field"><label>Белок, г</label><input type="text" step="0.1" inputmode="decimal" id="le_p"></div>
+ 3660|     <div class="field"><label>Жиры, г</label><input type="text" step="0.1" inputmode="decimal" id="le_f"></div>
+ 3661|     <div class="field"><label>Углеводы, г</label><input type="text" step="0.1" inputmode="decimal" id="le_c"></div>
+ 3662|   </div>
+ 3663|   <div class="field"><label>Приём</label>
+ 3664|     <div class="seg" id="leSlot" style="margin-bottom:0"></div></div>
+ 3665|   <div class="field"><label>Дата (перенести на другой день)</label><input type="date" id="le_d"></div>
+ 3666|   <div id="leP" class="ob" style="margin-bottom:14px"></div>
+ 3667|   <div id="leSwap" class="note" style="margin-bottom:14px;display:none;white-space:normal;line-height:var(--lhb)"></div>
+ 3668|   <button class="btn" id="bLeOk">Сохранить</button>
+ 3669|   <button class="btn dgr" id="bLeDel" style="margin-top:8px">Удалить запись</button>
+ 3670| </div></div>
+ 3671| 
+ 3672| <div class="sheet" id="sh-cmb"><div class="in">
+ 3673|   <h3><span>Сохранить как блюдо</span><button data-close aria-label="Закрыть"><svg class="ic"><use href="#i-close"/></svg></button></h3>
+ 3674|   <div class="field"><label>Название</label><input id="cb_n" placeholder="Мой завтрак"></div>
+ 3675|   <label>Что войдёт (тапни, чтобы исключить)</label>
+ 3676|   <div id="cbPick" style="margin-bottom:12px"></div>
+ 3677|   <div id="cbSum" class="ob" style="margin-bottom:14px"></div>
+ 3678|   <button class="btn" id="bCbOk">Сохранить блюдо</button>
+ 3679|   <div class="note">Дальше добавляется одним тапом целиком. Порции можно будет поправить.</div>
+ 3680| </div></div>
+ 3681| 
+ 3682| <div class="sheet" id="sh-meal"><div class="in">
+ 3683|   <h3><span>Что съесть</span><button data-close aria-label="Закрыть"><svg class="ic"><use href="#i-close"/></svg></button></h3>
+ 3684|   <div class="seg" style="margin-bottom:12px" id="mlSlotSeg"></div>
+ 3685|   <div class="seg" style="margin-bottom:12px" id="mlModeSeg">
+ 3686|     <!-- Коротко: на узком экране «Собрать из продуктов» не помещалось даже
+ 3687|          после ужатия кегля, а мельчить подписи ниже 12 px нельзя. Смысл тот
+ 3688|          же, читается с одного взгляда. -->
+ 3689|     <button class="on" data-mlv="pp">Готовые</button>
+ 3690|     <button data-mlv="solve">Из продуктов</button>
+ 3691|     <button data-mlv="cafe">В кафе</button>
+ 3692|   </div>
+ 3693|   <div class="seg" style="margin-bottom:12px" id="mlCookSeg"><button data-cook="all" class="on">Все</button><button data-cook="nocook">Без плиты</button></div>
+ 3694|   <div id="mlGap" class="ib" style="margin-bottom:12px"></div>
+ 3695|   <div class="field" id="mlSrcField"><label>Откуда подбирать</label><select id="ml_src">
+ 3696|     <option value="new" selected>Новое — чего я ещё не ел</option>
+ 3697|     <option value="all">Смешать: моё + общий каталог</option>
+ 3698|     <option value="mine">Привычное — то, что я обычно ем</option>
+ 3699|   </select></div>
+ 3700|   <div id="mlOut"></div>
+ 3701| </div></div>
+ 3702| 
+ 3703| <div class="sheet" id="sh-why"><div class="in">
+ 3704|   <h3><span>Почему убрать?</span><button data-close aria-label="Закрыть"><svg class="ic"><use href="#i-close"/></svg></button></h3>
+ 3705|   <div class="lst" id="whyList"></div>
+ 3706| </div></div>
+ 3707| 
+ 3708| <div class="sheet" id="sh-rec"><div class="in">
+ 3709|   <h3><span>Рецепты — приготовить</span><button data-close aria-label="Закрыть"><svg class="ic"><use href="#i-close"/></svg></button></h3>
+ 3710|   <input type="text" id="recQ" placeholder="Найти блюдо: борщ, шаурма, сырники…" style="margin-bottom:12px">
+ 3711|   <div class="seg" style="margin-bottom:12px">
+ 3712|     <button class="on" data-rcmode="kbju">Под калории</button>
+ 3713|     <button data-rcmode="day">На день</button>
+ 3714|     <button data-rcmode="pantry">Из наличия</button>
+ 3715|   </div>
+ 3716|   <!-- Четыре ряда управления занимали весь первый экран, и первое блюдо
+ 3717|        начиналось за сгибом — при том, что приём и «готовлю» приложение и так
+ 3718|        угадывает по времени суток. Оставлены на виду поиск и режим, остальное
+ 3719|        свёрнуто строкой с текущим выбором (19.08). -->
+ 3720|   <details class="det" id="recMore">
+ 3721|     <summary>Подбор<span class="mini" id="recPick"></span></summary>
+ 3722|     <div style="margin-top:12px">
+ 3723|       <div class="seg" style="margin-bottom:12px" id="recSlotSeg"></div>
+ 3724|       <div class="seg" style="margin-bottom:0">
+ 3725|         <button class="on" data-rc="cook">Готовлю</button>
+ 3726|         <button data-rc="nocook">Без готовки</button>
+ 3727|       </div>
+ 3728|     </div>
+ 3729|   </details>
+ 3730|   <div id="recGap" class="ib" style="margin-bottom:12px"></div>
+ 3731|   <div id="recOut"></div>
+ 3732| </div></div>
+ 3733| 
+ 3734| <div class="sheet" id="sh-pantry"><div class="in">
+ 3735|   <h3><span>Кладовая</span><button data-close aria-label="Закрыть"><svg class="ic"><use href="#i-close"/></svg></button></h3>
+ 3736|   <div class="field"><label>Поиск</label>
+ 3737|     <input type="text" id="pn_q" placeholder="творог, гречка, масло…"></div>
+ 3738|   <div id="pnSearch" style="margin-bottom:12px"></div>
+ 3739|   <!-- v678: три способа завести продукт — строки набора со значком (как «Скан»
+ 3740|        на «Еде»), а не три «пилюли» в ряд (CRAFT §4). -->
+ 3741|   <div class="lst">
+ 3742|     <button class="lrow" id="bPnScan"><svg class="ic lg" style="color:var(--ac)"><use href="#i-scan"/></svg><span class="g"><span class="t">Штрихкод</span></span><span class="ch"></span></button>
+ 3743|     <button class="lrow" id="bPnVoice"><svg class="ic lg" style="color:var(--ac)"><use href="#i-mic"/></svg><span class="g"><span class="t">Голосом</span></span><span class="ch"></span></button>
+ 3744|     <button class="lrow" id="bPnManual"><svg class="ic lg" style="color:var(--ac)"><use href="#i-plus"/></svg><span class="g"><span class="t">Вручную</span></span><span class="ch"></span></button>
+ 3745|   </div>
+ 3746|   <div class="hd"><h2>У меня дома</h2><span class="mini" id="pnCount"></span></div>
+ 3747|   <div id="pnList" style="margin-bottom:14px"></div>
+ 3748|   <details class="det" id="pnSeedDet">
+ 3749|     <summary>Часто дома</summary>
+ 3750|     <div class="mini" style="color:var(--t3);margin:8px 0 6px">Тапни то, что всегда стоит на полке — масло, крупы, яйца, специи. Подбор «Из наличия» поднимет наверх то, что готовится из отмеченного, а список покупок это вычтет.<br><b>Важно:</b> кладовая не убывает сама — съеденное из неё не пропадает. Ничего вести не надо: когда корзина что-то вычтет как «уже дома», она спросит там же, и одним тапом это вернётся в покупки.</div>
+ 3751|     <div id="pnQuick" class="scr" style="margin:0 0 6px;padding:0"></div>
+ 3752|   </details>
+ 3753|   <details class="det"><summary><svg class="ic"><use href="#i-home"/></svg> Общий дом <span class="mini" id="pnHouseSum" style="color:var(--t3)"></span></summary>
+ 3754|     <div id="pnHouseBox" style="margin-top:8px"></div>
+ 3755|   </details>
+ 3756| </div></div>
+ 3757| 
+ 3758| <div class="sheet" id="sh-find"><div class="in">
+ 3759|   <div class="row" style="margin-bottom:12px">
+ 3760|     <input type="search" id="qSearch2" placeholder="Творог, гречка, кофе…" autocomplete="off" style="flex:1;min-width:0">
+ 3761|     <button class="btn sec" data-close style="flex:0 0 auto;width:52px;padding:10px 0" aria-label="Закрыть"><svg class="ic"><use href="#i-close"/></svg></button>
+ 3762|   </div>
+ 3763|   <!-- v636: четыре помощника записи — одним рядом чипов, в простом режиме
+ 3764|        остаётся только «Что съесть» (.pro прячет остальные, как и раньше). -->
+ 3765|   <div class="eatchips" id="eatChips">
+ 3766|     <button class="btn sec sm" id="bMeal"><svg class="ic"><use href="#i-dish"/></svg> Что съесть</button>
+ 3767|     <button class="btn sec sm pro" id="bRec"><svg class="ic"><use href="#i-book"/></svg> Рецепты</button>
+ 3768|     <button class="btn sec sm pro" id="bPantry"><svg class="ic"><use href="#i-home"/></svg> Кладовая</button>
+ 3769|     <button class="btn sec sm pro" id="bShop"><svg class="ic"><use href="#i-cart"/></svg> Покупки</button>
+ 3770|   </div>
+ 3771|   <div id="qList2"></div>
+ 3772| </div></div>
+ 3773| 
+ 3774| <!-- Контекстные действия по долгому нажатию: заголовок, полный КБЖУ, кнопки -->
+ 3775| <div class="sheet" id="sh-act"><div class="in">
+ 3776|   <h3><span id="actT">Действия</span><button data-close aria-label="Закрыть"><svg class="ic"><use href="#i-close"/></svg></button></h3>
+ 3777|   <div class="s" id="actS" style="color:var(--t2);margin:-6px 0 12px"></div>
+ 3778|   <div id="actBtns"></div>
+ 3779| </div></div>
+ 3780| 
+ 3781| <div class="sheet" id="sh-scan"><div class="in">
+ 3782|   <h3><span>Скан</span><button data-close aria-label="Закрыть"><svg class="ic"><use href="#i-close"/></svg></button></h3>
+ 3783|   <!-- Три перехода подряд — это ровно группа-список: вся строка нажимаема,
+ 3784|        шеврон справа, разделитель от начала текста. -->
+ 3785|   <div class="lst">
+ 3786|     <button class="lrow" id="scM"><svg class="ic lg" style="color:var(--ac)"><use href="#i-cam"/></svg><span class="g"><span class="t">Фото блюда</span><span class="s">сфотай тарелку — ИИ оценит состав и калории</span></span><span class="ch"></span></button>
+ 3787|     <button class="lrow" id="scB"><svg class="ic lg" style="color:var(--ac)"><use href="#i-scan"/></svg><span class="g"><span class="t">Штрихкод</span><span class="s">упакованный продукт — точные КБЖУ из базы</span></span><span class="ch"></span></button>
+ 3788|     <button class="lrow" id="scL"><svg class="ic lg" style="color:var(--ac)"><use href="#i-cam"/></svg><span class="g"><span class="t">Этикетка</span><span class="s">сфотай таблицу КБЖУ на упаковке</span></span><span class="ch"></span></button>
+ 3789|   </div>
+ 3790| </div></div>
+ 3791| 
+ 3792| <!-- Три листа «Коуча» (03.09): содержимое прежних карточек без изменений,
+ 3793|      только вход — строкой на экране. -->
+ 3794| <div class="sheet" id="sh-week"><div class="in">
+ 3795|   <h3><span>Итоги недели</span><button data-close aria-label="Закрыть"><svg class="ic"><use href="#i-close"/></svg></button></h3>
+ 3796|   <div id="recapBox"></div>
+ 3797| </div></div>
+ 3798| 
+ 3799| <div class="sheet" id="sh-tdee"><div class="in">
+ 3800|   <h3><span>Расход и цель</span><button data-close aria-label="Закрыть"><svg class="ic"><use href="#i-close"/></svg></button></h3>
+ 3801|   <!-- v596: лист переверстан под нативный лист iOS (задание владельца 14.09):
+ 3802|        карточка одна, блоки внутри разделены тонкими линиями; герой — расход,
+ 3803|        под ним компактная подпись; БЖУ — три колонки «цифра над подписью»;
+ 3804|        темп и цель — строки-переходы. Логика и все id прежние. -->
+ 3805|   <div class="card tdee">
+ 3806|     <!-- v616: ручная кнопка «Пересчитать» снята. Расход и так пересчитывается сам
+ 3807|          при каждой записи веса, при синхронизации и при правке настроек, а
+ 3808|          разобрать динамику и пересчитать по просьбе умеет тренер в чате. Кнопка
+ 3809|          оставалась единственным местом, где человек должен был обслуживать
+ 3810|          алгоритм руками. -->
+ 3811|     <!-- Пока считать не из чего, вместо таблицы прочерков — одна строка
+ 3812|          с действием (тот же приём, что на «Еде»: стена нулей выглядит как
+ 3813|          сломанное приложение, а не как «данных ещё нет»). -->
+ 3814|     <div id="gEmpty" class="empty keep" style="display:none"></div>
+ 3815|     <div id="gBody">
+ 3816|     <div class="tdee-sec">
+ 3817|       <div class="tdee-hero" id="tdVRow">
+ 3818|         <div class="bn" id="tdV" style="color:var(--rg1)">—</div><div class="bnu">ккал/день — расход по факту</div>
+ 3819|       </div>
+ 3820|       <div class="mini" id="tdSoon" style="display:none"></div>
+ 3821|       <div class="mini" id="tdS"></div>
+ 3822|     </div>
+ 3823|     <!-- Плитка «ккал» убрана 11.09: то же число уже стоит героем выше, и
+ 3824|          человек видит одну цифру дважды подряд. Остаются макросы. -->
+ 3825|     <div class="tdee-sec">
+ 3826|       <div class="g3 tdee-macro">
+ 3827|         <div class="tile"><div class="tv" id="gP" style="color:var(--p)">—</div><div class="mini">белок, г</div></div>
+ 3828|         <div class="tile"><div class="tv" id="gF" style="color:var(--f)">—</div><div class="mini">жиры, г</div></div>
+ 3829|         <div class="tile"><div class="tv" id="gC" style="color:var(--cb)">—</div><div class="mini">углев, г</div></div>
+ 3830|       </div>
+ 3831|       <div class="mini" id="gSrc"></div>
+ 3832|     </div>
+ 3833|     <!-- Журнал решений по калориям стоит РЯДОМ С ЦИФРОЙ, о которой вопрос:
+ 3834|          «почему такая цель» спрашивают здесь, а не в истории программы во
+ 3835|          вкладке зала. Свёрнут: нужен не каждый день, но обязан быть под рукой. -->
+ 3836|     <div id="gKcalLog"></div>
+ 3837|     <div class="tdee-rows">
+ 3838|       <div class="stat"><span class="l">Целевой темп</span><span class="v" id="gR">—</span></div>
+ 3839|       <div class="stat"><span class="l">Фактический темп (4 нед)</span><span class="v" id="gRA">—</span></div>
+ 3840|       <div class="stat" id="gWrow" style="cursor:pointer"><span class="l">Целевой вес</span><span class="v" id="gW">—</span></div>
+ 3841|     </div>
+ 3842|     <div class="mini" id="gETA"></div>
+ 3843|     </div>
+ 3844|     <details class="det" id="tdDet"><summary>Как посчитано</summary>
+ 3845|       <div id="tdB" style="margin-top:12px"></div>
+ 3846|       <div class="note keep" style="margin-top:12px">
+ 3847|         <b>1. Тренд веса.</b> Дневной вес шумит на ±1–2 кг из-за воды, гликогена и кишечника. Берётся экспоненциальное скользящее среднее (α = 0.25), а не сырые цифры.<br><br>
+ 3848|         <b>2. Энергобаланс.</b> 1 кг ≈ 7700 ккал. Тренд упал на 1.0 кг за 14 дней при среднем потреблении 2400 ⇒ расход = 2400 + (1.0 × 7700 / 14) = <b>2950 ккал</b>. Это твой факт, а не формула Миффлина.<br><br>
+ 3849|         <b>3. Сглаживание.</b> Новая оценка мешается с прошлой (вес новой — 35%), чтобы одна плохая неделя не сломала таргет.<br><br>
+ 3850|         <b>4. Цель.</b> Таргет = расход + (темп × 7700 / 7). Белок и жиры фиксированы на кг, углеводы — остаток.<br><br>
+ 3851|         <b style="color:var(--wn)">Слабое место, которое надо знать.</b> Алгоритм не знает, сколько ты съел — только то, что ты <b>записал</b>. Случайный шум ±20% он переваривает и сходится за 4–6 недель. А вот <b>систематическая</b> ошибка течёт в таргет напрямую: стабильно завышаешь еду на 25% — алгоритм решит, что расход 3800 вместо 2900, и посадит на профицит. Вывод контринтуитивный: <b>последовательность записи важнее точности</b>.
+ 3852|       </div>
+ 3853|     </details>
+ 3854|   </div>
+ 3855| </div></div>
+ 3856| 
+ 3857| <div class="sheet" id="sh-plan"><div class="in">
+ 3858|   <h3><span>План от тренера</span><button data-close aria-label="Закрыть"><svg class="ic"><use href="#i-close"/></svg></button></h3>
+ 3859|   <div class="card">
+ 3860|     <div id="planBox"></div>
+ 3861|   </div>
+ 3862|   <!-- Два действия ушли из шапки карточки в строки: на мелком кегле в углу
+ 3863|        заголовка они читались как ярлыки, а не как вход. -->
+ 3864|   <div class="lst">
+ 3865|     <button class="lrow" id="bPlanImg"><span class="g"><span class="t">Загрузить фото плана</span></span><span class="ch"></span></button>
+ 3866|     <button class="lrow" id="bPlanTxt"><span class="g"><span class="t">Вставить текстом</span></span><span class="ch"></span></button>
+ 3867|   </div>
+ 3868| </div></div>
+ 3869| 
+ 3870| <!-- «Закрыть тренировку» — лист, а не карточка внизу экрана. Замер 03.09:
+ 3871|      карточка стояла 316 px под тренировкой и нужна три секунды в день
+ 3872|      (тезис владельца). Вход — кнопка в шапке начатой тренировки. Все id
+ 3873|      сохранены: обработчики не трогались. -->
+ 3874| <div class="sheet" id="sh-sess"><div class="in">
+ 3875|   <h3><span>Закрыть тренировку</span><button data-close aria-label="Закрыть"><svg class="ic"><use href="#i-close"/></svg></button></h3>
+ 3876|   <div class="mini" id="ssAuto" style="margin:-8px 0 12px"></div>
+ 3877|       <div id="ssPrev" class="ib" style="margin-bottom:12px"></div>
+ 3878|       <div class="field"><label>Тяжесть 1–10 (RPE)</label><input type="number" id="ss_rpe" min="1" max="10" placeholder="7"></div>
+ 3879|       <details class="det" id="sessDet"><!-- Закон экрана 25.08: заголовок объяснял, как пользоваться раскрывашкой
+ 3880|            («тапни чтобы изменить») и что время ставится само — то есть учил
+ 3881|            интерфейсу. Осталось имя раздела. -->
+ 3882|       <summary>Время сессии</summary>
+ 3883|         <div class="field" style="margin-top:12px"><label>Начал</label><input type="time" id="ss_start"></div>
+ 3884|         <div class="field"><label>Закончил</label><input type="time" id="ss_end"></div>
+ 3885|       </details>
+ 3886|       <!-- v678: главное действие листа — основная кнопка, не серая «пилюля» между плитами. -->
+ 3887|       <button class="btn" id="bSess" style="margin:4px 0 16px">Записать нагрузку</button>
+ 3888|       <button class="btn gho sm" id="bSessOpen" hidden style="margin-top:8px">Открыть тренировку снова</button>
+ 3889|       <button class="btn gho sm" id="bSess2" hidden style="margin-top:8px">Вторая тренировка сегодня</button>
+ 3890|       <!-- v615: история сессий — рядом с формой сессии, а не в «Разборе»; тап по строке — правка той сессии. -->
+ 3891|       <details class="det"><summary>История сессий</summary>
+ 3892|         <div id="sessList" style="margin-top:8px"></div>
+ 3893|       </details>
+ 3894|       <div class="note">Нагрузка = RPE × минуты. Время проставляется автоматически по подходам — руками менять не обязательно.</div>
+ 3895| </div></div>
+ 3896| 
+ 3897| <div class="sheet" id="sh-st"><div class="in">
+ 3898|   <h3><span>Подход</span><button data-close aria-label="Закрыть"><svg class="ic"><use href="#i-close"/></svg></button></h3>
+ 3899|   <div class="field"><label>Упражнение</label><select id="st_e" style="display:none"></select>
+ 3900|     <button type="button" class="exp-f" id="st_eBtn"><span id="st_eLbl">Выбрать упражнение</span></button></div>
+ 3901|   <div class="g3" id="stFields">
+ 3902|     <div class="field"><label>Вес (кг)</label><input type="text" step="0.5" inputmode="decimal" id="st_w"></div>
+ 3903|     <div class="field"><label>Повторы</label><input type="number" inputmode="numeric" id="st_r"></div>
+ 3904|     <div class="field"><label>RPE</label><input type="number" min="1" max="10" step="0.5" id="st_rpe" placeholder="8"></div>
+ 3905|   </div>
+ 3906|   <div id="st_prev" class="ib" style="margin-bottom:14px"></div>
+ 3907|   <button class="btn" id="bStOk">Добавить подход</button>
+ 3908| </div></div>
+ 3909| 
+ 3910| <div class="expick" id="exPick">
+ 3911|   <div class="expick-h"><button id="exPickClose" aria-label="назад"><svg class="ic chevl"><use href="#i-chev"/></svg></button>
+ 3912|     <input id="exPickQ" type="search" placeholder="Поиск: жим, тяга, бицепс…" autocomplete="off"></div>
+ 3913|   <div class="expick-b" id="exPickList"></div>
+ 3914| </div>
+ 3915| 
+ 3916| <div class="sheet" id="sh-lab"><div class="in">
+ 3917|   <h3><span>Анализы</span><button data-close aria-label="Закрыть"><svg class="ic"><use href="#i-close"/></svg></button></h3>
+ 3918|   <div class="field"><label>Дата сдачи</label><input type="date" id="lab_d"></div>
+ 3919|   <!-- v678: строка набора с подвалом вместо серой «пилюли» и серой подписи (CRAFT §4). -->
+ 3920|   <div class="lst"><label class="lrow" for="labFile"><svg class="ic lg" style="color:var(--ac)"><use href="#i-cam"/></svg><span class="g"><span class="t">Из фото или PDF</span></span><span class="ch"></span><input type="file" accept="image/*,application/pdf" id="labFile" style="display:none"></label></div>
+ 3921|   <div class="lst-f">Файл уйдёт в Anthropic целиком, закрой ФИО.</div>
+ 3922|   <div class="note" id="labAiNote" hidden style="margin-bottom:12px"></div>
+ 3923|   <div id="labForm"></div>
+ 3924|   <button class="btn" id="bLabOk" style="margin-top:8px">Сохранить</button>
+ 3925|   <div class="note">Референсы — взрослые по полу из анкеты, лаборатории отличаются. Ориентируйся на референс своей лаборатории, а решения принимай с врачом.</div>
+ 3926| </div></div>
+ 3927| 
+ 3928| <div class="sheet" id="sh-sub"><div class="in">
+ 3929|   <h3><span>Запись приёма</span><button data-close aria-label="Закрыть"><svg class="ic"><use href="#i-close"/></svg></button></h3>
+ 3930|   <div class="g2">
+ 3931|     <div class="field"><label>Дата</label><input type="date" id="sb_d"></div>
+ 3932|     <div class="field"><label>Время</label><input type="time" id="sb_t"></div>
+ 3933|   </div>
+ 3934|   <div class="g2">
+ 3935|     <div class="field"><label>Категория</label><select id="sb_c">
+ 3936|       <option value="sup">Добавка / витамин</option><option value="aas">AAS / анаболик</option>
+ 3937|       <option value="anc">Вспом. / ПКТ</option><option value="pep">Пептид</option><option value="med">Лекарство</option></select></div>
+ 3938|     <div class="field"><label>Когда</label><select id="sb_rel">
+ 3939|       <option value="">— не привязано</option><option value="pre">До трен</option><option value="post">После трен</option>
+ 3940|       <option value="morning">Утро</option><option value="night">На ночь</option></select></div>
+ 3941|   </div>
+ 3942|   <div class="field"><label>Название</label><input id="sb_n" placeholder="как записано на упаковке"></div>
+ 3943|   <div class="row" style="margin-bottom:12px">
+ 3944|     <div><label>Доза (сколько принял)</label><input type="number" step="0.01" id="sb_v"></div>
+ 3945|     <div><label>Ед.</label><select id="sb_u">
+ 3946|       <option>мг</option><option>г</option><option>мкг</option><option>МЕ</option><option>мл</option><option>таб</option><option>капс</option></select></div>
+ 3947|   </div>
+ 3948|   <!-- Что внутри — числами, а не строкой. Поля появляются по типу добавки:
+ 3949|        у Омеги спрашиваем ЭПК и ДГК, у магния — элементарный и форму. Человек
+ 3950|        переписывает с банки то, что там прямо напечатано (28.08). -->
+ 3951|   <div class="field"><label>Что это <span style="color:var(--t3);font-weight:400">— чтобы считать дозу</span></label>
+ 3952|     <select id="sb_kind"></select></div>
+ 3953|   <div id="sb_actf"></div>
+ 3954|   <div class="field" id="sb_actw"><label>Действующее вещество</label>
+ 3955|     <input id="sb_act" placeholder="напр. ЭПК 330 мг + ДГК 220 мг"></div>
+ 3956|   <div id="sb_adv"></div>
+ 3957|   <div class="field"><label>Заметка</label><input id="sb_note" placeholder="самочувствие, побочки, инъекция куда и т.п."></div>
+ 3958|   <button class="btn" id="bSbOk">Записать</button>
+ 3959|   <div class="note">Журнал фиксирует факт. Он не советует дозы и не оценивает схему.</div>
+ 3960| </div></div>
+ 3961| 
+ 3962| <div class="sheet" id="sh-subinfo"><div class="in">
+ 3963|   <h3><span id="siT">Добавка</span><button data-close aria-label="Закрыть"><svg class="ic"><use href="#i-close"/></svg></button></h3>
+ 3964|   <div id="siBody"></div>
+ 3965|   <div class="lst" style="margin-top:12px">
+ 3966|     <button class="lrow" id="siMan"><span class="g"><span class="t">Записать вручную</span></span><span class="ch"></span></button>
+ 3967|     <button class="lrow" id="siDel"><span class="g"><span class="t">Убрать из списка частых</span></span><span class="ch"></span></button>
+ 3968|   </div>
+ 3969| </div></div>
+ 3970| 
+ 3971| <div class="sheet" id="sh-ex"><div class="in">
+ 3972|   <h3><span id="exT">Упражнение</span><button data-close aria-label="Закрыть"><svg class="ic"><use href="#i-close"/></svg></button></h3>
+ 3973|   <div id="exBody"></div>
+ 3974| </div></div>
+ 3975| 
+ 3976| <div class="sheet" id="sh-ai"><div class="in">
+ 3977|   <h3><span id="aiT">Распознавание</span><button data-close aria-label="Закрыть"><svg class="ic"><use href="#i-close"/></svg></button></h3>
+ 3978|   <div id="aiBody"></div>
+ 3979| </div></div>
+ 3980| 
+ 3981| <div class="sheet" id="sh-travel"><div class="in">
+ 3982|   <h3><span>Тренировка на выезде</span><button data-close aria-label="Закрыть"><svg class="ic"><use href="#i-close"/></svg></button></h3>
+ 3983|   <div class="note" style="margin-top:0">Чужой зал, отель, дача — соберу день из того, что есть под рукой. Программа не изменится: завтра всё как было.</div>
+ 3984|   <div class="field"><label>Что доступно</label><select id="tv_eq">
+ 3985|     <option value="bw">Ничего — только свой вес</option>
+ 3986|     <option value="db">Гантели / штанга</option>
+ 3987|     <option value="gym">Полноценный зал</option></select></div>
+ 3988|   <div class="field"><label>Сколько есть времени, мин</label><input type="number" id="tv_min" inputmode="numeric" value="40"></div>
+ 3989|   <button class="btn" id="bTravelGo">Собрать тренировку</button>
+ 3990| </div></div>
+ 3991| 
+ 3992| <div class="sheet" id="sh-cat"><div class="in">
+ 3993|   <h3><span>Готовые программы</span><button data-close aria-label="Закрыть"><svg class="ic"><use href="#i-close"/></svg></button></h3>
+ 3994|   <div class="mini" style="margin:-6px 0 10px;color:var(--t3)">Каждая собирается под твой зал и твои ограничения: чего нет или от чего болит — не поставим.</div>
+ 3995|   <!-- Отбор по числу дней — первый вопрос человека к списку программ:
+ 3996|        «сколько раз в неделю я реально смогу». -->
+ 3997|   <div id="catFil" class="scr row" style="margin:0 0 12px;padding:0"></div>
+ 3998|   <div id="catList"></div>
+ 3999|   <div class="note">Программа — рамка, а не догма. Взял и не подошло — можно поменять в любой момент, история подходов останется.</div>
+ 4000| </div></div>
+ 4001| 
+ 4002| <div class="sheet" id="sh-prog"><div class="in">
+ 4003|   <h3><span>Собрать программу</span><button data-close aria-label="Закрыть"><svg class="ic"><use href="#i-close"/></svg></button></h3>
+ 4004|   <div class="field"><label>Дней в неделю</label><select id="pg_d">
+ 4005|     <option value="1">1 — фулбоди (поддержание)</option><option value="2">2 — фулбоди</option><option value="3" selected>3 — фулбоди</option>
+ 4006|     <option value="4">4 — верх/низ</option><option value="5">5 — жим/тяга/ноги +</option>
+ 4007|     <option value="6">6 — жим/тяга/ноги ×2</option><option value="7">7 — каждый день</option></select></div>
+ 4008|   <div class="field"><label>Сколько времени на тренировку</label><select id="pg_m"><option value="35">30–40 минут</option><option value="50">45–55 минут</option><option value="65" selected>60–70 минут</option><option value="80">75–90 минут</option><option value="100">90–120 минут</option></select>
+ 4009|     <div class="mini" style="margin-top:4px;color:var(--t3)">Считаю вместе с разминкой и отдыхом между подходами. Под это время и соберу день.</div></div>
+ 4010|   <div class="field"><label>Инвентарь</label><select id="pg_e">
+ 4011|     <option value="gym">Полноценный зал</option><option value="db">Дом: гантели / штанга</option><option value="kb">Дом: гири</option>
+ 4012|     <option value="bw">Только свой вес</option></select></div>
+ 4013|   <div class="field"><label>Стаж</label><select id="pg_x">
+ 4014|     <option value="nov">До года — новичок</option><option value="int" selected>1–2 года</option>
+ 4015|     <option value="mid">2–5 лет</option><option value="adv">5+ лет</option></select></div>
+ 4016|   <div class="field"><label>Цель</label><select id="pg_g">
+ 4017|     <option value="hyper" selected>Гипертрофия (масса)</option>
+ 4018|     <option value="strength">Сила</option><option value="recomp">Рекомпозиция / поддержание</option></select></div>
+ 4019|   <!-- Один список групп на три состояния вместо одного выпадающего акцента.
+ 4020|        Так делают Alpha Progression (Focus/Neglect на карте тела) и Fitbod
+ 4021|        (Recommend More / Less / Exclude). Тап по группе крутит состояние. -->
+ 4022|   <div class="field"><label>Что подчеркнуть, а что не делать</label>
+ 4023|     <div class="scr row" id="pg_pri" style="gap:6px;padding-bottom:2px"></div>
+ 4024|     <div class="mini" id="pg_priS" style="margin-top:8px;color:var(--t3)"></div>
+ 4025|     <div class="mini" style="margin-top:4px;color:var(--t3)">Зона получит своё движение дважды в неделю, и внутри остальных упражнений я выберу те, что её грузят. Остальное чуть подвинется — объём дня не резиновый.</div></div>
+ 4026|   <div class="field"><label>Подход / насколько жёстко</label><select id="pg_ef">
+ 4027|     <option value="health">Здоровье — поддержание, далеко от отказа</option>
+ 4028|     <option value="growth" selected>Рост — близко к отказу (оптимум)</option>
+ 4029|     <option value="hard">Хардкор — до отказа, максимум</option></select>
+ 4030|     <div class="note" style="margin-top:8px">Системная настройка, а не тумблер на каждую тренировку: задаёт, насколько близко к отказу ты работаешь, и через это — объём и прогрессию всего плана. «Хардкор» = рабочие веса и подходы до отказа (не «лёгкий вес на много раз»); риск травмы выше — новичку сначала техника, потом интенсивность. «Здоровье» ≈ поддержание, заметную массу так не построить.</div></div>
+ 4031|   <div class="field"><label>В какие дни ходишь <span id="pgDowN" style="color:var(--t3)"></span></label>
+ 4032|     <div id="pg_dow" class="scr" style="margin:0;padding:0"></div></div>
+ 4033|   <div class="field"><label>Где болит — покажи на фигуре</label>
+ 4034|     <div id="pg_inj" class="injpick"></div></div>
+ 4035|   <button class="btn" id="bPgOk">Собрать</button>
+ 4036|   <div class="note">Программа — стартовая рамка, а не истина. Дальше она подстраивается под то, растут ли у тебя веса.</div>
+ 4037| </div></div>
+ 4038| 
+ 4039| <div class="sheet" id="sh-pack"><div class="in">
+ 4040|   <h3><span>ИИ-тренер · стартовый пакет</span><button data-close aria-label="Закрыть"><svg class="ic"><use href="#i-close"/></svg></button></h3>
+ 4041|   <div id="pkQ">
+ 4042|   <div class="fgrp">Цель и данные</div>
+ 4043|   <div class="field"><label>Цель</label><select id="pk_goal">
+ 4044|     <option value="cut">Похудеть / просушиться</option>
+ 4045|     <option value="recomp" selected>Подтянуться — рекомпозиция</option>
+ 4046|     <option value="bulk">Набрать массу</option></select></div>
+ 4047|   <div class="g2">
+ 4048|     <div class="field"><label>Пол</label><select id="pk_sex"><option value="m">Мужской</option><option value="f">Женский</option></select></div>
+ 4049|     <div class="field"><label>Возраст</label><input type="number" inputmode="numeric" id="pk_age"></div>
+ 4050|   </div>
+ 4051|   <div class="g2">
+ 4052|     <div class="field"><label>Рост, см</label><input type="number" inputmode="numeric" id="pk_h"></div>
+ 4053|     <div class="field"><label>Вес, кг</label><input type="text" inputmode="decimal" id="pk_w" placeholder="например 96,5"></div>
+ 4054|   </div>
+ 4055|   <div class="mini" id="pkWHint" style="margin:-8px 0 14px"></div>
+ 4056|   <div class="ib" id="pkKeepW" style="display:none;margin-bottom:14px">
+ 4057|     <b>У тебя уже есть программа и журнал тренировок.</b> Пакет обновит питание, режим и добавки —
+ 4058|     а программу можно не трогать: прогрессия и веса останутся как есть.
+ 4059|     <label style="display:flex;align-items:center;gap:8px;margin-top:12px;font-size:var(--fs2);line-height:var(--lh2);color:var(--t2)">
+ 4060|       <input type="checkbox" id="pk_keep" checked> Оставить текущую программу</label></div>
+ 4061|   <div class="fgrp">Тренировки</div>
+ 4062|   <div class="g2">
+ 4063|     <div class="field"><label>Тренировок в неделю</label><select id="pk_d">
+ 4064|       <option value="1">1</option><option value="2">2</option><option value="3" selected>3</option><option value="4">4</option>
+ 4065|       <option value="5">5</option><option value="6">6</option><option value="7">7</option></select></div>
+ 4066|     <div class="field"><label>Время на тренировку</label><select id="pk_m"><option value="35">30–40 минут</option><option value="50">45–55 минут</option><option value="65" selected>60–70 минут</option><option value="80">75–90 минут</option><option value="100">90–120 минут</option></select></div>
+ 4067|     <div class="field"><label>Инвентарь</label><select id="pk_e">
+ 4068|       <option value="gym">Зал</option><option value="db">Дом: гантели</option><option value="kb">Дом: гири</option><option value="bw">Свой вес</option></select></div>
+ 4069|   </div>
+ 4070|   <div class="g2">
+ 4071|     <div class="field"><label>Стаж</label><select id="pk_x">
+ 4072|       <option value="nov">До года</option><option value="int" selected>1–2 года</option>
+ 4073|       <option value="mid">2–5 лет</option><option value="adv">5+ лет</option></select></div>
+ 4074|     <div class="field"><label>Акцент в зале</label><select id="pk_acc">
+ 4075|     <option value="">Без акцента — ровная программа</option>
+ 4076|     <option value="glutes">Ягодицы и низ</option>
+ 4077|     <option value="back">Спина</option>
+ 4078|     <option value="chest">Грудь</option>
+ 4079|     <option value="delts">Плечи</option>
+ 4080|     <option value="arms">Руки</option>
+ 4081|     <option value="abs">Пресс и талия</option></select></div>
+ 4082|     <div class="field"><label>Бюджет на еду</label><select id="pk_b">
+ 4083|       <option value="eco">Экономный</option><option value="mid" selected>Средний</option><option value="free">Без ограничений</option></select></div>
+ 4084|   </div>
+ 4085|   <div class="fgrp">Еда и распорядок</div>
+ 4086|   <div class="field"><label>Где обычно ешь днём в будни</label><select id="pk_eat">
+ 4087|     <option value="home">Дома / беру с собой</option><option value="out">Столовая / кафе</option></select></div>
+ 4088|   <div class="field"><label>График занятости</label><select id="pk_work">
+ 4089|     <option value="free">Свободный</option><option value="desk" selected>Сидячая работа (например, 9–18)</option>
+ 4090|     <option value="feet">Работа на ногах</option></select></div>
+ 4091|   <div class="field"><label>Когда реально можешь ходить пешком</label>
+ 4092|     <div id="pk_walk" class="scr" style="margin:0;padding:0"></div></div>
+ 4093|   <div class="field" id="pkKitW" style="display:none"><label>Что есть дома</label>
+ 4094|     <div id="pkKitSel"><select id="pk_kit">
+ 4095|       <option value="light">Гантели до 12 кг</option>
+ 4096|       <option value="mid" selected>Гантели до 24 кг</option>
+ 4097|       <option value="heavy">Гантели 24+ кг / штанга</option></select></div>
+ 4098|     <label style="display:flex;align-items:center;gap:8px;margin-top:12px;font-size:var(--fs2);line-height:var(--lh2);color:var(--t2)">
+ 4099|       <input type="checkbox" id="pk_pull" checked> Есть турник</label></div>
+ 4100|   <div class="fgrp">Ограничения</div>
+ 4101|   <div class="field"><label>Где болит — покажи на фигуре</label>
+ 4102|     <div id="pk_inj" class="injpick"></div></div>
+ 4103|   <div class="field"><label>Что не ешь / аллергии <span style="color:var(--t3);font-weight:400">(через запятую, можно пусто)</span></label>
+ 4104|     <input id="pkAnkFood" placeholder="вегетарианец, лактоза, рыба…">
+ 4105|     <div id="pkFoodEcho" class="note" style="display:none;margin-top:8px"></div></div>
+ 4106|   <div class="field"><label>О себе — здоровье, ограничения, опыт <span style="color:var(--t3);font-weight:400">(своими словами, для ИИ-уточнений)</span></label>
+ 4107|     <textarea id="pk_about" rows="3" placeholder="давление, старая травма колена, срываюсь по вечерам, работаю в ночные смены…"></textarea></div>
+ 4108|   <button class="btn" id="bPkGo">Собрать стартовый пакет</button>
+ 4109|   <div class="note">Фото не требуется: программу определяют цель, стаж, дни и инвентарь — этого в фото нет.
+ 4110|   Хочешь оценку процента жира — плита «Оценка по фото» на «Коуче», она уточнит темп.</div>
+ 4111|   </div>
+ 4112|   <div id="pkOut"></div>
+ 4113| </div></div>
+ 4114| 
+ 4115| <div class="sheet" id="sh-ana"><div class="in">
+ 4116|   <h3><span>ИИ-анализ</span><button data-close aria-label="Закрыть"><svg class="ic"><use href="#i-close"/></svg></button></h3>
+ 4117|   <div id="anaQ">
+ 4118|   <div class="field"><label>Что беспокоит прямо сейчас <span style="color:var(--t3);font-weight:400">(можно несколько или ничего)</span></label>
+ 4119|     <div id="anaChips" class="scr" style="margin:0;padding:0"></div></div>
+ 4120|   <div class="field"><label>Своими словами <span style="color:var(--t3);font-weight:400">(необязательно)</span></label>
+ 4121|     <textarea id="anaTxt" rows="2" placeholder="плечо ноет после жима, к вечеру срываюсь на сладкое…"></textarea>
+ 4122|     <div class="note" style="margin:6px 0 0">Чем конкретнее запрос — тем точнее разбор. Работает лучше всего:
+ 4123|     цель своими словами · что изменилось · ограничения по датам · добавки (в сводку они не передаются — назови сам) · прямые вопросы.</div>
+ 4124|     <!-- Ссылка жила ВНУТРИ подсказки и уехала бы в «Справку» вместе с ней (31.08).
+ 4125|          Действие остаётся на экране, объяснение — отдельно. -->
+ 4126|     <div class="mini" style="margin:6px 0 0"><a href="#" id="anaEx">Подставить пример</a></div></div>
+ 4127|   <button class="btn" id="bAnaGo">Анализировать</button>
+ 4128|   <div class="note">В модель уходит рассчитанная статистика (числа и тренды), не сырые записи.
+ 4129|   Анализы крови и журнал добавок не отправляются никогда.</div>
+ 4130|   </div>
+ 4131|   <div id="anaOut"></div>
+ 4132| </div></div>
+ 4133| 
+ 4134| <div class="sheet" id="sh-sync"><div class="in">
+ 4135|   <h3><span>Синхронизация устройств</span><button data-close aria-label="Закрыть"><svg class="ic"><use href="#i-close"/></svg></button></h3>
+ 4136|   <!-- Причина, по которой человек здесь оказался. Тост живёт три секунды, а
+ 4137|        форма «Почта / Пароль» без объяснения читается как сбой (найдено
+ 4138|        чтением экрана 18.08: тап по «Кладовой» открывал вход молча). -->
+ 4139|   <div class="ib" id="syWhy" style="display:none;margin-bottom:12px"></div>
+ 4140|   <div class="field"><label>Почта</label><input type="text" data-usr="1" id="sy_e" autocomplete="off" inputmode="email" placeholder="твоя почта"></div>
+ 4141|   <!-- autocomplete лежит в data-ac, а не в самом атрибуте: Safari читает
+ 4142|        разметку ДО того, как выполнится наш код, и «current-password» в ней
+ 4143|        делает страницу страницей входа ещё до первой отрисовки. pwArm ставит
+ 4144|        настоящее значение, когда лист открыт, и снимает при закрытии. -->
+ 4145|   <div class="field"><label>Пароль от аккаунта</label><input type="text" data-pw="1" data-ac="current-password" id="sy_p" autocomplete="off"></div>
+ 4146|   <!-- Цена пароля названа там, где его задают, а не в справке ниже: человек
+ 4147|        читает подпись под полем и не читает абзац через экран (21.08). -->
+ 4148|   <div class="wb" style="margin:-6px 0 12px;padding:8px 10px;font-size:var(--fs2);line-height:var(--lh2)">
+ 4149|     <b>При первом подключении выдам код восстановления.</b> Сохрани его: если пароль забудется,
+ 4150|     почта вернёт вход, а данные откроет только он. Потерять оба сразу — единственный
+ 4151|     способ остаться без данных.
+ 4152|   </div>
+ 4153|   <div class="note">
+ 4154|     <b>Шифрование включено, отдельную фразу вводить не нужно.</b> Ключ выводится из твоего пароля
+ 4155|     прямо в браузере — в базе данные лежат нечитаемым набором байт. Supabase и я их не видим.<br><br>
+ 4156|     Один нюанс честно: при входе пароль на миг проходит через сервер, поэтому это чуть слабее
+ 4157|     «абсолютного» шифрования отдельной фразой. Для личного использования это нормально.<br><br>
+ 4158|     <b>Пароль можно сменить и забыть — данные это переживут.</b> Они шифруются отдельным
+ 4159|     ключом, а пароль только запирает его. Забудешь пароль — почта вернёт вход, а ключ
+ 4160|     отопрёт код восстановления, который выдаётся при первом подключении.
+ 4161|   </div>
+ 4162|   <label class="swr" style="margin-bottom:14px"><span class="g"><span class="t">Запомнить это устройство</span><span class="s">не спрашивать пароль каждый раз</span></span>
+ 4163|     <input type="checkbox" class="sw" id="sy_rem" checked></label>
+ 4164|   <!-- Кнопки «забыл пароль» тут не было вообще (полевой случай 21.08: жена
+ 4165|        ставит новое устройство и не может войти). Обычное «пришлём письмо»
+ 4166|        здесь врёт: письмо вернёт ВХОД, но не данные — они зашифрованы старым
+ 4167|        паролем. Поэтому не письмо, а честная развилка. -->
+ 4168|   <div class="lst" style="margin-bottom:14px"><button class="lrow" id="syForgot"><span class="g"><span class="t">Не помню пароль</span><span class="s">почта вернёт вход, данные откроет код восстановления</span></span><span class="ch"></span></button></div>
+ 4169|   <div id="syForgotBox" style="display:none;margin-bottom:14px"></div>
+ 4170|   <div class="note">
+ 4171|     <b>Запомнить — безопасно, и вот почему.</b> Локальная база на этом устройстве и так
+ 4172|     <b>не зашифрована</b>: вес, анализы и журнал лежат в браузере открытым текстом.
+ 4173|     Шифрование защищает данные <b>на сервере</b>, а не здесь. Так что сохранённая фраза
+ 4174|     не даёт злоумышленнику ничего, чего у него уже нет.<br><br>
+ 4175|     Но <b>записать её на бумагу всё равно обязательно</b>: при смене телефона или очистке
+ 4176|     браузера без неё ты не расшифруешь свой бэкап. Никто не расшифрует.
+ 4177|   </div>
+ 4178|   <button class="btn" id="bSyOk">Подключить</button>
+ 4179|   <div class="note keep" style="text-align:center;margin-top:12px">
+ 4180|     Нажимая «Подключить», ты принимаешь
+ 4181|     <a href="./promo/terms.html" target="_blank" style="color:var(--ac2)">условия использования</a>
+ 4182|     и <a href="./promo/privacy.html" target="_blank" style="color:var(--ac2)">политику данных</a>.
+ 4183|   </div>
+ 4184| </div></div>
+ 4185| 
+ 4186| <div class="sheet" id="sh-ptxt"><div class="in">
+ 4187|   <h3><span>План текстом</span><button data-close aria-label="Закрыть"><svg class="ic"><use href="#i-close"/></svg></button></h3>
+ 4188|   <div class="field"><label>Вставь план как есть — разберу сам</label>
+ 4189|     <textarea id="pt_t" rows="10" placeholder="Пн — грудь/трицепс: жим 4х8, разводка 3х12…&#10;Питание: 2200 ккал, белок 180 г…&#10;Замеры раз в 2 недели"></textarea></div>
+ 4190|   <button class="btn" id="bPtOk">Разобрать</button>
+ 4191| </div></div>
+ 4192| 
+ 4193| <div class="sheet" id="sh-focus"><div class="in">
+ 4194|   <h3><span>Блок специализации</span><button data-close aria-label="Закрыть"><svg class="ic"><use href="#i-close"/></svg></button></h3>
+ 4195|   <!-- Тонированная плашка на пол-экрана с четырьмя выделенными кусками внутри
+ 4196|        отодвигала сам выбор за сгиб и кричала тревогой там, где её нет: это
+ 4197|        объяснение размена, а не авария. Суть — одной строкой, подробности за
+ 4198|        «Подробнее» (19.08). -->
+ 4199|   <div class="ob" style="margin-bottom:12px">Это <b>размен</b>: приоритетные группы получат объём у верхней границы, остальные — поддерживающий минимум. Поэтому выбирай <b>максимум две</b>.
+ 4200|     <div class="note">Пока приоритет растёт, сильные группы стоят на месте: не теряют, но и не растут. Если отметить всё — это просто обычная программа, и смысла в блоке нет.</div></div>
+ 4201|   <label>Приоритет на 6–8 недель</label>
+ 4202|   <div id="fcPick" class="scr" style="margin:0 0 16px;padding:0"></div>
+ 4203|   <button class="btn" id="bFcOk">Запустить блок</button>
+ 4204|   <div class="note">Через 6 недель приложение сравнит силу и обхваты «до/после» и скажет прямо, выросло или нет.</div>
+ 4205| </div></div>
+ 4206| 
+ 4207| <div class="sheet" id="sh-off"><div class="in">
+ 4208|   <h3><span id="offT">База продуктов</span><button data-close aria-label="Закрыть"><svg class="ic"><use href="#i-close"/></svg></button></h3>
+ 4209|   <div class="row" style="margin-bottom:12px">
+ 4210|     <input type="search" id="off_q" placeholder="Творог обезжиренный…" autocomplete="off">
+ 4211|     <button class="btn" style="flex:0 0 90px" id="bOffGo">Найти</button>
+ 4212|   </div>
+ 4213|   <div id="offBody"></div>
+ 4214| </div></div>
+ 4215| 
+ 4216| <div class="sheet" id="sh-bar"><div class="in">
+ 4217|   <h3><span>Штрихкод</span><button data-close aria-label="Закрыть"><svg class="ic"><use href="#i-close"/></svg></button></h3>
+ 4218|   <div style="position:relative;border-radius:var(--r2);overflow:hidden;background:#000">
+ 4219|     <video id="barVid" playsinline muted autoplay style="width:100%;aspect-ratio:3/4;object-fit:cover;display:block"></video>
+ 4220|     <div style="position:absolute;left:8%;right:8%;top:34%;bottom:34%;border:2px solid var(--ac);border-radius:var(--r2);pointer-events:none"></div>
+ 4221|     <div style="position:absolute;left:8%;right:8%;top:50%;height:2px;background:var(--bd);pointer-events:none"></div>
+ 4222|     <button id="barTorch" style="display:none;position:absolute;right:10px;bottom:10px;width:44px;height:44px;border-radius:50%;border:0;background:rgba(0,0,0,.5);color:#fff;font-size:var(--fs5);line-height:var(--lh5);align-items:center;justify-content:center;cursor:pointer;opacity:.6"><svg class="ic lg" style="stroke:#fff"><use href="#i-torch"/></svg></button>
+ 4223|   </div>
+ 4224|   <div id="barMsg" class="ib" style="margin-top:12px">Наведи рамку на штрихкод. Держи ровно, 5–10 см.</div>
+ 4225|   <div class="row" style="margin-top:12px">
+ 4226|     <input id="bar_m" placeholder="или введи цифры под кодом" inputmode="numeric">
+ 4227|     <button class="btn sec" style="flex:0 0 90px" id="bBarM">Найти</button>
+ 4228|   </div>
+ 4229| </div></div>
+ 4230| 
+ 4231| <div class="sheet" id="sh-shop"><div class="in">
+ 4232|   <h3><span>Закрыть КБЖУ</span><button data-close aria-label="Закрыть"><svg class="ic"><use href="#i-close"/></svg></button></h3>
+ 4233|   <div class="seg" style="margin-bottom:12px">
+ 4234|     <button class="on" data-sm="rest">Остаток дня</button>
+ 4235|     <button data-sm="day">Полный день</button>
+ 4236|     <button data-sm="week">Закупка</button>
+ 4237|   </div>
+ 4238|   <div id="spGap" class="ib" style="margin-bottom:12px"></div>
+ 4239|   <div class="row" style="margin-bottom:12px">
+ 4240|     <div id="spDaysW" style="display:none"><label>Дней</label>
+ 4241|       <input type="number" id="sp_d" value="7" min="1" max="30"></div>
+ 4242|     <div style="flex:1;min-width:0"><label>Магазин</label><select id="spShops"></select></div>
+ 4243|   </div>
+ 4244|   <details class="det">
+ 4245|     <summary>Обязательно хочу это <span class="mini" id="spMustSum" style="color:var(--t3)"></span></summary>
+ 4246|     <div class="mini" style="color:var(--t3);margin:8px 0 6px">Отметь то, что точно должно быть в корзине, — остальное решатель доберёт сам.</div>
+ 4247|     <div id="spMust" class="scr" style="margin:0 0 6px;padding:0"></div>
+ 4248|   </details>
+ 4249|   <details class="det">
+ 4250|     <summary>Исключить <span class="mini" id="spExclSum" style="color:var(--t3)"></span></summary>
+ 4251|     <div id="spExcl" class="scr" style="margin:8px 0 6px;padding:0"></div>
+ 4252|   </details>
+ 4253|   <button class="btn" id="bSpGo">Подобрать</button>
+ 4254|   <div id="spOut" style="margin-top:14px"></div>
+ 4255| </div></div>
+ 4256| 
+ 4257| <div class="sheet" id="sh-ask"><div class="in">
+ 4258|   <h3><span>Тренер</span><button data-close aria-label="Закрыть"><svg class="ic"><use href="#i-close"/></svg></button></h3>
+ 4259|   <!-- v615: «Моё состояние» — опросник готовности, пульс покоя и график 14 дней.
+ 4260|        Из подвкладки «Разбор» уехали сюда: атлет отвечает, тренер читает
+ 4261|        (coachCtx) и сам говорит, что с этим делать. Разметка статична — id
+ 4262|        rdForm/rd_hr/bRd/rdChart/rdWarn прежние, наполняет rAskStatus(). -->
+ 4263|   <div class="ask-status" id="askStatus">
+ 4264|     <div class="ask-status-h"><span>Моё состояние</span><span id="rdDate"></span></div>
+ 4265|     <div id="rdForm"></div>
+ 4266|     <div class="field"><label>Пульс покоя утром (уд/мин, необязательно)</label><input type="number" id="rd_hr" inputmode="numeric" placeholder="58"></div>
+ 4267|     <button class="btn" id="bRd">Сохранить</button>   <!-- v678: действие формы — основная кнопка, не «пилюля» -->
+ 4268| 
+ 4269|     <details class="det" style="margin-top:8px"><summary>Готовность за 14 дней</summary>
+ 4270|       <canvas id="rdChart" height="300" style="margin-top:8px"></canvas>
+ 4271|       <div id="rdWarn" style="margin-top:12px"></div>
+ 4272|     </details>
+ 4273|   </div>
+ 4274|   <div id="askHub"></div>
+ 4275|   <div id="askLog"></div>
+ 4276|   <div class="row askbar">
+ 4277|     <button class="btn sec" id="bAskMic" title="Сказать голосом"><svg class="ic"><use href="#i-mic"/></svg></button>
+ 4278|     <input id="askQ" placeholder="Сообщение">
+ 4279|     <button class="btn ai" id="bAskGo" aria-label="Отправить"><svg class="ic"><use href="#i-arr"/></svg></button>
+ 4280|   </div>
+ 4281|   <!-- v623: инструкция «тренер видит твой дневник…» снята — это объяснение
+ 4282|        того, что и так видно по ответам. Медицинская оговорка ОСТАЁТСЯ: у неё
+ 4283|        другая работа, и снимать её из приложения о здоровье нельзя. -->
+ 4284|   <div class="note">Это не врач: боль и симптомы — к живому доктору.</div>
+ 4285| </div></div>
+ 4286| 
+ 4287| <div class="sheet" id="sh-rep"><div class="in">
+ 4288|   <h3><span>Отчёт за неделю</span><button data-close aria-label="Закрыть"><svg class="ic"><use href="#i-close"/></svg></button></h3>
+ 4289|   <textarea id="repT" readonly></textarea>
+ 4290|   <div class="row">
+ 4291|     <button class="btn" id="bRepCopy">Скопировать</button>
+ 4292|     <button class="btn sec" id="bRepShare">Поделиться</button>
+ 4293|   </div>
+ 4294|   <div class="note">Отчёт собирается из твоих записей на этом устройстве. Чего не записано — того в отчёте нет.</div>
+ 4295| </div></div>
+ 4296| 
+ 4297| <div class="sheet" id="sh-s"><div class="in">
+ 4298|   <h3><span style="display:flex;align-items:center;gap:6px;min-width:0"><button id="setBack" aria-label="Назад" hidden style="margin:0 2px 0 -8px"><svg class="ic chevl"><use href="#i-chev"/></svg></button><span id="setTitle">Настройки</span></span><button data-close aria-label="Закрыть"><svg class="ic"><use href="#i-close"/></svg></button></h3>
+ 4299|   <!-- v633: предупреждение «данные только на этом устройстве» переехало сюда
+ 4300|        с главного экрана. Оно про профиль и облако — место ему рядом с
+ 4301|        синхронизацией, а не поверх дневника. -->
+ 4302|   <div id="bkWarn"></div>
+ 4303| 
+ 4304|   <!-- ── НАСТРОЙКИ В ОДИН ЭКРАН (решение владельца 03.09) ──
+ 4305|        Было 14 строк подряд и раскрытая «Синхронизация» первой: два экрана
+ 4306|        прокрутки, и первое, что видел человек, — стена про облако. Его слова:
+ 4307|        «пользователь не должен об этом беспокоиться; если синхронизация выше
+ 4308|        остального, значит мы делаем акцент на том, что это постоянно
+ 4309|        ломается». Шесть групп, каждый прежний раздел живёт внутри своей с тем
+ 4310|        же id — ссылки openSet('Key'), openSet('Notif') и тесты не тронуты:
+ 4311|        openSet раскрывает и группу-родителя. -->
+ 4312|   <!-- Список из шести строк; каждая открывает СТРАНИЦУ внутри того же листа
+ 4313|        (заголовок меняется на «‹ Раздел», крестик остаётся). Решение владельца
+ 4314|        03.09: раскрывашка в раскрывашке «убивает красоту списка» — два уровня
+ 4315|        плюсиков. Страница — как в справочнике упражнений (v499): один уровень,
+ 4316|        возврат стрелкой. Прежние разделы внутри страниц с теми же id. -->
+ 4317|   <div class="lst" id="setList" style="margin-bottom:var(--s4)">
+ 4318|     <button class="lrow" data-setpg="grpProf"><span class="g"><span class="t">Профиль и цели</span></span><span class="ch"></span></button>
+ 4319|     <button class="lrow" data-setpg="grpNotif"><span class="g"><span class="t">Напоминания</span></span><span class="v"><span id="grpNotifSt"></span></span><span class="ch"></span></button>
+ 4320|     <button class="lrow" data-setpg="grpGym"><span class="g"><span class="t">Зал</span></span><span class="ch"></span></button>
+ 4321|     <button class="lrow" data-setpg="grpView"><span class="g"><span class="t">Вид</span></span><span class="ch"></span></button>
+ 4322|     <button class="lrow" data-setpg="grpData"><span class="g"><span class="t">Данные и облако</span></span><span class="v"><span id="grpDataSt"></span></span><span class="ch"></span></button>
+ 4323|     <button class="lrow" data-setpg="grpAbout"><span class="g"><span class="t">О приложении</span></span><span class="v"><span id="appVerL"></span></span><span class="ch"></span></button>
+ 4324|   </div>
+ 4325|   <div class="setpg" id="grpProf" hidden data-title="Профиль и цели">
+ 4326|   <details class="det" id="setProf">
+ 4327|     <summary>Профиль и цели</summary>
+ 4328|     <div style="margin-top:8px">
+ 4329|   <div class="g2">
+ 4330|     <div class="field"><label>Рост (см)</label><input type="number" id="s_h"></div>
+ 4331|     <div class="field"><label>Возраст</label><input type="number" id="s_age"></div>
+ 4332|   </div>
+ 4333|   <div class="field"><label>Пол</label><select id="s_sex"><option value="m">Мужской</option><option value="f">Женский</option></select></div>
+ 4334|   <div class="field"><label>Калории — вручную <span style="color:var(--t3)">(из плана тренера; пусто = авто)</span></label>
+ 4335|     <input type="number" id="s_kcal" inputmode="numeric" placeholder="напр. 2600"></div>
+ 4336|   <div class="field"><label>Целевой темп (кг/нед) <span style="color:var(--t3)">(если калории на авто)</span></label><select id="s_rate">
+ 4337|     <option value="-0.75">−0.75 — агрессивная сушка</option><option value="-0.5">−0.5 — стандартная сушка</option>
+ 4338|     <option value="-0.25">−0.25 — мягкая сушка</option><option value="0">0 — поддержание</option>
+ 4339|     <option value="0.125">+0.125 — очень чистый набор</option><option value="0.25">+0.25 — набор</option>
+ 4340|     <option value="0.4">+0.4 — быстрый набор</option></select><div class="mini" id="s_ratePct"></div></div>
+ 4341|   <div class="g2">
+ 4342|     <div class="field"><label>Белок (г/кг)</label><input type="number" step="0.1" id="s_p"></div>
+ 4343|     <div class="field"><label>Жиры (г/кг)</label><input type="number" step="0.1" id="s_f"></div>
+ 4344|   </div>
+ 4345|   <div class="lst-f">Белок 1,6–2,2 г/кг, жиры не ниже 0,6 г/кг, остальное — углеводы.</div>
+ 4346|   <hr style="border:0;border-top:1px solid var(--line);margin:16px 0">
+ 4347|   <div class="g2">
+ 4348|     <div class="field"><label>Абонемент до</label><input type="date" id="s_gym"></div>
+ 4349|     <div class="field"><label>Обычный магазин</label><select id="s_shop"></select></div>
+ 4350|   </div>
+ 4351|   <div class="lst-f">Об абонементе напомню за 14 дней, без рекламы.</div>
+ 4352|     </div>
+ 4353|   </details>
+ 4354| 
+ 4355|   <details class="det" id="setMeals">
+ 4356|     <summary>Приёмы пищи и вода</summary>
+ 4357|     <div style="margin-top:8px">
+ 4358|     <label style="font-weight:var(--fwm);font-size:var(--fs2);line-height:var(--lh2)">Приёмов в день</label>
+ 4359|     <div class="seg" style="margin:8px 0" id="s_mealsN"></div>
+ 4360|     <div id="s_mealsList"></div>
+ 4361|     <div id="s_prefNo"></div>
+ 4362|     <div class="lst-f">Число приёмов — от калорий; час — до какого часа запись относится к приёму.</div>
+ 4363|     <div class="g2">
+ 4364|       <div class="field"><label>Цель по воде (мл/день)</label><input type="number" id="s_water" inputmode="numeric" placeholder="3000"></div>
+ 4365|       <div class="field"><label>Цель по шагам (в день)</label><input type="number" id="s_steps" inputmode="numeric" placeholder="8000"></div>
+ 4366|     </div>
+ 4367|     <div class="lst-f" id="s_waterHint" style="margin-top:-8px"></div>
+ 4368|     <div class="note" id="sStepsPlanNote" style="display:none;margin:0 0 12px"></div>
+ 4369|     </div>
+ 4370|   </details>
+ 4371| 
+ 4372|   <details class="det" id="setCyc" style="display:none">
+ 4373|     <summary>Цикл</summary>
+ 4374|     <div style="margin-top:8px">
+ 4375|     <label class="swr" style="margin-bottom:4px"><span class="g"><span class="t">Отмечать цикл</span>
+ 4376|       <span class="s">на «Теле», рядом с весом</span></span>
+ 4377|       <input type="checkbox" class="sw" id="s_cyc"></label>
+ 4378|     <div class="note" style="margin-top:0">Приложение спрашивает только день начала — ни симптомов,
+ 4379|       ни настроения. Нужно это ради веса: по циклу он гуляет на 1–3 кг из-за воды, и без отметки
+ 4380|       строка «факт +1.5 кг/нед» показывает воду, а не жир. Выключишь — карточка пропадёт,
+ 4381|       отметки останутся.</div>
+ 4382|     </div>
+ 4383|   </details>
+ 4384|   </div>
+ 4385|   <div class="setpg one" id="grpNotif" hidden data-title="Напоминания">
+ 4386|   <details class="det" id="setPush">
+ 4387|     <summary>Напоминания<span class="mini" id="pushSt" style="margin-left:auto"></span></summary>
+ 4388|     <div style="margin-top:8px">
+ 4389|     <!-- v676 (владелец: «как в топовых приложениях»): один тумблер включает, изменения
+ 4390|          применяются сами; пары «Включить/Выключить» и «нажми ещё раз» нет. -->
+ 4391|     <label class="swr" id="pushMaster" style="margin-bottom:4px"><span class="g"><span class="t">Напоминания</span><span class="s" id="pushSt2"></span></span>
+ 4392|       <input type="checkbox" class="sw" id="pk_all" aria-label="Напоминания"></label>
+ 4393|     <div id="psKinds">
+ 4394|       <div class="swr"><span class="g"><span class="t">Тренировка</span><span class="s">в твои дни</span></span><select id="ps_hour" style="flex:0 0 92px"></select><input type="checkbox" class="sw" id="pk_workout" aria-label="Напоминать о тренировке" checked></div>
+ 4395|       <div class="swr"><span class="g"><span class="t">Взвешивание</span><span class="s">ежедневно</span></span><select id="ps_h_weigh" style="flex:0 0 92px"></select><input type="checkbox" class="sw" id="pk_weigh" aria-label="Напоминать взвешиваться"></div>
+ 4396|       <div class="swr"><span class="g"><span class="t">Вода</span><span class="s">если отстаёшь</span></span><select id="ps_h_water" style="flex:0 0 92px"></select><input type="checkbox" class="sw" id="pk_water" aria-label="Напоминать про воду"></div>
+ 4397|       <div class="swr"><span class="g"><span class="t">Закрыть день по еде</span></span><select id="ps_h_food" style="flex:0 0 92px"></select><input type="checkbox" class="sw" id="pk_food" aria-label="Напоминать закрыть день по еде"></div>
+ 4398|       <div class="swr"><span class="g"><span class="t">Отбой</span></span><select id="ps_h_sleep" style="flex:0 0 92px"></select><input type="checkbox" class="sw" id="pk_sleep" aria-label="Напоминать про отбой"></div>
+ 4399|       <div class="swr"><span class="g"><span class="t">Итог недели</span><span class="s">по воскресеньям</span></span><select id="ps_h_week" style="flex:0 0 92px"></select><input type="checkbox" class="sw" id="pk_week" aria-label="Напоминать про итог недели"></div>
+ 4400|     </div>
+ 4401|     <div class="lst" style="margin-top:8px"><button class="lrow" id="bPushTest"><span class="g"><span class="t">Показать пробное сейчас</span></span><span class="ch"></span></button></div>
+ 4402|     <details class="det"><summary>Что уходит на сервер</summary>
+ 4403|     <div class="mini" style="margin-top:8px;white-space:normal">
+ 4404|       Каждый тип приходит не чаще раза в день, в свой час. Тренировка — только в твои
+ 4405|       тренировочные дни, итог недели — по воскресеньям. <b>Вода — умная:</b> пуш придёт,
+ 4406|       только если к выбранному часу записано меньше половины нормы — для этого на сервере
+ 4407|       хранится один флаг «норма идёт» (одна дата, без объёмов и записей).<br><br>
+ 4408|       Что для этого лежит на сервере: адрес push-службы браузера, час напоминания,
+ 4409|       часовой пояс и дни недели тренировок. <b>Ни веса, ни калорий, ни еды, ни
+ 4410|       выполненных тренировок там нет</b> — сервер их и не видит, они зашифрованы.
+ 4411|       Текст напоминания собирается из этих полей и ничего о тебе не раскрывает.<br><br>
+ 4412|       Нужен вход в синхронизацию: пуш физически идёт через сервер.
+ 4413|       На iPhone работает только если добавить приложение на экран «Домой».
+ 4414|     </div></details>
+ 4415|     </div>
+ 4416|   </details>
+ 4417|   </div>
+ 4418|   <div class="setpg one" id="grpGym" hidden data-title="Зал">
+ 4419|   <details class="det" id="setGym">
+ 4420|     <summary>Зал — таймер отдыха</summary>
+ 4421|     <div style="margin-top:8px">
+ 4422|     <label class="swr" style="margin-bottom:4px"><span class="g"><span class="t">Звук в конце отдыха</span>
+ 4423|       <span class="s">три коротких тона и отсчёт последних секунд</span></span>
+ 4424|       <input type="checkbox" class="sw" id="s_restSnd"></label>
+ 4425|     <label class="swr" style="margin-bottom:4px"><span class="g"><span class="t">Говорить вслух</span>
+ 4426|       <span class="s">в конце отдыха назовёт упражнение и вес — телефон может лежать на скамье</span></span>
+ 4427|       <input type="checkbox" class="sw" id="s_restSay"></label>
+ 4428|     <label class="swr" style="margin-bottom:4px"><span class="g"><span class="t">Не гасить экран во время отдыха</span>
+ 4429|       <span class="s">только пока идёт отсчёт, потом гаснет как обычно</span></span>
+ 4430|       <input type="checkbox" class="sw" id="s_restWake"></label>
+ 4431|     <div class="note">Длительность берётся из твоей программы: тяжёлая база дольше,
+ 4432|       подсобка короче. Правится на месте кнопками −30 и +30, а отказной подход
+ 4433|       добавляет полминуты сам. Тап по полосе разворачивает таймер на весь экран —
+ 4434|       удобно, когда телефон стоит на скамье.</div>
+ 4435|     </div>
+ 4436|   </details>
+ 4437|   <!-- v615: инвентарь и тренажёры клуба — настройка, а не тренировка: из «Техники» уехали сюда. -->
+ 4438|       <details class="det" id="eqDet" >
+ 4439|         <summary>Оборудование и мой зал <span id="eqSum" class="mini" style="color:var(--t3)"></span></summary>
+ 4440|         <div id="eqChips" class="scr" style="margin:8px 0 4px;padding:0"></div>
+ 4441|         <div class="mini" style="color:var(--t3)">Отметь, что доступно. Упражнение на недоступном снаряде приложение предложит заменить на аналог с видео.</div>
+ 4442|         <div style="border-top:1px solid var(--line);margin-top:12px;padding-top:10px">
+ 4443|           <div style="display:flex;gap:8px;align-items:center;margin-bottom:8px">
+ 4444|             <b>Мой зал</b><span id="gymSum" class="mini" style="color:var(--t3)"></span>
+ 4445|             <button class="btn sec sm" id="bGymScan" style="margin-left:auto;flex:0 0 auto"><svg class="ic"><use href="#i-cam"/></svg> Сфоткать зал</button>
+ 4446|           </div>
+ 4447|           <input type="text" id="gymName" placeholder="Название зала — для себя" style="margin-bottom:4px">
+ 4448|           <div id="gymChips"></div>
+ 4449|           <div class="mini" style="color:var(--t3);margin-top:8px">Сними галочку с тренажёра, которого нет в твоём зале, — новая программа и замены не будут его предлагать. Быстрее: сфоткай ряды тренажёров (можно несколько кадров) — ИИ отметит сам, ты только поправишь.</div>
+ 4450|         </div>
+ 4451|       </details>
+ 4452|   </div>
+ 4453|   <div class="setpg" id="grpView" hidden data-title="Вид">
+ 4454|   <details class="det" id="setTheme">
+ 4455|     <summary>Вид приложения<span class="mini" id="uiSt" style="margin-left:auto"></span></summary>
+ 4456|     <div class="seg" style="margin-top:8px" id="uiSeg">
+ 4457|       <button data-ui-set="simple">Простой</button>
+ 4458|       <button data-ui-set="pro">Полный</button>
+ 4459|     </div>
+ 4460|     <div class="note">Простой — только ежедневное: тренировка дня, еда, вес, тренер. Полный добавляет объём по мышцам, нагрузку, блоки специализации и разборы. Функции никуда не деваются — переключается видимость.</div>
+ 4461|   </details>
+ 4462| 
+ 4463|   <details class="det">
+ 4464|     <summary>Тема<span class="mini" id="themeSt" style="margin-left:auto"></span></summary>
+ 4465|     <div class="seg" style="margin-top:8px" id="themeSeg">
+ 4466|       <button data-theme-set="dark">Тёмная</button>
+ 4467|       <button data-theme-set="light">Светлая</button>
+ 4468|     </div>
+ 4469|   </details>
+ 4470|   </div>
+ 4471|   <div class="setpg" id="grpData" hidden data-title="Данные и облако">
+ 4472|   <details class="det" id="setSync">
+ 4473|     <summary>Синхронизация<span class="mini" id="syncSt" style="margin-left:auto"></span></summary>
+ 4474|     <div id="syncBox" style="margin-top:8px"></div>
+ 4475|   </details>
+ 4476| 
+ 4477|   <details class="det" id="setData">
+ 4478|     <summary>Данные</summary>
+ 4479|     <div style="margin-top:8px">
+ 4480|     <!-- v674: три действия — три строки одного набора, а не две «пилюли» и красная плита -->
+ 4481|     <div class="lst">
+ 4482|       <!-- v675 (владелец): строка — два-три слова, объяснение на шаге действия: у импорта
+ 4483|            в подтверждении с числом записей, у экспорта в тосте, у удаления в вопросе. -->
+ 4484|       <button class="lrow" id="bExp"><span class="g"><span class="t">Экспорт данных</span></span><span class="ch"></span></button>
+ 4485|       <label class="lrow" for="impI"><span class="g"><span class="t">Импорт из файла</span></span><span class="ch"></span>
+ 4486|         <input type="file" accept="application/json,.json" id="impI" style="display:none"></label>
+ 4487|       <button class="lrow dgr" id="bWipe"><span class="g"><span class="t">Удалить все данные</span></span></button>
+ 4488|     </div>
+ 4489|     </div>
+ 4490|   </details>
+ 4491| 
+ 4492|   <details class="det" id="setKey">
+ 4493|     <summary>API-ключ Anthropic</summary>
+ 4494|     <div style="margin-top:8px">
+ 4495|     <!-- v674: поле — строка с вводом, действие — строка, справка — подвал группы -->
+ 4496|     <div class="lst">
+ 4497|       <label class="lrow inp" for="s_key"><span class="g"><span class="t">Ключ</span></span>
+ 4498|         <input type="text" data-pw="1" data-keep="1" id="s_key" placeholder="sk-ant-…" autocomplete="off"></label>
+ 4499|       <button class="lrow" id="bKeyDel"><span class="g"><span class="t">Убрать ключ с устройства</span></span></button>
+ 4500|     </div>

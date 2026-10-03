@@ -1,0 +1,1501 @@
+// ИЗВЛЕЧЕНИЕ ДЛЯ ЧТЕНИЯ: index.html, строки 28501–30000 из 31008. Номера строк совпадают с оригиналом. Код не менялся.
+28501|       const rows2=menus[+b.dataset.mblog]; if(!rows2||!rows2.length) return;
+28502|       b.disabled=true;                                  // двойной тап не даст дублей
+28503|       try{ await mbLogDay(rows2); b.textContent='записано ✓'; toast('День в дневнике: сегодня'); }
+28504|       catch(e){ b.disabled=false; toast(netErr(e)); }
+28505|     });
+28506|   }catch(e){ fallback('Меню из блюд не собралось ('+(e.message||'сеть')+') — вот подбор из продуктов.'); }
+28507| }
+28508| 
+28509| /* ── ЭКРАН ВХОДА ── */
+28510| function showGate(on){ $('gate').style.display=on?'block':'none' }
+28511| 
+28512| /* ══════════════ ЗНАКОМСТВО: ВОСЕМЬ ВОПРОСОВ ══════════════
+28513|    Всё, что здесь спрашивается, УЖЕ спрашивалось — в «Стартовом пакете» и
+28514|    в «Собрать программу», только одной длинной формой в шторке, до которой
+28515|    новичок не доходил. Второй анкеты не заводим: ответы ложатся в те же
+28516|    поля (S.sex/S.age/S.h, запись веса, genProgram), поэтому пройденный
+28517|    квиз и заполненный пакет — это одно и то же состояние. */
+28518| const ONBQ=[
+28519|   {k:'sex', q:'Кто ты?', h:'Нужно для расчёта расхода — у мужчин и женщин он считается по-разному.',
+28520|    opt:[['m','Мужчина'],['f','Женщина']]},
+28521|   {k:'age', q:'Сколько тебе лет?', h:'Возраст входит в расчёт расхода.', num:{u:'лет',min:14,max:90,def:30}},
+28522|   {k:'h',   q:'Какой у тебя рост?', h:'', num:{u:'см',min:120,max:230,def:175}},
+28523|   {k:'w',   q:'Сколько ты весишь сейчас?', h:'Это первая точка графика. Дальше вес поведёт тренд, а не отдельное утро.',
+28524|    num:{u:'кг',min:30,max:300,def:80,dec:1}},
+28525|   {k:'goal',q:'Чего хочешь?', h:'',
+28526|    opt:[['cut','Сбросить','−0,5 кг в неделю'],['recomp','Держать вес','и стать сильнее'],['bulk','Набрать','+0,25 кг в неделю']]},
+28527|   {k:'equip',q:'Где будешь тренироваться?', h:'От этого зависит, из чего собирать программу.',
+28528|    opt:[['gym','В зале'],['db','Дома с гантелями'],['kb','Дома с гирями'],['bw','Своим весом']]},
+28529|   {k:'days',q:'Сколько дней в неделю?', h:'Честно: три дня, которые ты выдержишь, лучше пяти, которые бросишь.',
+28530|    opt:[['2','2 дня'],['3','3 дня','обычно этого хватает'],['4','4 дня'],['5','5 дней']]},
+28531|   {k:'exp', q:'Какой у тебя опыт?', h:'',
+28532|    opt:[['nov','Начинаю','или вернулся после перерыва'],['mid','Есть опыт','год-два регулярно'],['adv','Продвинутый','знаю свои рабочие веса']]}
+28533| ];
+28534| let onbStep=0, onbA={};
+28535| function onbShow(){
+28536|   try{
+28537|     onbStep=0; onbA={};
+28538|     $('onb').style.display='block';
+28539|     onbRender();
+28540|   }catch(e){ try{ $('onb').style.display='none'; }catch(_){} }
+28541| }
+28542| function onbRender(){
+28543|   const b=$('onbBody'); if(!b) return;
+28544|   const n=ONBQ.length;
+28545|   $('onbBar').style.width=Math.round(100*onbStep/n)+'%';
+28546|   $('onbBack').style.display=onbStep>0?'':'none';
+28547|   if(onbStep>=n) return onbFinish();
+28548|   const q=ONBQ[onbStep];
+28549|   let body=`<div class="onb-q">${esc(q.q)}</div>${q.h?`<div class="onb-h">${esc(q.h)}</div>`:'<div style="height:18px"></div>'}`;
+28550|   if(q.opt){
+28551|     body+=`<div class="onb-opt">${q.opt.map(([v,t,sub])=>
+28552|       `<button data-onbv="${esc(v)}" class="${onbA[q.k]===v?'on':''}">${esc(t)}${sub?`<span class="s">${esc(sub)}</span>`:''}</button>`).join('')}</div>`;
+28553|   } else {
+28554|     const v=onbA[q.k]!=null?onbA[q.k]:q.num.def;
+28555|     body+=`<div class="onb-num"><input id="onbNum" inputmode="${q.num.dec?'decimal':'numeric'}" value="${esc(String(v))}"><span class="u">${esc(q.num.u)}</span></div>`;
+28556|   }
+28557|   b.innerHTML=body;
+28558|   /* Выбор ответа СРАЗУ ведёт дальше: «Далее» после единственного тапа —
+28559|      лишний тап на каждом из восьми экранов. Кнопка остаётся для числовых
+28560|      вопросов, где ответ печатают. */
+28561|   b.querySelectorAll('[data-onbv]').forEach(x=>x.onclick=()=>{
+28562|     onbA[q.k]=x.dataset.onbv; onbStep++; onbRender();
+28563|   });
+28564|   $('onbNext').style.display=q.opt?'none':'';
+28565|   $('onbGo').style.display='none'; $('onbSkip').style.display='';
+28566| }
+28567| function onbFinish(){
+28568|   const b=$('onbBody');
+28569|   b.innerHTML=`<div class="onb-done">Собираю программу…</div>
+28570|     <div class="onb-h">Считаю объём по группам мышц и раскладываю по дням.</div>`;
+28571|   $('onbNext').style.display='none'; $('onbBack').style.display='none';
+28572|   $('onbBar').style.width='100%';
+28573|   setTimeout(onbApply,650);
+28574| }
+28575| /* Что приложение умеет — ОДИН список на всё приложение. Рекомендация №5 из
+28576|    разбора двенадцати конкурентов (APPS.md): каждая строка здесь работает у
+28577|    нас месяцами, и ни одна нигде не названа. Человек не может ценить того,
+28578|    о чём не знает, — а конкуренты берут деньги ровно за рассказ.
+28579|    Второго такого списка не заводим: разойдясь с первым, он начнёт обещать
+28580|    то, что мы уже убрали. Показывается в конце знакомства (первые четыре)
+28581|    и целиком в «Настройках». */
+28582| const CANDO=[
+28583|   ['Подскажет вес','и объяснит, откуда он взялся: твои прошлые подходы и твоя же оценка последнего, а не средняя таблица'],
+28584|   ['Заменит упражнение','если станок занят — на то же движение и ту же мышцу, в один тап'],
+28585|   ['Урежет тренировку','если ты не выспался или что-то болит: объём падает сам, и написано, на сколько и почему'],
+28586|   ['Не отдаст твои данные','всё лежит в этом браузере; в облако уходит только зашифрованный бэкап, и только если ты сам его включил'],
+28587|   ['Считает объём по мышцам','за неделю целиком — чтобы спина не осталась без работы, а плечи не сгорели'],
+28588|   ['Держит еду, сон, вес и анализы','в одной картине. Ни одно приложение из тех двенадцати, что мы разбирали, этого не делает']
+28589| ];
+28590| function canDoHTML(n){
+28591|   return (n>0?CANDO.slice(0,n):CANDO).map(([t,s])=>
+28592|     `<div class="can"><b>${esc(t)}</b> <span>${esc(s)}</span></div>`).join('');
+28593| }
+28594| /* Последний экран знакомства. Порядок жёсткий: сперва результат его труда
+28595|    (собранная неделя и цифры дня), потом наш рассказ. Наоборот — это
+28596|    реклама вместо ответа. */
+28597| /* Факты вынесены отдельной функцией нарочно: правило обязано проверять
+28598|    ВЫХОД — строки, которые человек прочитает, — а не то, что где-то рядом
+28599|    упомянут tg(). Мутация M751 прошла мимо правила ровно потому, что вызов
+28600|    остался, а строка исчезла. */
+28601| function onbFacts(built){
+28602|   const дни=(built&&S.prog&&S.prog.plan)?S.prog.plan.filter(d=>d&&d.ex&&d.ex.length):[];
+28603|   const t=(function(){try{return tg()}catch(e){return null}})();
+28604|   const out=[];
+28605|   if(дни.length){
+28606|     /* Названия дней НЕ перечисляем: в фулбоди они называются «Всё тело · 1»,
+28607|        и строка превращается в «Всё тело · 1 · Всё тело · 2 · Всё тело · 3» —
+28608|        три раза одно и то же через точки. Сплит называет то же самое одним
+28609|        словом, а количество упражнений отвечает на «а что там вообще». */
+28610|     const упр=дни.reduce((a,d)=>a+d.ex.length,0);
+28611|     out.push((S.prog.split?S.prog.split+' · ':'')+дни.length+' '+plural(дни.length,'день','дня','дней')+' в неделю');
+28612|     out.push(упр+' '+plural(упр,'упражнение','упражнения','упражнений')+' подобрано под тебя');
+28613|   }
+28614|   if(t&&t.k>0) out.push(r0(t.k)+' ккал и '+r0(t.p)+' г белка в день');
+28615|   return out;
+28616| }
+28617| function onbEnd(built){
+28618|   const b=$('onbBody');
+28619|   if(!b) return onbClose();
+28620|   const дни=(built&&S.prog&&S.prog.plan)?S.prog.plan.filter(d=>d&&d.ex&&d.ex.length):[];
+28621|   const факты=onbFacts(built);
+28622|   b.innerHTML=`<div class="onb-done">${дни.length?'Программа собрана':'Готово'}</div>
+28623|     ${факты.length?`<div class="onb-fx">${факты.map(x=>`<div>${esc(x)}</div>`).join('')}</div>`:'<div style="height:18px"></div>'}
+28624|     <div class="onb-cap">Что приложение сделает за тебя</div>
+28625|     ${canDoHTML(4)}`;
+28626|   $('onbNext').style.display='none';
+28627|   $('onbBack').style.display='none';
+28628|   $('onbSkip').style.display='none';
+28629|   $('onbGo').style.display='';
+28630|   $('onbGo').textContent=дни.length?'В зал':'Начать';
+28631|   try{ $('onbBody').scrollTop=0; document.getElementById('onb').scrollTop=0; }catch(_){}
+28632| }
+28633| async function onbApply(){
+28634|   try{
+28635|     const a=onbA;
+28636|     if(a.sex) S.sex=a.sex;
+28637|     if(+a.age>0) S.age=+a.age;
+28638|     if(+a.h>0) S.h=+a.h;
+28639|     if(a.goal) S.rate=a.goal==='cut'?-0.5:a.goal==='bulk'?0.25:0;
+28640|     const w=pf(String(a.w||''));
+28641|     if(w>0){ const last=W.length?W[W.length-1]:null;
+28642|       if(!last||last.d!==td()||Math.abs(last.kg-w)>0.01){ await put('weight',{d:td(),kg:w}); W=await all('weight'); } }
+28643|     /* Цель по калориям ставим ЗДЕСЬ. Знакомство спросило пол, возраст, рост,
+28644|        вес и темп — ровно то, из чего она и считается, — а ставилась она
+28645|        раньше при первом заходе в «Еду». То есть человек уходил с последнего
+28646|        экрана знакомства, ничего не зная про свою же цифру, хотя всё для неё
+28647|        уже назвал. Та же функция, что у анкеты и стартового пакета: второго
+28648|        расчёта калорий в приложении не заводим. */
+28649|     try{ if(S.target==null&&typeof seed==='function') seed(); }catch(_){}
+28650|     const days=+a.days||3, equip=a.equip||'gym', exp=a.exp||'nov';
+28651|     const cfg={days,equip,exp,goal:a.goal==='bulk'?'hyper':(a.goal==='cut'?'recomp':'hyper'),
+28652|       inj:[],dows:DOWDEF[days]||DOWDEF[3],mins:65};
+28653|     const P=genProgram(cfg);
+28654|     if(P&&P.plan&&P.plan.some(d=>d.ex&&d.ex.length)){
+28655|       try{ progSnap('знакомство','Программа собрана при знакомстве: '+days+' дн/нед, '+equip); }catch(_){}
+28656|       S.prog=P;
+28657|     }
+28658|     S.onboardDone=1;
+28659|     await put('settings',S,'main');
+28660|     try{ trkDaily('onboard_done'); }catch(_){}
+28661|   }catch(e){ try{ S.onboardDone=1; await put('settings',S,'main'); }catch(_){} }
+28662|   onbEnd(true);
+28663| }
+28664| function onbClose(){
+28665|   $('onb').style.display='none';
+28666|   try{ renderAll(); }catch(_){}
+28667|   /* Решение владельца: после знакомства — сразу «Зал». Там лежит собранная
+28668|      программа, то есть первое, что человек видит, — его же тренировка. */
+28669|   try{ goView('train'); }catch(_){}
+28670|   /* Тоста «программа собрана» здесь больше нет: последний экран знакомства
+28671|      говорит это крупно и с фактами. Повторить то же самое всплывашкой —
+28672|      значит сказать человеку, что он невнимательный. */
+28673| }
+28674| async function onbSkip(){
+28675|   try{ S.onboardDone=1; await put('settings',S,'main'); }catch(_){}
+28676|   onbClose();
+28677| }
+28678| /* Знакомство показываем один раз: после ворот, если профиль ещё пустой.
+28679|    Ни разу не показываем тому, кто перенёс данные с другого устройства или
+28680|    уже собрал программу — ему нечего рассказывать. */
+28681| function onbMaybe(){
+28682|   try{
+28683|     if(S.onboardDone) return false;
+28684|     if(S.prog||(typeof curW==='function'&&curW()>0)) { S.onboardDone=1; put('settings',S,'main').catch(()=>{}); return false; }
+28685|     onbShow(); return true;
+28686|   }catch(e){ return false; }
+28687| }
+28688| function openSync(why){
+28689|   $('sy_e').value=S.sbEmail||'';$('sy_p').value='';
+28690|   const w=$('syWhy');
+28691|   if(w){ w.innerHTML=why?esc(why):''; w.style.display=why?'':'none'; }
+28692|   sheet('sh-sync',true);
+28693| }
+28694| $('onbSkip').onclick=onbSkip;
+28695| $('onbGo').onclick=onbClose;
+28696| $('onbBack').onclick=()=>{ if(onbStep>0){ onbStep--; onbRender(); } };
+28697| $('onbNext').onclick=()=>{
+28698|   const q=ONBQ[onbStep]; if(!q) return;
+28699|   if(q.num){
+28700|     const el=$('onbNum'); const v=q.num.dec?pf(el.value):(+el.value||0);
+28701|     if(!(v>=q.num.min&&v<=q.num.max)) return toast('Проверь число: от '+q.num.min+' до '+q.num.max+' '+q.num.u);
+28702|     onbA[q.k]=v;
+28703|   }
+28704|   onbStep++; onbRender();
+28705| };
+28706| $('gSync').onclick=openSync;
+28707| $('gLocal').onclick=async()=>{
+28708|   S.gated=1; await rawput('settings',S,'main');
+28709|   showGate(false);
+28710|   if(!onbMaybe()) toast('Данные остаются на этом устройстве. Синхронизацию включишь позже: Настройки → Синхронизация');
+28711| };
+28712| /* gSkip снят вместе с кнопкой: он дублировал gLocal. Обработчик оставлять
+28713|    нельзя — «мёртвый код, который ждёт своего элемента» это следующая правка,
+28714|    которая его случайно оживит. */
+28715| $('gImp').onchange=e=>{ $('impI').files=e.target.files; $('impI').onchange({target:$('impI')}) };
+28716| 
+28717| /* ── UI СИНХРОНИЗАЦИИ ── */
+28718| function rSync(){
+28719|   const box=$('syncBox');
+28720|   if(sbTok&&sbKey){
+28721|     /* Состояние — на экране, объяснения — на шаг глубже (12.09). Два абзаца
+28722|        стояли ПЕРЕД действиями и читались как инструкция к прибору: человек
+28723|        открывает раздел, чтобы нажать «Синхронизировать» или «Сменить пароль»,
+28724|        а не перечитывать, как устроен обмен. Ни слова не выброшено. */
+28725|     box.innerHTML=`<div class="lst"><div class="lrow ro"><span class="g"><span class="t">Аккаунт</span></span><span class="v">${esc(S.sbEmail||'')}</span></div></div>
+28726|       <details class="det" style="margin-top:12px"><summary>Как работает синхронизация</summary>
+28727|       <div class="mini" style="margin-top:8px;white-space:normal">Правки уходят на сервер автоматически,
+28728|       через пару секунд после изменения. На другом устройстве войди этой же почтой и паролем —
+28729|       отдельную фразу вводить не нужно.</div>
+28730|       <div class="mini" style="margin-top:8px;white-space:normal"><b>Прогресс-фото не синхронизируются</b>
+28731|       — и это осознанно. Одно фото весит ~100 КБ, и весь зашифрованный снимок уезжал бы на сервер при
+28732|       каждой записанной котлете. Фото живут на том устройстве, где сняты. Перенести — через
+28733|       Экспорт/Импорт JSON.</div>
+28734|       <div class="mini" style="margin-top:8px;white-space:normal"><b>Забыл пароль — не беда.</b> На экране входа «Не помню пароль» пришлёт письмо
+28735|       со ссылкой, как на любом сайте. Данные после этого откроет <b>код восстановления</b>: пароль их
+28736|       больше не шифрует, он только запирает ключ. Потерял и код, и все устройства — вот тогда
+28737|       данные не вернёт никто, включая меня.</div>
+28738|       <div class="mini" style="margin-top:8px;white-space:normal"><b>Слияние без потерь.</b> Записал еду на телефоне, потом открыл компьютер —
+28739|       ничего не затрётся: сливаются обе стороны, побеждает более свежая версия каждой записи.
+28740|       Удаления тоже переносятся, а не воскресают.</div></details>
+28741|       <!-- Четыре кнопки в одном .row не помещались: flex:1 сжимал их до ширины,
+28742|            где текст наезжал друг на друга (полевой скриншот 21.08). Сетка 2×2
+28743|            наложения убрала, но «Синхронизиро/вать» и «Код восстановлен/ия»
+28744|            рвались посреди слова — по замеру в браузере. Русские подписи здесь
+28745|            длинные, и честный ответ — полная ширина: каждая в одну строку. -->
+28746|       ${S.needKey?`<div class="eb" style="margin-top:12px;white-space:normal">
+28747|         <b>У этого аккаунта ещё нет кода восстановления.</b> Значит забытый пароль пока
+28748|         означает потерю данных — как было раньше. Переведу на новый ключ за секунду,
+28749|         для этого нужен пароль один раз (он не сохранён на этом устройстве).
+28750|         <button class="btn sm" id="bSyKey" style="margin-top:12px">Получить код восстановления</button></div>`:''}
+28751|       <div class="lst" style="margin-top:12px">
+28752|         <button class="lrow" id="bSyNow"><span class="g"><span class="t">Синхронизировать сейчас</span></span><span class="ch"></span></button>
+28753|         <button class="lrow" id="bSyRec"><span class="g"><span class="t">Код восстановления</span></span><span class="ch"></span></button>
+28754|         <button class="lrow" id="bSyPw"><span class="g"><span class="t">Сменить пароль</span></span><span class="ch"></span></button>
+28755|         <button class="lrow dgr" id="bSyOut"><span class="g"><span class="t">Отключить синхронизацию</span></span><span class="ch"></span></button>
+28756|         <button class="lrow dgr" id="bSyDel"><span class="g"><span class="t">Удалить аккаунт и все данные</span></span><span class="ch"></span></button>
+28757|       </div>
+28758|       `;
+28759|     { const bk=$('bSyKey'); if(bk) bk.onclick=async()=>{
+28760|         const pw=await askText({title:'Пароль от аккаунта',label:'Один раз — чтобы повесить на него ключ данных.',type:'password',autocomplete:'current-password',required:true,ok:'Перевести'});
+28761|         if(pw==null) return;
+28762|         toast('Перевожу…');
+28763|         try{
+28764|           const k=await keySetup(pw.trim());
+28765|           if(k&&k.need){ toast('Этот пароль не подошёл к данным'); return; }
+28766|           S.sbKey=sbKey; S.needKey=0; await rawput('settings',S,'main');
+28767|           rSync(); if(k&&k.code) showRecovery(k.code,'moved');
+28768|         }catch(e){ toast(netErr(e)); }
+28769|       }; }
+28770|     $('bSyNow').onclick=()=>syncNow(true);
+28771|     $('bSyRec').onclick=async()=>{
+28772|       if(S.recCode) return showRecovery(S.recCode,false);
+28773|       if(!await ask({title:'Выпустить новый код?',text:'Кода нет на этом устройстве. Старый после этого перестанет работать.',ok:'Выпустить',danger:true})) return;
+28774|       try{ showRecovery(await recRotate(),false); }catch(e){ toast(netErr(e)); }
+28775|     };
+28776|     $('bSyPw').onclick=async()=>{
+28777|       const np=await askText({title:'Новый пароль',label:'От 8 символов. Данные перешифровывать не нужно — поменяется только замок на ключе. На других устройствах войди новым паролем.',type:'password',autocomplete:'new-password',required:true,ok:'Дальше'});
+28778|       if(np==null) return;
+28779|       const np2=await askText({title:'Повтори новый пароль',label:'Опечатка здесь стоит дорого.',type:'password',autocomplete:'new-password',required:true,ok:'Сменить'});
+28780|       if(np2==null) return;
+28781|       if(np!==np2) return toast('Пароли не совпали',{kind:'error'});
+28782|       toast('Перешифровываю облако…');
+28783|       try{
+28784|         await sbChangePass(np.trim());
+28785|         progSnap('синхронизация','Пароль аккаунта сменён, облако перешифровано');
+28786|         rSync(); toast('Готово. На других устройствах войди новым паролем.');
+28787|       }catch(e){ toast(e.message,{kind:'error'}); }
+28788|     };
+28789|     $('bSyOut').onclick=async()=>{
+28790|       if(!await ask({title:'Отключить синхронизацию?',text:'Данные на этом устройстве останутся.',ok:'Отключить',danger:true}))return;
+28791|       sbTok=sbKey=sbUid=null;
+28792|       S.sbEmail='';S.sbRefresh='';S.sbAt=0;S.sbPass='';S.sbKey='';
+28793|       await rawput('settings',S,'main'); rCoach(); toast('Отключено');
+28794|     };
+28795|     $('bSyDel').onclick=accountDelete;
+28796|     setSyncUI(null);
+28797|   }else{
+28798|     /* Было три абзаца в первом же разделе настроек, всегда раскрытом (31.08).
+28799|        Пустое состояние — предложение действия, а не лекция: одна строка и
+28800|        кнопка. Про шифрование и код восстановления — в «Справку». */
+28801|     box.innerHTML=`<div class="note keep" style="margin-top:0">Данные на всех устройствах, зашифрованы в браузере.</div>
+28802|       <button class="btn" style="margin-top:12px" id="bSyOn">Подключить</button>
+28803|       <div class="note" style="margin-top:0">
+28804|       <b>Сервер не видит твои данные.</b> Они шифруются прямо в браузере (AES-256): в базе лежит
+28805|       нечитаемый блоб, и ни Supabase, ни я, ни взломщик его не прочтут. Пароль тоже не покидает
+28806|       устройство — на сервер уходит только выведенное из него значение для входа.<br><br>
+28807|       <b>Исключение — ИИ.</b> То, что ты отправляешь на разбор (фото, бланк анализов, выжимка дневника),
+28808|       уходит в Anthropic через сервер приложения открытым текстом и сквозным шифрованием не защищено.<br><br>
+28809|       Забыть пароль не страшно: почта вернёт вход, а данные откроет <b>код восстановления</b> —
+28810|       его выдам сразу при подключении. Потерять и код, и все устройства — единственный способ
+28811|       остаться без данных.
+28812|       </div>`;
+28813|     $('bSyOn').onclick=()=>{
+28814|       $('sy_e').value=S.sbEmail||''; $('sy_p').value='';
+28815|       sheet('sh-sync',true);
+28816|     };
+28817|   }
+28818| }
+28819| /* ── УДАЛЕНИЕ АККАУНТА ──
+28820|    Сервер: rpc/account_delete (security definer, только authenticated) сносит
+28821|    vaults/keyring/push_subs/подписку/AI-доступ/события и саму строку auth.users.
+28822|    Клиент: глушит автосинк, закрывает базу, удаляет fittrk2 и localStorage,
+28823|    перезагружает страницу. Подтверждение — словом, а не кнопкой: действие
+28824|    необратимо, и «Ок» в confirm жмут не читая. */
+28825| async function accountDelete(){
+28826|   const a=await askText({title:'Удалить аккаунт и ВСЕ данные?',label:'С сервера уйдут зашифрованное облако, ключи и сам аккаунт; с этого устройства — вся история. Код восстановления тоже перестанет работать. Вернуть будет нельзя. Напиши УДАЛИТЬ, чтобы подтвердить.',placeholder:'УДАЛИТЬ',required:true,ok:'Удалить',danger:true});
+28827|   if(a==null) return;
+28828|   if(a.trim().toUpperCase()!=='УДАЛИТЬ') return toast('Не подтверждено — ничего не удалено');
+28829|   toast('Удаляю…');
+28830|   try{
+28831|     if(!sbTok && !(await sbEnsure())) throw new Error('Нет связи с сервером — попробуй позже');
+28832|     const r=await sbFetch('/rest/v1/rpc/account_delete',{method:'POST',body:'{}',timeout:30000});
+28833|     if(!r.ok){ const t=await r.text().catch(()=>''); throw new Error('Сервер не удалил аккаунт ('+r.status+')'+(t?': '+t.slice(0,120):'')); }
+28834|   }catch(e){ toast(e.message,{kind:'error'}); return; }
+28835|   await localWipe();
+28836|   location.replace(location.pathname);
+28837| }
+28838| async function localWipe(){
+28839|   try{ clearTimeout(syncTimer); }catch(_){}
+28840|   sbTok=sbKey=sbUid=null; syncing=true; ckForget();   // v619: выведенные ключи не переживают выход
+28841|   try{ localStorage.clear(); }catch(_){}
+28842|   try{ sessionStorage.clear(); }catch(_){}
+28843|   try{ if(db&&db.close) db.close(); }catch(_){}
+28844|   db=null;
+28845|   await new Promise(res=>{
+28846|     try{ const q=indexedDB.deleteDatabase(DBN); q.onsuccess=q.onerror=q.onblocked=()=>res(); setTimeout(res,4000); }
+28847|     catch(_){ res(); }
+28848|   });
+28849| }
+28850| /* ── «НЕ ПОМНЮ ПАРОЛЬ» ──
+28851|    Кнопка «прислать письмо для сброса» здесь была бы враньём: письмо вернёт
+28852|    вход в аккаунт, но данные останутся зашифрованы СТАРЫМ паролем, и человек
+28853|    увидит пустое приложение вместо своей истории — худший исход из всех, ещё
+28854|    и необратимый на вид. Поэтому говорим правду и ведём по тому пути, который
+28855|    реально работает: перенести с устройства, где вход ещё жив.
+28856|    Синхронизация при этом уже умеет главное — отказывается затирать облако,
+28857|    которое не может расшифровать. Значит данные ждут, и спешить некуда. */
+28858| /* ── СБРОС ПАРОЛЯ ЧЕРЕЗ ПОЧТУ ──
+28859|    Теперь это честная кнопка, а не ловушка: ключ данных больше не выводится
+28860|    из пароля, и после сброса данные откроет код восстановления. */
+28861| async function sbSendReset(email){
+28862|   const r=await sbFetch('/auth/v1/recover',{method:'POST',
+28863|     body:JSON.stringify({email,gotrue_meta_security:{}})});
+28864|   if(!r.ok){
+28865|     const t=await r.json().catch(()=>({}));
+28866|     const m=(t.msg||t.error_description||t.error||'').toString();
+28867|     if(/rate|limit|seconds/i.test(m)) throw new Error('Слишком часто. Подожди минуту и нажми ещё раз.');
+28868|     throw new Error(m||('Не удалось отправить письмо ('+r.status+')'));
+28869|   }
+28870|   return true;
+28871| }
+28872| /* Возврат по ссылке из письма: Supabase кладёт токен в хеш адреса.
+28873|    Ловим его при старте и сразу даём задать новый пароль — без переходов и вкладок. */
+28874| async function recoveryFromLink(){
+28875|   const h=String(location.hash||'');
+28876|   if(h.indexOf('type=recovery')<0) return false;
+28877|   const q=new URLSearchParams(h.replace(/^#/,''));
+28878|   const at=q.get('access_token');
+28879|   if(!at) return false;
+28880|   try{ history.replaceState(null,'',location.pathname+location.search); }catch(e){}
+28881|   sbTok=at;
+28882|   let rsMail=S.sbEmail||'';
+28883|   try{ const ur=await sbFetch('/auth/v1/user'); if(ur.ok){ const uj=await ur.json(); if(uj&&uj.email) rsMail=uj.email; } }catch(e){}
+28884|   $('aiT').textContent='Новый пароль';
+28885|   $('aiBody').innerHTML='<div class="ib">Ссылка из письма принята. Задай новый пароль — потом войдёшь им.</div>'
+28886|     +'<div class="field" style="margin-top:12px"><label>Новый пароль</label>'
+28887|     +'<input type="password" id="rsP" autocomplete="new-password"></div>'
+28888|     +'<button class="btn" id="bRsGo">Сохранить пароль</button>';
+28889|   sheet('sh-ai',true);
+28890|   $('bRsGo').onclick=async()=>{
+28891|     const np=($('rsP').value||'').trim();
+28892|     const wk=weakPass(np);
+28893|     if(wk) return toast('Пароль '+wk);
+28894|     try{
+28895|       if(!rsMail) throw new Error('Ссылка устарела — запроси письмо заново');
+28896|       const u=await sbFetch('/auth/v1/user',{method:'PUT',body:JSON.stringify({password:(await creds(rsMail,np)).auth})});
+28897|       if(!u.ok) throw new Error('Ссылка устарела — запроси письмо заново');
+28898|       S.sbEmail=rsMail;
+28899|       sheet('sh-ai',false);
+28900|       toast('Пароль сменён — входи им');
+28901|       openSync('Пароль сменён. Войди новым — дальше попрошу код восстановления, чтобы открыть данные.');
+28902|     }catch(e){ toast(netErr(e)); }
+28903|   };
+28904|   return true;
+28905| }
+28906| function forgotHTML(){
+28907|   const mail=(S.sbEmail||'').trim();
+28908|   return `<div class="ib" style="white-space:normal">
+28909|     <b>Пришлю письмо со ссылкой</b> — по ней задашь новый пароль, как на любом сайте.
+28910|     <br><br>Дальше один шаг, которого на обычных сайтах нет: данные зашифрованы, и новый пароль
+28911|     сам по себе их не откроет. Откроет <b>код восстановления</b> — тот, что выдавался при
+28912|     подключении синхронизации (файл <i>bezvody-recovery.txt</i> или запись в менеджере паролей).
+28913|     Ввести его нужно один раз.
+28914|     <div class="field" style="margin-top:12px"><label>Почта</label>
+28915|       <input type="email" id="fgMail" value="${esc(mail)}" autocomplete="username"></div>
+28916|     <button class="btn" id="fgSend">Прислать письмо</button>
+28917|     <div class="note" style="margin-top:12px"><b>Кода не найдёшь?</b> Если осталось устройство,
+28918|     где приложение открывается — там всё цело и пароль не нужен: Настройки → Экспорт JSON,
+28919|     файл сюда, кнопка «Перенести с другого устройства» на первом экране. А данные в облаке
+28920|     никуда не денутся: найдётся код через месяц — вернёшься к ним тогда.</div>
+28921|   </div>`;
+28922| }
+28923| $('syForgot')&&($('syForgot').onclick=()=>{
+28924|   const b=$('syForgotBox'); if(!b) return;
+28925|   const on=b.style.display==='none';
+28926|   b.style.display=on?'':'none';
+28927|   if(!on) return;
+28928|   b.innerHTML=forgotHTML();
+28929|   const g=$('fgSend');
+28930|   if(g) g.onclick=async()=>{
+28931|     const m=($('fgMail').value||'').trim();
+28932|     if(!m) return toast('Введи почту');
+28933|     g.disabled=true; toast('Отправляю…');
+28934|     try{
+28935|       await sbSendReset(m);
+28936|       b.innerHTML='<div class="ob" style="white-space:normal"><b>Письмо ушло на '+esc(m)+'.</b>'
+28937|         +' Открой ссылку — задашь новый пароль. Если письма нет через пару минут, посмотри в спаме.'
+28938|         +'<br><br>После этого вернись сюда, войди новым паролем и приготовь код восстановления.</div>';
+28939|     }catch(e){ g.disabled=false; toast(netErr(e)); }
+28940|   };
+28941| });
+28942| $('bSyOk').onclick=async()=>{
+28943|   const e=$('sy_e').value.trim(), p=$('sy_p').value;
+28944|   if(!e||!p) return toast('Почта и пароль');
+28945|   if(p.length<6) return toast('Пароль от 6 символов');
+28946|   toast('Подключаю…');
+28947|   try{
+28948|     await sbLogin(e,p);
+28949|     const k=await keySetup(p);
+28950|     if(k.need==='code'){ askRecovery(p,k.hint); return; }
+28951|     if(k.need==='oldpass'){ askOldPass(p,k.ver); return; }
+28952|     if($('sy_rem').checked){ S.sbPass=p; S.sbKey=sbKey }
+28953|     else { S.sbPass=''; S.sbKey='' }
+28954|     await rawput('settings',S,'main');
+28955|     sheet('sh-sync',false);
+28956|     S.gated=1; await rawput('settings',S,'main');
+28957|     showGate(false);
+28958|     await syncNow(true);
+28959|     rCoach();
+28960|     if(k.code) showRecovery(k.code,true);
+28961|   }catch(err){ toast(err.message) }
+28962| };
+28963| /* ── КОД ВОССТАНОВЛЕНИЯ: ПОКАЗАТЬ ──
+28964|    Показываем один раз и настойчиво: это единственное, что вернёт данные,
+28965|    если пароль забудется. Кнопка «скачать» есть намеренно — «скопировать»
+28966|    человек нажмёт и потеряет буфер, а файл останется лежать. */
+28967| function showRecovery(code,fresh){
+28968|   $('aiT').textContent='Код восстановления';
+28969|   $('aiBody').innerHTML=`<div class="wb" style="white-space:normal">
+28970|     ${fresh==='moved'?'<b>Приложение обновилось — теперь забытый пароль лечится.</b> Раньше он был и ключом к данным, и потерять его значило потерять всё. Больше нет: вот код, которым данные открываются. <b>Сохрани его сейчас.</b> ':(fresh?'<b>Сохрани это сейчас.</b> ':'<b>Твой код восстановления.</b> ')}
+28971|     Если забудешь пароль, почта вернёт вход, а данные откроет только этот код —
+28972|     больше ничем, включая меня. Он показывается один раз.</div>
+28973|     <div style="font-family:ui-monospace,monospace;font-size:var(--fs5);line-height:var(--lh5);letter-spacing:2px;text-align:center;
+28974|       background:var(--c2);border-radius:12px;padding:16px;margin:12px 0;user-select:all">${esc(code)}</div>
+28975|     <div class="row">
+28976|       <button class="btn sec" id="bRecCopy">Скопировать</button>
+28977|       <button class="btn sec" id="bRecSave">Скачать файлом</button>
+28978|     </div>
+28979|     <div class="note" style="margin-top:12px">Положи в менеджер паролей рядом с паролем, или распечатай.
+28980|     Скриншот в галерее тоже лучше, чем ничего. Код лежит и в файле «Экспорт JSON» — если делал бэкап,
+28981|     он найдётся там.</div>
+28982|     <button class="btn gho sm" id="bRecNew" style="margin-top:12px">Выпустить новый код</button>`;
+28983|   sheet('sh-ai',true);
+28984|   { const bn=$('bRecNew'); if(bn) bn.onclick=async()=>{
+28985|       if(!await ask({title:'Выпустить новый код?',text:'Старый перестанет работать.',ok:'Выпустить',danger:true})) return;
+28986|       try{ showRecovery(await recRotate(),true); }catch(e){ toast(netErr(e)); }
+28987|     }; }
+28988|   $('bRecCopy').onclick=async()=>{
+28989|     try{ await navigator.clipboard.writeText(code); toast('Скопировано'); }
+28990|     catch(e){ toast('Не вышло — выдели и скопируй руками'); }
+28991|   };
+28992|   $('bRecSave').onclick=()=>{
+28993|     const txt='Без воды — код восстановления\n\nПочта: '+(S.sbEmail||'')+'\nКод:   '+code+
+28994|       '\n\nЭтим кодом открываются твои данные, если забыт пароль.\nХрани как пароль.\n';
+28995|     const a=document.createElement('a');
+28996|     a.href=URL.createObjectURL(new Blob([txt],{type:'text/plain'}));
+28997|     a.download='bezvody-recovery.txt'; a.click();
+28998|     setTimeout(()=>URL.revokeObjectURL(a.href),4000);
+28999|   };
+29000| }
+29001| /* ── ДАННЫЕ ПОД СТАРЫМ ПАРОЛЕМ ──
+29002|    Аккаунт со старой схемой + сброс пароля через почту. Вход есть, пароль
+29003|    верный, а данные в облаке лежат под тем паролем, что был до сброса.
+29004|    Кода восстановления у таких аккаунтов ещё нет — он появился позже.
+29005|    Раньше приложение тут просто падало с «пароль не подходит». Даём три
+29006|    настоящих выхода и честно говорим цену каждого (21.08). */
+29007| function askOldPass(newPass,ver){
+29008|   $('aiT').textContent='Данные под старым паролем';
+29009|   $('aiBody').innerHTML=`<div class="ib" style="white-space:normal">
+29010|     <b>Пароль верный — вход состоялся.</b> Но данные в облаке зашифрованы тем паролем,
+29011|     который был <b>до сброса</b>: почта меняет вход, а шифр не трогает. Аккаунт заведён до
+29012|     того, как появились коды восстановления, поэтому кода у него нет.
+29013|     <br><br>Ничего не потеряно и ничего не спешит: данные лежат на сервере нетронутыми.</div>
+29014|     <div class="field" style="margin-top:14px"><label>Вспомнил старый пароль? Введи его</label>
+29015|       <input type="password" id="opIn" autocomplete="off"></div>
+29016|     <button class="btn" id="bOpGo">Открыть данные</button>
+29017|     <div class="note" style="margin-top:8px">Откроются и сразу переедут на новый замок:
+29018|     дальше их будет открывать нынешний пароль, и выдам код восстановления.</div>
+29019|     <div class="wb" style="margin-top:14px;white-space:normal"><b>Старый пароль не вспоминается?</b>
+29020|     <br>Если осталось устройство, где приложение открывается — <b>там всё цело</b>:
+29021|     Настройки → Экспорт JSON, файл сюда, кнопка «Перенести с другого устройства».
+29022|     Это самый надёжный путь, пароли в нём не участвуют. Закрой это окно, перенеси файл — и вернись
+29023|     сюда через Настройки → Синхронизация → «Подключить»: экран откроется снова.
+29024|     <br><br>А облако можно начать заново — но только когда данные уже перенесены:
+29025|     старый зашифрованный слепок при этом заменится тем, что лежит на этом устройстве.
+29026|     <button class="btn gho sm" id="bOpFresh" style="margin-top:12px">Начать облако заново</button></div>`;
+29027|   sheet('sh-ai',true);
+29028|   $('bOpGo').onclick=async()=>{
+29029|     const op=($('opIn').value||'').trim();
+29030|     if(!op) return toast('Введи старый пароль');
+29031|     toast('Открываю…');
+29032|     try{
+29033|       const code=await keyAdopt('bv1|'+op,newPass,ver);
+29034|       S.sbPass=newPass; S.sbKey=sbKey; S.gated=1;
+29035|       await rawput('settings',S,'main');
+29036|       sheet('sh-ai',false); sheet('sh-sync',false); showGate(false);
+29037|       await syncNow(true); rCoach();
+29038|       showRecovery(code,true);
+29039|     }catch(e){ toast(netErr(e)); }
+29040|   };
+29041|   $('bOpFresh').onclick=async()=>{
+29042|     const n=(W.length+SETS.length+LOG.length);
+29043|     if(!await ask({title:'Начать облако заново?',text:'Старый зашифрованный слепок на сервере будет заменён тем, что есть на ЭТОМ устройстве ('+n+' записей). Вернуть его после этого будет нельзя даже со старым паролем. Если данные ещё не перенесены с другого устройства — сначала перенеси.',ok:'Начать заново',danger:true})) return;
+29044|     if(!await ask({title:'Точно?',text:'Это последний шаг, после которого старые данные в облаке исчезнут.',ok:'Да, заменить',danger:true})) return;
+29045|     toast('Записываю…');
+29046|     try{
+29047|       const code=await keyAdopt(null,newPass,ver);
+29048|       S.sbPass=newPass; S.sbKey=sbKey; S.gated=1;
+29049|       await rawput('settings',S,'main');
+29050|       sheet('sh-ai',false); sheet('sh-sync',false); showGate(false);
+29051|       await syncNow(true); rCoach();
+29052|       showRecovery(code,true);
+29053|     }catch(e){ toast(netErr(e)); }
+29054|   };
+29055| }
+29056| /* ── КОД ВОССТАНОВЛЕНИЯ: СПРОСИТЬ ──
+29057|    Сюда попадают после сброса пароля через почту: вход есть, данные заперты. */
+29058| function askRecovery(pass,hint){
+29059|   $('aiT').textContent='Нужен код восстановления';
+29060|   $('aiBody').innerHTML=`<div class="ib" style="white-space:normal">
+29061|     Пароль сменился, и данные в облаке он больше не открывает — это не сбой, а то,
+29062|     ради чего они зашифрованы. Открыть их может код восстановления, который выдавался
+29063|     при подключении синхронизации.${hint?` Твой начинался на <b>${esc(hint)}</b>.`:''}</div>
+29064|     <div class="field" style="margin-top:12px"><label>Код восстановления</label>
+29065|       <input id="recIn" placeholder="XXXXX-XXXXX-XXXXX-XXXXX" autocomplete="off" spellcheck="false"></div>
+29066|     <button class="btn" id="bRecGo">Открыть данные</button>
+29067|     <div class="note" style="margin-top:12px"><b>Кода нет?</b> Если осталось устройство, где приложение
+29068|     ещё открывается — данные там целы: Настройки → Экспорт JSON, и перенеси файл сюда.
+29069|     Блоб на сервере не тронут: найдётся код позже — вернёшься к нему в любой момент.</div>`;
+29070|   sheet('sh-ai',true);
+29071|   $('bRecGo').onclick=async()=>{
+29072|     const c=($('recIn').value||'').trim();
+29073|     if(!c) return toast('Введи код');
+29074|     toast('Проверяю…');
+29075|     try{
+29076|       await recUnlock(c,pass);
+29077|       S.sbPass=pass; S.sbKey=sbKey; S.gated=1;
+29078|       await rawput('settings',S,'main');
+29079|       sheet('sh-ai',false); sheet('sh-sync',false); showGate(false);
+29080|       await syncNow(true); rCoach();
+29081|       toast('Данные вернулись');
+29082|     }catch(e){ toast(netErr(e)); }
+29083|   };
+29084| }
+29085| 
+29086| /* ── ОТЧЁТ ТРЕНЕРУ ЗА НЕДЕЛЮ ── */
+29087| function weekReport(){
+29088|   const days=[]; for(let i=6;i>=0;i--) days.push(shiftDate(td(),-i));
+29089|   const L=['Отчёт за '+fd(days[0])+'–'+fd(days[6])];
+29090|   // вес
+29091|   const allT=trend(), T=allT.filter(x=>days.includes(x.d));
+29092|   if(T.length>=2){
+29093|     const dw=T[T.length-1].tr-T[0].tr;
+29094|     L.push('Вес (тренд): '+r1(T[0].tr)+' → '+r1(T[T.length-1].tr)+' кг ('+(dw>0?'+':'')+r1(dw)+' кг за неделю), записей '+T.length+'/7');
+29095|   }else if(allT.length) L.push('Вес: тренд '+r1(allT[allT.length-1].tr)+' кг (за неделю записей: '+T.length+')');
+29096|   else L.push('Вес: нет данных');
+29097|   // питание
+29098|   const bd=days.map(d=>{const m=LOG.filter(l=>l.d===d);
+29099|     return {d,n:m.length,s:m.reduce((a,l)=>({k:a.k+l.k,p:a.p+l.p,f:a.f+l.f,c:a.c+l.c}),{k:0,p:0,f:0,c:0})}});
+29100|   const fed=bd.filter(x=>x.n>0), t=tg();
+29101|   /* v661: день с половиной цели и сегодняшний незаконченный — не «недобор», а
+29102|      неполная запись; в среднее не входят (325 ккал за 20.09 тянули среднее
+29103|      владельца к 2364 и рождали «недобираешь»). */
+29104|   const partial=x=>x.d===td()||(t&&x.s.k<t.k*0.5);
+29105|   const full=fed.filter(x=>!partial(x));
+29106|   if(fed.length){
+29107|     const base=full.length?full:fed, av=k=>r0(base.reduce((a,x)=>a+x.s[k],0)/base.length);
+29108|     L.push('Питание ('+fed.length+'/7 дней с записями'+(full.length&&full.length<fed.length?', в среднем по '+full.length+' полным':'')+'): в среднем '+av('k')+' ккал · Б '+av('p')+' Ж '+av('f')+' У '+av('c')
+29109|       +(t?(' — цель '+t.k+' · Б '+t.p+' Ж '+t.f+' У '+t.c):''));
+29110|     fed.forEach(x=>L.push('  '+fd(x.d)+': '+r0(x.s.k)+' ккал · Б '+r0(x.s.p)+' Ж '+r0(x.s.f)+' У '+r0(x.s.c)+(partial(x)?(x.d===td()?' — день ещё идёт':' — записан не полностью, в среднее не входит'):'')));
+29111|   }else L.push('Питание: нет записей');
+29112|   // вода
+29113|   const wt=days.map(d=>fluidToday(d)).filter(v=>v>0);
+29114|   L.push('Жидкость: '+(wt.length?('в среднем '+r0(wt.reduce((a,b)=>a+b,0)/wt.length)+' мл/день ('+wt.length+' дн. с данными)'):'нет данных'));
+29115|   // шаги
+29116|   const st7=days.map(d=>(STEPS.find(t=>t.d===d)||{}).n).filter(n=>n>0);
+29117|   if(st7.length) L.push('Шаги: в среднем '+r0(st7.reduce((a,b)=>a+b,0)/st7.length)+'/день ('+st7.length+' дн. с данными'+(S.stepGoal?(', цель '+S.stepGoal):'')+')');
+29118|   else L.push('Шаги: нет данных');
+29119|   // сон
+29120|   const sl=SLP.filter(x=>days.includes(x.d)&&x.h!=null).sort((a,b)=>a.d<b.d?-1:1);
+29121|   if(sl.length){
+29122|     const avg=sl.reduce((a,x)=>a+x.h,0)/sl.length;
+29123|     L.push('Сон: в среднем '+r1(avg)+' ч ('+sl.length+' ночей, короче 7 ч: '+sl.filter(x=>x.h<7).length+')');
+29124|     sl.forEach(x=>L.push('  ночь на '+fd(x.d)+': '+r1(x.h)+' ч'+(x.bed?(' ('+x.bed+' → '+(x.wake||'?')+')'):'')));
+29125|   }else L.push('Сон: нет данных');
+29126|   // тренировки
+29127|   const byD={}; SETS.forEach(x=>{ if(days.includes(x.d)) (byD[x.d]=byD[x.d]||[]).push(x) });
+29128|   const tds=Object.keys(byD).sort();
+29129|   if(tds.length){
+29130|     L.push('Тренировки: '+tds.length+' за неделю');
+29131|     tds.forEach(d=>{
+29132|       const st=byD[d], ton=st.reduce((a,x)=>a+(x.w||0)*(x.r||0),0), se=gymSess(d);
+29133|       L.push('  '+fd(d)+': '+st.length+' подходов, тоннаж '+r1(ton/1000)+' т'
+29134|         +(se&&se.min?(', '+r0(se.min)+' мин'):'')+(se&&se.rpe?(', RPE '+se.rpe):''));
+29135|       const ex={}; st.forEach(x=>{ex[x.e]=(ex[x.e]||0)+1});
+29136|       L.push('    '+Object.entries(ex).map(([e,n])=>e+' ×'+n).join(', '));
+29137|     });
+29138|   }else L.push('Тренировки: не было');
+29139|   // замеры
+29140|   const NM={waist:'талия',shoulders:'плечи',chest:'грудь',hips:'бёдра',arm:'бицепс',thigh:'бедро',neck:'шея'};
+29141|   const ms=[...M].sort((a,b)=>a.d<b.d?-1:1);
+29142|   if(ms.length){
+29143|     const last=ms[ms.length-1], prev=ms.length>1?ms[ms.length-2]:null;
+29144|     const parts=Object.keys(NM).filter(k=>last[k]).map(k=>{
+29145|       let s=NM[k]+' '+r1(last[k]);
+29146|       if(prev&&prev[k]){const df=last[k]-prev[k]; if(Math.abs(df)>=0.1) s+=' ('+(df>0?'+':'')+r1(df)+')'}
+29147|       return s});
+29148|     L.push('Замеры от '+fd(last.d)+(prev?(' (в скобках — изменение с '+fd(prev.d)+')'):'')+': '+parts.join(', '));
+29149|     // динамика за ~месяц: первый замер возрастом 21–60 дней
+29150|     const old=ms.filter(x=>{const a=dn(last.d)-dn(x.d);return a>=21&&a<=60}).pop();
+29151|     if(old){
+29152|       const mp=Object.keys(NM).filter(k=>last[k]&&old[k]&&Math.abs(last[k]-old[k])>=0.3)
+29153|         .map(k=>{const df=last[k]-old[k];return NM[k]+' '+(df>0?'+':'')+r1(df)});
+29154|       if(mp.length) L.push('Динамика за месяц (с '+fd(old.d)+'): '+mp.join(', '));
+29155|     }
+29156|   }else L.push('Замеры: нет данных');
+29157|   // программа — тренер должен видеть, ПО ЧЕМУ человек работает, а не только факт
+29158|   if(S.prog&&S.prog.plan&&S.prog.plan.length){
+29159|     L.push('Программа ('+S.prog.cfg.days+' дн/нед, '+eqRu(S.prog.cfg.equip)+'):');
+29160|     S.prog.plan.forEach(d=>L.push('  '+DOW[d.dow]+' — '+(d.n||'')+': '
+29161|       +d.ex.map(i=>i.n+' '+i.sets+'×'+i.lo+(i.hi>i.lo?'–'+i.hi:'')).join('; ')));
+29162|   }
+29163|   // добавки — только категория «Добавка» (спортивные); фарму в отчёт не включаем
+29164|   try{
+29165|     const sup=subMemory().filter(m=>m.c==='sup');
+29166|     if(sup.length) L.push('Добавки (спортивные, из журнала): '+sup.map(m=>
+29167|       m.n+(m.v?(' '+m.v+' '+(m.u||'')):(m.doseText?(' '+m.doseText):''))
+29168|       +(m.d7?(' — '+m.d7+'/7 дн.'):'')).join('; '));
+29169|   }catch(e){}
+29170|   return L.join('\n');
+29171| }
+29172| $('bRep')&&($('bRep').onclick=()=>{ $('repT').value=weekReport(); sheet('sh-rep',true); });
+29173| $('bRepCopy')&&($('bRepCopy').onclick=()=>{
+29174|   const t=$('repT').value;
+29175|   (navigator.clipboard?navigator.clipboard.writeText(t):Promise.reject()).then(()=>toast('Скопировано'))
+29176|     .catch(()=>{ $('repT').removeAttribute('readonly'); $('repT').select(); document.execCommand('copy'); $('repT').setAttribute('readonly',''); toast('Скопировано'); });
+29177| });
+29178| $('bRepShare')&&($('bRepShare').onclick=()=>{
+29179|   if(navigator.share) navigator.share({text:$('repT').value}).catch(()=>{});
+29180|   else toast('Шеринг тут недоступен — жми «Скопировать»');
+29181| });
+29182| 
+29183| /* ══════════════ НАПОМИНАНИЯ (веб-пуш) ══════════════
+29184|    Потеря мотивации — крупнейшая причина, по которой люди бросают такие
+29185|    приложения. Без напоминания человек уходит молча, и мы даже не узнаем.
+29186| 
+29187|    Почему через сервер: пуш в закрытое приложение может прислать только
+29188|    push-служба браузера. Локально «разбудить» себя по расписанию PWA не умеет —
+29189|    такого API просто нет, и обещать это было бы враньём.
+29190| 
+29191|    Что уезжает на сервер: адрес push-службы, час, часовой пояс и дни недели
+29192|    тренировок. Ничего из зашифрованного хранилища. */
+29193| function pushSupported(){
+29194|   return ('serviceWorker' in navigator) && ('PushManager' in window) && ('Notification' in window);
+29195| }
+29196| function pushDows(){
+29197|   try{ const d=S.prog&&S.prog.cfg&&S.prog.cfg.dows; return Array.isArray(d)?d.slice(0,7):[] }catch(e){ return [] }
+29198| }
+29199| /* Типы напоминаний: [kind, id селекта часа, час по умолчанию].
+29200|    Правило анти-спама живёт в конструкции: каждый тип — максимум раз в день. */
+29201| const PUSH_KINDS=[['workout','ps_hour',18],['weigh','ps_h_weigh',7],['water','ps_h_water',14],
+29202|                   ['food','ps_h_food',21],['sleep','ps_h_sleep',23],['week','ps_h_week',19]];
+29203| function pushKinds(){
+29204|   const out=PUSH_KINDS.filter(([k])=>{const c=$('pk_'+k);return c&&c.checked;}).map(([k])=>k);
+29205|   return out.length?out:['workout'];
+29206| }
+29207| function pushHours(){
+29208|   const o={};
+29209|   PUSH_KINDS.forEach(([k,id,def])=>{ if(k==='workout') return;
+29210|     const e=$(id), h=e&&e.value!==''?+e.value:def; o[k]=(h>=0&&h<=23)?h:def; });
+29211|   return o;
+29212| }
+29213| function pushHour(){ const h=+(($('ps_hour')&&$('ps_hour').value)||18); return (h>=0&&h<=23)?h:18; }
+29214| function b64ToU8(b64){
+29215|   const pad='='.repeat((4-b64.length%4)%4);
+29216|   const s=(b64+pad).replace(/-/g,'+').replace(/_/g,'/');
+29217|   return Uint8Array.from(atob(s),c=>c.charCodeAt(0));
+29218| }
+29219| async function pushServerKey(){
+29220|   const r=await fetch('/api/push-key');
+29221|   if(!r.ok) throw new Error('Сервер напоминаний ещё не настроен');
+29222|   const j=await r.json();
+29223|   if(!j.key) throw new Error('Сервер напоминаний ещё не настроен');
+29224|   return j.key;
+29225| }
+29226| async function pushEnable(){
+29227|   if(!pushSupported())
+29228|     throw new Error('Браузер не умеет напоминания. На iPhone добавь приложение на экран «Домой» — тогда заработает.');
+29229|   if(!sbTok) throw new Error('Нужен вход в синхронизацию: пуш идёт через сервер');
+29230|   if((await Notification.requestPermission())!=='granted')
+29231|     throw new Error('Разрешение не выдано. Включить можно в настройках браузера для этого сайта.');
+29232|   const reg=await navigator.serviceWorker.ready;
+29233|   const key=await pushServerKey();
+29234|   let sub=await reg.pushManager.getSubscription();
+29235|   if(sub){
+29236|     // ключ сервера мог смениться — старая подписка тогда мертва
+29237|     try{ const cur=new Uint8Array(sub.options.applicationServerKey||[]), want=b64ToU8(key);
+29238|       if(cur.length!==want.length||cur.some((b,i)=>b!==want[i])){ await sub.unsubscribe(); sub=null; } }catch(e){}
+29239|   }
+29240|   if(!sub) sub=await reg.pushManager.subscribe({userVisibleOnly:true,applicationServerKey:b64ToU8(key)});
+29241|   const j=sub.toJSON();
+29242|   const row={endpoint:j.endpoint,p256dh:j.keys.p256dh,auth:j.keys.auth,
+29243|     hour:pushHour(), tz_off:-(new Date().getTimezoneOffset()),
+29244|     dows:pushDows(), kinds:pushKinds(), hours:pushHours(), fails:0};
+29245|   const r=await sbFetch('/rest/v1/push_subs?on_conflict=endpoint',{method:'POST',
+29246|     headers:{'Prefer':'resolution=merge-duplicates'},body:JSON.stringify(row)});
+29247|   if(!r.ok) throw new Error('Не удалось сохранить подписку: '+r.status);
+29248|   S.push={on:1,hour:row.hour,kinds:row.kinds,hours:row.hours};
+29249|   await put('settings',S,'main');
+29250|   trk('notif_on');
+29251| }
+29252| async function pushDisable(){
+29253|   try{
+29254|     const reg=await navigator.serviceWorker.ready;
+29255|     const sub=await reg.pushManager.getSubscription();
+29256|     if(sub){
+29257|       const ep=sub.toJSON().endpoint;
+29258|       await sbFetch('/rest/v1/push_subs?endpoint=eq.'+encodeURIComponent(ep),{method:'DELETE'});
+29259|       await sub.unsubscribe();
+29260|     }
+29261|   }catch(e){}
+29262|   S.push={on:0};
+29263|   await put('settings',S,'main');
+29264|   trk('notif_off');
+29265| }
+29266| function rPushSt(){
+29267|   const el=$('pushSt'); if(!el) return;
+29268|   const on=!!(S.push&&S.push.on);
+29269|   const tg=$('pk_all'); if(tg) tg.checked=on;
+29270|   const sub=$('pushSt2');
+29271|   if(!pushSupported()){ el.textContent='не поддерживается'; if(sub) sub.textContent='браузер не умеет; на iPhone — с экрана «Домой»'; return; }
+29272|   if(on){ el.textContent='вкл · '+((S.push.kinds||[]).length||1)+' '+plural((S.push.kinds||[]).length||1,'тип','типа','типов'); if(sub) sub.textContent='галочки и часы применяются сами'; return; }
+29273|   const denied=(typeof Notification!=='undefined'&&Notification.permission==='denied');
+29274|   el.textContent = denied ? 'запрещены в браузере' : 'выкл';
+29275|   if(sub) sub.textContent = denied ? 'запрещены в настройках браузера для этого сайта' : (sbTok?'':'нужен вход в синхронизацию');
+29276| }
+29277| 
+29278| /* settings — единый экран: синхронизация, данные, ключ, приёмы пищи, профиль */
+29279| /* Страницы настроек: список ↔ раздел внутри одного листа. Один уровень
+29280|    вложенности на экране в любой момент: на странице разделы стоят
+29281|    раскрытыми плитами без плюсиков (закон одной поверхности), заголовок
+29282|    листа становится «‹ Раздел». */
+29283| function setPage(id){
+29284|   const list=$('setList'), back=$('setBack'), ttl=$('setTitle'), gripe=$('bGripe'), ok=$('bSOk');
+29285|   document.querySelectorAll('#sh-s .setpg').forEach(p=>{ p.hidden=(p.id!==id);
+29286|     /* Раскрываем только РАЗДЕЛЫ страницы (прямые дети), а не всё подряд:
+29287|        «Подробнее о подписке» внутри раздела — по тапу, иначе сжатие
+29288|        подписки до двух строк отменялось самим открытием страницы. */
+29289|     if(p.id===id) p.querySelectorAll(':scope>details.det').forEach(d=>{ d.open=true;
+29290|       /* Заголовок раздела, совпадающий с заголовком страницы («Профиль и цели»
+29291|          под «Профиль и цели»), — повтор; прячем его, остальные остаются. */
+29292|       const sm=d.querySelector(':scope>summary'); const t=sm?(sm.childNodes[0]&&sm.childNodes[0].textContent||'').trim():'';
+29293|       d.classList.toggle('same',!!t&&t===(p.dataset.title||'')); }); });
+29294|   const pg=id?$(id):null;
+29295|   if(list) list.hidden=!!pg;
+29296|   /* v676: предупреждение «не сохранено в облако» — на корне и на «Данных», а не над каждой страницей */
+29297|   { const w=$('bkWarn'); if(w) w.hidden=!!pg&&pg.id!=='grpData'; }
+29298|   if(gripe&&gripe.parentElement) gripe.parentElement.hidden=!!pg;
+29299|   if(back) back.hidden=!pg;
+29300|   if(ttl) ttl.textContent=pg?(pg.dataset.title||'Настройки'):'Настройки';
+29301|   /* «Сохранить» — только там, где есть поля; «О приложении» и «Вид» правятся на месте. */
+29302|   if(ok) ok.hidden=!pg||pg.id==='grpAbout'||pg.id==='grpView';
+29303|   try{ const inn=document.querySelector('#sh-s .in'); if(inn) inn.scrollTop=0; }catch(_){}
+29304| }
+29305| function openSet(sec){
+29306|   $('s_h').value=S.h;$('s_age').value=S.age;$('s_sex').value=S.sex;
+29307|   $('s_kcal').value=S.kcalManual||'';
+29308|   $('s_rate').value=S.rate;$('s_p').value=S.pkg;$('s_f').value=S.fkg;$('s_key').value=S.key||'';
+29309|   try{ ratePctNote(); $('s_rate').onchange=ratePctNote; }catch(_){}
+29310|   $('s_gym').value=S.gym||'';
+29311|   $('s_shop').innerHTML=shops().map((s,i)=>`<option value="${i}">${s.n}</option>`).join('');
+29312|   $('s_shop').value=S.shop||0;
+29313|   _mealsDraft=null; _mealsTouched=false; try{ renderMealsCfg(); }catch(e){}   // v646: редактор приёмов
+29314|   $('s_water').value=waterBase();
+29315|   { const _wh=$('s_waterHint');
+29316|     if(_wh) _wh.innerHTML=(S.waterManual
+29317|       ? 'Цифра твоя — вес её не двигает. Очисти поле, чтобы вернуть расчёт по весу.'
+29318|       : 'Считается от веса: '+WATER_ML_KG+' мл на кг. В день с залом +'+WATER_TRAIN+' мл на потери с потом.'); }
+29319|   $('s_steps').value=S.stepGoal||8000;
+29320|   $('s_track').checked=!S.noTrack;
+29321|   /* Раздел «Цикл» показываем только женщине: мужчине этот переключатель
+29322|      не нужен и в списке настроек он ему только мешает. */
+29323|   { const g=$('bGripe'); if(g) g.onclick=async()=>{
+29324|       /* Слово человека берём, но не обязываем: молча нажатая кнопка тоже
+29325|          сообщение — путь в крошках уже всё показывает. */
+29326|       const t=await askText({title:'Что не так или что улучшить?',label:'Одной строкой — можно пусто, путь я и так увижу. Фото сюда не прикрепить — пришли мне в чат.',max:300,ok:'Отправить'});
+29327|       if(t===null) return;
+29328|       try{ reportErr('report', String(t||'без слов').slice(0,300), crumbTrail(), ''); }catch(e){}
+29329|       toast(trkOn()?'Записал — разберу и починю':'Аналитика выключена: сообщение не ушло');
+29330|     }; }
+29331|   { const sy=$('s_restSay'); if(sy) sy.checked=!!S.restSay; }
+29332|   { const sn=$('s_restSnd'); if(sn) sn.checked=!S.restMute;
+29333|     const wk=$('s_restWake'); if(wk) wk.checked=!S.restNoWake; }
+29334|   try{ rHelp(); }catch(e){}
+29335|   try{ rEqChips(); rGymChips(); }catch(e){}   // v615: оборудование и мой зал — в настройках
+29336|   { const sc=$('setCyc'); if(sc) sc.style.display=(S.sex==='f')?'':'none';
+29337|     const cb=$('s_cyc'); if(cb) cb.checked=!S.cycOff; }
+29338|   {const OPTS=Array.from({length:24},(_,i)=>`<option value="${i}">${String(i).padStart(2,'0')}:00</option>`).join('');
+29339|    const kk=(S.push&&S.push.kinds)||['workout'], hh=(S.push&&S.push.hours)||{};
+29340|    PUSH_KINDS.forEach(([kind,id,def])=>{
+29341|      const e=$(id);
+29342|      if(e){ if(!e.options||!e.options.length) e.innerHTML=OPTS;
+29343|        e.value=kind==='workout'?((S.push&&S.push.hour!=null)?S.push.hour:def):(hh[kind]!=null?hh[kind]:def); }
+29344|      const c=$('pk_'+kind); if(c) c.checked=kk.includes(kind);
+29345|    });
+29346|    rPushSt();}
+29347|   {const n=$('sStepsPlanNote'), pv=S.plan&&+S.plan.steps_day>0?+S.plan.steps_day:0;
+29348|    if(n){ n.style.display=pv?'block':'none'; if(pv) n.textContent='В плане тренера задано '+pv+' шагов/день — пока план активен, кольцо считает от него.'; }}
+29349|   const vl=$('appVerL'); if(vl) vl.textContent=APP_VER;
+29350|   collapseHints(); startHintObserver(); startViewportWatch(); startUxWatch();
+29351|   rSync(); setSyncUI(null);
+29352|   /* v676: раздел напоминаний зовётся setPush, а ссылки — openSet('Notif'): страница не открывалась, человек попадал в корень (снимок Chromium) */
+29353|   { const d=sec?($('set'+sec)||(sec==='Notif'?$('setPush'):null)):null; const pg=d&&d.closest('.setpg'); setPage(pg?pg.id:null); if(d) d.open=true; }
+29354|   sheet('sh-s',true);
+29355|   rSub();
+29356|   if(sec){ const d=$('set'+sec); if(d) setTimeout(()=>{try{d.scrollIntoView({block:'start',behavior:'smooth'})}catch(_){}},60); }
+29357| }
+29358| $('bSet').onclick=()=>openSet();
+29359| $('bWeek').onclick=()=>sheet('sh-week',true);
+29360| $('bTdee').onclick=()=>{ try{ if(TAB_DIRTY.coach||((($('tdV')||{}).textContent)||'').trim()==='—') _RTAB.coach(); }catch(e){} sheet('sh-tdee',true); };   // v657: лист жил в рендере «Коуча» — из настроек до захода туда открывался с прочерками
+29361| $('bPlan').onclick=()=>sheet('sh-plan',true);
+29362| document.querySelectorAll('#sh-s [data-setpg]').forEach(b=>b.onclick=()=>setPage(b.dataset.setpg));
+29363| $('setBack').onclick=()=>setPage(null);
+29364| /* ── ТРЕНЕР 24/7 (запрос владельца 03.08): чат по ВНУТРЕННИМ данным —
+29365|    профиль, цель, программа дня, съеденное, подходы, недельная сводка.
+29366|    Не поисковик: чего нет в данных — просит записать. Не врач. ── */
+29367| /* История чата переживает перезапуск PWA (полевой отчёт 04.08 «пропала история»):
+29368|    до этого жила в переменной и стиралась каждым обновлением/выгрузкой. */
+29369| function askhLoad(){
+29370|   try{ const a=JSON.parse(localStorage.getItem('askh')||'[]');
+29371|     return Array.isArray(a)?a.filter(m=>m&&(m.role==='user'||m.role==='assistant')&&typeof m.content==='string').slice(-20):[];
+29372|   }catch(_e){ return []; }
+29373| }
+29374| function askhSave(){ try{ localStorage.setItem('askh',JSON.stringify(ASKH.slice(-20))); }catch(_e){} }
+29375| let ASKH=askhLoad();
+29376| /* ── «СЕЙЧАС» ДЛЯ ТРЕНЕРА (v661) ──
+29377|    Полевой отчёт владельца 26.09: «утром тренер пишет, что я мало поел — а
+29378|    я утром не ем; вечером — что не доел 500, а я ещё не ужинал; как будто
+29379|    ему скинули отчёт и у меня конец дня». Он прав: в данных не было часа.
+29380|    Строка «Съедено сегодня: 0 ккал» в 9 утра и в 23:00 читалась одинаково.
+29381|    Теперь тренер знает час, какие приёмы позади и впереди, сколько ожидается
+29382|    к этому часу по расписанию приёмов, ближайший приём и его цель, была ли
+29383|    уже тренировка — и правило: день не закончен, итог не подводить. */
+29384| function coachNowCtx(){
+29385|   const L=[];
+29386|   try{
+29387|     const now=new Date(), h=(typeof window!=='undefined'&&window.__hourNow!=null)?+window.__hourNow:now.getHours();
+29388|     const mm=String(now.getMinutes()).padStart(2,'0'), t=tg(), d=td(), list=mealsSync();
+29389|     const eaten=new Set(LOG.filter(l=>l.d===d&&l.sl).map(l=>l.sl));
+29390|     const passed=list.filter(m=>eaten.has(m[0])||h>=m[3]), ahead=list.filter(m=>!eaten.has(m[0])&&h<m[3]);
+29391|     const share=passed.reduce((a,m)=>a+(SLOTW[m[0]]||0),0);
+29392|     const s=LOG.filter(l=>l.d===d).reduce((a,l)=>a+(+l.k||0),0);
+29393|     L.push('СЕЙЧАС '+h+':'+mm+'. '+(ahead.length?'День НЕ закончен: впереди '+ahead.map(m=>m[1]+' (до '+m[3]+':00)').join(', '):'Приёмов впереди нет')+'.');
+29394|     if(t) L.push('К этому часу по его расписанию приёмов ожидается около '+r0(t.k*share)+' ккал из '+t.k+'; съедено '+r0(s)+'. Итог дня по еде подводи только когда приёмов впереди нет; до этого сравнивай с ожидаемым к этому часу. Утром до первого приёма 0 ккал — норма, не «мало поел». Остаток дня уйдёт на приёмы впереди — это не недобор.');
+29395|     const n=(typeof nowInfo==='function')?nowInfo():null;
+29396|     if(n&&!n.done&&ahead.length) L.push('Ближайший приём: '+n.title.replace(' · ',', ')+(n.sub?' ('+n.sub+')':'')+'.');
+29397|     const th=trainHour(), st=SETS.filter(x=>x.d===d).length, so=sessOpenNow(d);
+29398|     if(st||so) L.push('Тренировка сегодня '+(so?'ИДЁТ сейчас':'уже была')+(st?' ('+st+' подходов записано)':'')+'.');
+29399|     else if(th!=null) L.push('Тренировка сегодня '+(h<th?'ещё впереди, обычно около '+th+':00':'записей нет; обычно около '+th+':00')+'.');
+29400|   }catch(e){}
+29401|   return L.join('\n');
+29402| }
+29403| function coachCtx(){
+29404|   const L=[];
+29405|   try{
+29406|     const w=curW();
+29407|     L.push('Профиль: '+(S.sex==='m'?'муж':'жен')+', '+(S.age||'?')+' лет, '+(S.h||'?')+' см, вес '+(w?r1(w):'?')+' кг, режим: '+(S.rate<0?'сушка':(S.rate>0?'набор':'поддержание'))+'.');
+29408|     const t=tg(); if(t) L.push('Цель дня: '+t.k+' ккал · Б'+t.p+' Ж'+t.f+' У'+t.c+'.');
+29409|     // Куда человек идёт, а не только с какой скоростью: без финиша совет
+29410|     // «держи темп» невозможно соотнести с реальностью.
+29411|     if(S.wGoal>0) L.push('Целевой вес: '+r1(S.wGoal)+' кг. '+goalETAText());
+29412|     // Программа целиком, а не только сегодняшний день (поле 18.08: тренер
+29413|     // советовал турник из реплики 10-дневной давности, хотя сам же собрал
+29414|     // программу для зала — спросить об инвентаре было негде).
+29415|     const P=S.prog;
+29416|     if(P&&P.cfg){
+29417|       const EQN={gym:'полноценный зал',db:'дом: гантели/штанга',bw:'только свой вес'};
+29418|       const GLN={hyper:'масса',strength:'сила',recomp:'рекомпозиция'};
+29419|       const dws=(P.cfg.dows||[]).map(d=>DOW[d]||d).join(', ');
+29420|       L.push('Программа (АКТУАЛЬНАЯ, важнее любых прошлых реплик в чате): '
+29421|         +P.cfg.days+' трен/нед'+(dws?' ('+dws+')':'')+' · инвентарь: '+(EQN[P.cfg.equip]||P.cfg.equip)
+29422|         +' · цель: '+(GLN[P.cfg.goal]||P.cfg.goal)+' · сплит: '+(P.split||'—')
+29423|         +(P.focus&&P.focus.length?(' · блок специализации: '+P.focus.map(m=>MUS[m]||m).join(', ')):'')
+29424|         +(P.created?(' · собрана '+fd(P.created)):'')+'.');
+29425|       /* Травмы в сводке не было вовсе — и тренер, пересобирая программу, не
+29426|          мог их учесть при всём желании: инструкция велит не выдумывать, а
+29427|          взяться им было неоткуда (аудит 22.08). */
+29428|       const _inj=(P.cfg.inj||[]).filter(k=>INJ[k]).map(k=>INJ[k].n||k);
+29429|       if(_inj.length) L.push('ПРОБЛЕМНЫЕ ЗОНЫ (учтены в программе, при пересборке ПЕРЕДАВАЙ их в inj; снимать только если человек прямо сказал, что зона в порядке): '+_inj.join(', ')+'.');
+29430|       /* v673: замены по решению — тренер не предлагает вернуть их 6 недель (вариация должна отработать) */
+29431|       try{ const T=dn(td()), _rp=[]; (P.plan||[]).forEach(d=>(d.ex||[]).forEach(i=>{ if(i.hidden||!i.altName||i.altDay) return;
+29432|           const L=((S.slotChg&&S.slotChg[slotKey(d.dow,i.altName)])||[]).filter(x=>T-dn(x)<=42); if(L.length) _rp.push('«'+i.n+'» вместо «'+i.altName+'» с '+fd(L[L.length-1])); }));
+29433|         if(_rp.length) L.push('ЗАМЕНЫ ПО РЕШЕНИЮ (вариация на 4–6 недель, НЕ предлагай вернуть прежнее и не называй прежнее «регулярным»): '+_rp.join('; ')+'.'); }catch(e){}
+29434|       /* v672: что на поддержании и что это закроет — тренер отвечает «почему грудь не растёт» цифрами сборки */
+29435|       try{ const _s=progSummary(P); if(_s&&_s.low.length){ const _nm=a=>a.map(m=>MUS[m]).join(', ');
+29436|         const _d=_s.alts.find(a=>a.label==='day'), _m=_s.alts.find(a=>a.label==='mins');
+29437|         L.push('НА ПОДДЕРЖАНИИ (ниже минимума роста, на '+_s.days+' дн'+(_s.mins?' по '+_s.mins+' мин':'')+' не помещается): '+_nm(_s.low)+'.'
+29438|           +(_d&&_d.fixed.length?' День '+_d.patch.days+' закроет: '+_nm(_d.fixed)+'.':'')+(_m&&_m.fixed.length?' Минуты '+_m.patch.mins+' закроют: '+_nm(_m.fixed)+'.':'')
+29439|           +((!_d||!_d.fixed.length)&&(!_m||!_m.fixed.length)?' Ни день, ни минуты не закрывают — снаряд или сплит.':'')+' Не обещай рост этим группам на текущей программе.'); } }catch(e){}
+29440|       /* v671: работа на слабое звено — тренер знает, что она стоит и зачем, и не убирает её */
+29441|       try{ const _ph=(P.plan||[]).flatMap(d=>(d.ex||[]).filter(i=>!i.hidden&&i.prehab).map(i=>i.n+' ('+(i.fix||'')+')'));
+29442|         if(_ph.length) L.push('ОБЯЗАТЕЛЬНАЯ РАБОТА НА СЛАБЫЕ ЗВЕНЬЯ по анкете (2×12–15 легко; при пересборке и замене СОХРАНЯТЬ, «убрать как лишнее» нельзя): '+_ph.join('; ')+'.');
+29443|         const _miss=(P.prehab||[]).filter(x=>x.miss); if(_miss.length) L.push('Слабое звено без движения (нет снаряда или движения): '+_miss.map(x=>((INJ[x.z]||{}).n||x.z)+' — '+x.k).join(', ')+'. Предложи вариант словами.'); }catch(e){}
+29444|       if(S.homePull===false&&(P.cfg.equip==='db'||P.cfg.equip==='bw'))
+29445|         L.push('Турника дома НЕТ — подтягивания, брусья и висы не предлагать.');
+29446|       const other=(P.plan||[]).filter(d=>d.ex&&d.ex.length).map(d=>(DOW[d.dow]||d.dow)+': '+d.n).join(' · ');
+29447|       if(other) L.push('Дни программы: '+other+'.');
+29448|     } else L.push('Программа тренировок не собрана.');
+29449|     const _pain=Object.keys(S.pain||{});
+29450|     if(_pain.length) L.push('БОЛЬНО (не предлагать, при жалобе — снижать вес или менять движение): '+_pain.join(', ')+'.');
+29451|     const _nt=Object.entries(S.exNote||{}).slice(0,8).map(function(x){return x[0]+': '+x[1]});
+29452|     if(_nt.length) L.push('ЗАМЕТКИ ПОЛЬЗОВАТЕЛЯ ПО УПРАЖНЕНИЯМ (учитывай их): '+_nt.join(' · ')+'.');
+29453|     const _sw=Object.entries(S.swapCnt||{}).filter(function(x){return x[1]>=3}).map(function(x){return x[0]+' ('+x[1]+'×)'});
+29454|     if(_sw.length) L.push('ЧАСТО МЕНЯЕТ (предложи убрать из программы совсем): '+_sw.join(', ')+'.');
+29455|     /* v669: застой по оценке 1ПМ — тренер говорит то же, что наблюдение на «Коуче» */
+29456|     try{ const _st=[]; (P&&P.plan||[]).forEach(d=>(d.ex||[]).forEach(it=>{ if(it.hidden||exTimed(it.n)) return; const cls=exClass(it.n,!!it.main); if(cls!=='base'&&cls!=='comp') return; const x=exStall(it.n); if(x&&x.to>=x.from*0.85) _st.push(it.n+' ('+x.weeks+' нед, '+x.from+' → '+x.to+')'); }));
+29457|       if(_st.length) L.push('СТОИТ БЕЗ РОСТА по оценке 1ПМ при регулярных тренировках (тренер меняет вариацию на 4–6 недель, а не говорит «добавь вес»): '+_st.slice(0,4).join(', ')+'.'); }catch(e){}
+29458|     /* v670: признаки усталости — тренер видит то же, что наблюдение и разбор недели */
+29459|     try{ if(!dlActive()){ const _sg=deloadSigns(); if(_sg.signs.length)
+29460|       L.push((_sg.hit?'ПРИЗНАКИ УСТАЛОСТИ — пора разгрузка (объём пополам, веса те же), календарь цикла тут ни при чём: ':'Признак усталости (один — ещё не повод для разгрузки, но спроси про сон и еду): ')+_sg.signs.map(s=>s.txt).join('; ')+'.'); } }catch(e){}
+29461|     const dw=effDow(td()); let day=P&&P.plan&&P.plan.find(d=>d.dow===dw);
+29462|     /* v614: пропущенные дни цикла — тренер обязан их видеть, иначе обещание
+29463|        «учтёт пропуск и скорректирует объёмы» из диалога пропуска пустое. */
+29464|     if(S.daySkip&&S.daySkip[td()]!=null) day=null;
+29465|     L.push(day?('Сегодня по программе: '+day.n+(S.roll&&S.roll[td()]?' (день из очереди: пропущен ранее на неделе, ведём сегодня)':'')+((S.dayMap&&S.dayMap[td()]&&S.dayMap[td()]!==dowOf(td()))?' (перенесён: по календарю '+(DOW[dowOf(td())]||'')+', человек делает его сегодня — v644)':'')+' — '+day.ex.filter(i=>!i.hidden).map(i=>i.n+' '+i.sets+'×'+i.lo+'–'+i.hi).join('; ')+'.'):(function(){ const _ex=(typeof extraEx!=='undefined'?extraEx:[]).filter(x=>x.d===td()).map(x=>x.n);
+29466|         return 'Сегодня — день отдыха по программе.'+(_ex.length?' Человек тренируется сам: движения выбрал он ('+_ex.join(', ')+'), плана на день нет, «не сделано» и «из N упражнений» здесь не бывает.':''); })());   // v666
+29467|     const _sk=Object.keys(S.daySkip||{}).filter(k=>dn(k)>=dn(td())-14).sort();
+29468|     if(_sk.length) L.push('ПРОПУЩЕННЫЕ ДНИ ЦИКЛА за 14 дней (человек снял их сам, отрабатывать не предлагать; подстрой объём отставших групп): '+_sk.map(k=>fd(k)+' — '+(DOW[S.daySkip[k]]||S.daySkip[k])).join(', ')+'.');
+29469|     try{ const _ml=mealsSync(); L.push('Приёмов в день: '+_ml.length+' ('+_ml.map(m=>m[1]+(m[2]==='small'?' (малый)':'')).join(', ')+') — число личное, из калорий и объёма; «ешь чаще/реже» не советуй.'); }catch(e){}   // v646
+29470|     const m=LOG.filter(l=>l.d===td());
+29471|     const s=m.reduce((a,l)=>({k:a.k+(l.k||0),p:a.p+(l.p||0),f:a.f+(l.f||0),c:a.c+(l.c||0)}),{k:0,p:0,f:0,c:0});
+29472|     L.push('Съедено сегодня: '+r0(s.k)+' ккал · Б'+r0(s.p)+' Ж'+r0(s.f)+' У'+r0(s.c)+(m.length?(' ('+m.slice(-8).map(x=>x.n).join(', ')+')'):' (записей нет)')+'.');
+29473|     { const _nw=coachNowCtx(); if(_nw) L.push(_nw); }   // v661: час дня, приёмы позади и впереди
+29474|     /* v615: панели «Нагрузка и риск» и «Недельный объём» ушли с экрана «Зала» —
+29475|        их цифры читает тренер и говорит словами, что с ними делать. */
+29476|     try{
+29477|       const R=(RDY||[]).find(x=>x&&x.d===td()), sc=R?rdScore(R):null;
+29478|       const wk=(RDY||[]).filter(x=>x&&dn(td())-dn(x.d)<7).map(x=>rdScore(x)).filter(x=>x!=null);
+29479|       const ans=R?['sq','sore','en','mot','str'].filter(k=>R[k]).length:0;   // v661: «0/100 по одному ответу» читалось как «разбит»
+29480|       L.push('Готовность (опросник): '+(sc!=null?('сегодня '+sc+'/100'+(ans<3?' (ответил на '+ans+' из 5 вопросов — не показатель)':'')):'сегодня не заполнена')+(wk.length>=3?(', среднее за 7 дней '+r0(wk.reduce((a,b)=>a+b,0)/wk.length)+'/100'):'')+(R&&R.hr?(', пульс покоя '+R.hr):'')+'.');
+29481|       const Ld=loads();
+29482|       if(Ld.chronic>=10&&Ld.acwr!=null) L.push('Нагрузка (RPE×мин в день): острая 7 дн '+r0(Ld.acute)+', хроническая 28 дн '+r0(Ld.chronic)+', отношение '+r2(Ld.acwr)+(Ld.acwr>1.5?' — резкий скачок, дальше на этой неделе не наращивать':Ld.acwr>1.3?' — заметный скачок':Ld.acwr<0.8?' — ниже привычной':' — в коридоре')+'.');
+29483|       const v=volume(7), pv=P?progVolume(P):null;
+29484|       L.push('Объём за 7 дней, рабочие подходы по группам (факт'+(pv?' / план программы':'')+', ориентир MEV–MRV): '+Object.keys(MUS).map(m=>MUS[m]+' '+r1(v[m]||0)+(pv?('/'+r1(pv[m]||0)):'')+' ('+LM[m][0]+'–'+LM[m][3]+')').join(', ')+'.');
+29485|     }catch(e){}
+29486|     const st=SETS.filter(x=>x.d===td());
+29487|     if(st.length) L.push('Подходы сегодня: '+st.slice(-14).map(x=>x.e+' '+(x.w||'—')+'×'+x.r).join('; ')+'.');
+29488|     L.push('Вода: '+fluidToday(td())+' из '+waterGoalOf()+' мл'
+29489|       +((S.waterEv&&S.waterEv.d===td()&&S.waterEv.list.length)?(' ('+S.waterEv.list.slice(-6).map(x=>x.hm+' +'+x.ml).join(', ')+')'):'')+'.');
+29490|     L.push('');
+29491|     L.push(weekReport());
+29492|   }catch(e){}
+29493|   return L.join('\n');
+29494| }
+29495| /* v612: хаб уведомлений тренера — вычисляемые карточки (боль, ограничения, турник,
+29496|    разбор, починка, что ушло, спад) из rTrain_ (window._coachMsg) над диалогом. */
+29497| function renderAskHub(){
+29498|   const hub=$('askHub'); if(!hub) return;
+29499|   const m=(window._coachMsg||[]).filter(Boolean);
+29500|   hub.innerHTML=m.length?'<div class="ask-hub"><div class="ask-hub-h"><span class="badge">'+m.length+'</span>Уведомления от тренера</div>'
+29501|     +m.map((h,i)=>'<div class="ask-card" data-hubcard="'+i+'">'+h+'</div>').join('')+'</div>':'';
+29502|   if(!m.length) return;
+29503|   hubWire(hub);
+29504|   /* v613: один делегированный слушатель — действие в карточке заменяет ЕЁ узел
+29505|      строкой-итогом; #askLog и остальные карточки не трогаются (скролл и
+29506|      раскрывашки живы). Состояние обработчики меняют синхронно до await put,
+29507|      поэтому итог читается сразу после их запуска. */
+29508|   hub.onclick=e=>{
+29509|     const t=e&&e.target&&e.target.closest?e.target:null; if(!t) return;
+29510|     const u=t.closest('[data-hubundo]');
+29511|     if(u){ hubUndo(u); return; }
+29512|     const b=t.closest(HUB_ACT); if(!b) return;
+29513|     const card=b.closest('.ask-card'); if(!card) return;
+29514|     setTimeout(()=>hubSettle(card,b),0);
+29515|   };
+29516| }
+29517| const HUB_ACT='[data-painoff],[data-injok],[data-fixok],[data-lostok],[data-bar],[data-slump]';
+29518| function hubWire(root){
+29519|   try{ wirePainCard(root); }catch(e){}
+29520|   try{ wireInjCard(root); }catch(e){}
+29521|   try{ wireBarCard(root); }catch(e){}
+29522|   try{ wireFixCard(root); }catch(e){}
+29523|   try{ wireLostCard(root); }catch(e){}
+29524|   const b=root.querySelector&&root.querySelector('[data-slump]');
+29525|   if(b) b.onclick=()=>{ b.disabled=true; travelStart(b.dataset.slump,25); };
+29526| }
+29527| /* Строка-итог после действия: что сделано и, где возможно, как вернуть. */
+29528| function hubDoneRow(text,undoKind,name,undoLabel){
+29529|   return '<div class="ask-done"><svg class="ic"><use href="#i-check"/></svg><span>'+text+'</span>'
+29530|     +(undoKind?'<a data-hubundo="'+undoKind+'" data-name="'+esc(name||'')+'">'+undoLabel+'</a>':'')+'</div>';
+29531| }
+29532| function hubSettle(card,b){
+29533|   const d=(b&&b.dataset)||{}; let row='', fresh='';
+29534|   if(d.painoff!=null){ const n=d.painoff; row=hubDoneRow('«'+esc(n)+'» снова в программе','pain',n,'вернуть в осторожность'); try{ fresh=painCard()||''; }catch(e){} }
+29535|   else if(d.injok!=null){ const n=d.injok, ok=!!(S.injOK&&S.injOK[n]);
+29536|     row=hubDoneRow('«'+esc(n)+'» '+(ok?'снова доступно':'снова в списке осторожности'),'inj',n,ok?'вернуть в осторожность':'снова доступно'); try{ fresh=injCard()||''; }catch(e){} }
+29537|   else if(d.fixok!=null) row=hubDoneRow('Починка программы принята');
+29538|   else if(d.lostok!=null) row=hubDoneRow('Принято — список ушедшего скрыт');
+29539|   else if(d.bar!=null) row=hubDoneRow(d.bar==='1'?'Турник есть — программа пересобрана':'Без турника — программа пересобрана');
+29540|   else if(d.slump!=null) row=hubDoneRow('Короткая тренировка на 25 минут собрана — она на экране «Зала»');
+29541|   else return;
+29542|   coachCards();                 // свежий счёт и window._coachMsg — независимо от вкладки
+29543|   card.innerHTML=row+fresh;     // только эта карточка; #askLog не тронут
+29544|   if(fresh) hubWire(card);
+29545|   coachBadgeSync();
+29546| }
+29547| async function hubUndo(u){
+29548|   const kind=u.dataset&&u.dataset.undo!=null?u.dataset.undo:(u.dataset||{}).hubundo, n=(u.dataset||{}).name||'';
+29549|   const card=u.closest&&u.closest('.ask-card'); if(!card||!n) return;
+29550|   if(kind==='pain'){ S.pain=S.pain||{}; S.pain[n]={d:td(),n}; }
+29551|   else if(kind==='inj'){ S.injOK=S.injOK||{}; if(S.injOK[n]) delete S.injOK[n]; else S.injOK[n]=1; }
+29552|   else return;
+29553|   S.ua=Date.now(); try{ await put('settings',S,'main'); }catch(e){}
+29554|   coachCards();
+29555|   let fresh=''; try{ fresh=(kind==='pain'?painCard():injCard())||''; }catch(e){}
+29556|   card.innerHTML=fresh||hubDoneRow('Вернул как было');
+29557|   if(fresh) hubWire(card);
+29558|   coachBadgeSync();
+29559|   try{ rTrain(); rHealth(); }catch(e){}
+29560|   toast(kind==='pain'?('«'+n.slice(0,20)+'» снова в осторожности'):('«'+n.slice(0,20)+'» — как было'));
+29561| }
+29562| function renderAsk(busy){
+29563|   try{ rAskStatus(); }catch(e){}   // v615: «Моё состояние» над уведомлениями
+29564|   try{ renderAskHub(); }catch(e){}
+29565|   const el=$('askLog'); if(!el) return;
+29566|   /* Прошлый разговор — свёрнут (полевой отчёт 09.09: «лучше бы свернуть
+29567|      прошлый диалог»): на виду последняя пара вопрос-ответ, остальное — под
+29568|      одной строкой «Прошлые вопросы (N)». */
+29569|   const bubble=m=>m.role==='user'
+29570|       ?'<div style="display:flex;justify-content:flex-end;margin:8px 0"><div style="background:var(--c2);border:1px solid var(--line);border-radius:14px 14px 4px 14px;padding:8px 12px;max-width:85%;overflow-wrap:anywhere">'+esc(m.content)+'</div></div>'
+29571|       :'<div class="ib" style="margin:8px 0;white-space:pre-wrap;overflow-wrap:anywhere">'+esc(m.content)+'</div>';
+29572|   const tail=ASKH.slice(-2), head=ASKH.slice(0,-2);
+29573|   /* v613: строка архива — тематическое резюме по тегам ответов: «Прошлые вопросы (N) · Питание (X) · Травмы (Y) · Разное (Z)» */
+29574|   const _tn={}; head.forEach(m=>{ if(m.role==='assistant'){ const k=m.tag||'разное'; _tn[k]=(_tn[k]||0)+1; } });
+29575|   const _tags=TAG_ORDER.filter(k=>_tn[k]).map(k=>' · '+k.charAt(0).toUpperCase()+k.slice(1)+' ('+_tn[k]+')').join('');
+29576|   const _sum='Прошлые вопросы ('+head.filter(m=>m.role==='user').length+')'+(_tags?'<span class="ask-tags">'+_tags+'</span>':'');
+29577|   el.innerHTML=(ASKH.length||busy)
+29578|     ?(head.length?'<details class="det" style="margin-bottom:8px"><summary>'+_sum+'</summary>'+head.map(bubble).join('')+'</details>':'')
+29579|       +tail.map(bubble).join('')
+29580|       +(busy?'<div class="ib"><span class="load"></span>Тренер думает…</div>':'')
+29581|     :'<div class="empty">Спроси — отвечу по твоим данным, а не по интернету.<br>«Почему вес встал?» · «Чем добрать белок до цели?» · «Что сегодня в зале?»</div>';
+29582|   el.scrollTop=el.scrollHeight;
+29583| }
+29584| /* Руки тренера: он не только советует, но и ДЕЛАЕТ — переносит тренировку
+29585|    и меняет упражнения из чата (запрос владельца 03.08). Оба действия обратимы
+29586|    («Вернуть выходной» в шапке дня; замена — обратной заменой). */
+29587| /* Что человек увидит, если тренер не успел сказать сам. */
+29588| const TOOL_RU={move_workout:'перенёс тренировку',swap_exercise:'заменил упражнение',
+29589|   hide_exercise:'убрал упражнение',log_set:'записал подход',log_food:'записал еду',
+29590|   log_water:'записал воду',log_weight:'записал вес',log_sleep:'записал сон',
+29591|   build_program:'собрал программу'};
+29592| const COACH_TOOLS=[
+29593|  {name:'move_workout',description:'Поставить несделанный день программы на сегодня (календарный день вернётся на ближайший выходной). Если from_dow не указан — самый старый несделанный день за 7 дней.',
+29594|   input_schema:{type:'object',properties:{from_dow:{type:'integer',description:'День недели пропущенной тренировки: 1=Пн … 7=Вс (необязательно)'}},required:[]}},
+29595|  {name:'swap_exercise',description:'Заменить упражнение в СЕГОДНЯШНЕЙ тренировке на другое из базы приложения (тренажёр занят, не нравится, болит). start_w — стартовый вес в кг, если можешь оценить (занижай).',
+29596|   input_schema:{type:'object',properties:{from:{type:'string',description:'Точное имя упражнения из сегодняшнего плана'},to:{type:'string',description:'Точное имя нового упражнения из базы приложения'},start_w:{type:'number'}},required:['from','to']}},
+29597|  {name:'hide_exercise',description:'Убрать упражнение из сегодняшней тренировки (без замены). Вернуть можно из шапки дня.',
+29598|   input_schema:{type:'object',properties:{name:{type:'string',description:'Точное имя из сегодняшнего плана'}},required:['name']}},
+29599|  {name:'log_set',description:'Записать выполненный подход в журнал зала.',
+29600|   input_schema:{type:'object',properties:{exercise:{type:'string'},w:{type:'number',description:'вес, кг (0 для своего веса)'},r:{type:'integer',description:'повторы'}},required:['exercise','r']}},
+29601|  {name:'log_food',description:'Записать еду в дневник. Продукт ищется в базе пользователя по имени — макросы берутся оттуда, не выдумывай их. Если продукта нет, скажи пользователю записать сканом или поиском.',
+29602|   input_schema:{type:'object',properties:{name:{type:'string',description:'название продукта'},grams:{type:'number',description:'граммы (по умолчанию 100) — для продуктов, которые меряются весом'},portions:{type:'number',description:'сколько штук/порций — только для штучных продуктов (яйцо, скуп протеина). Если продукт штучный, я так и скажу в ответе.'}},required:['name']}},
+29603|  {name:'log_water',description:'Добавить выпитую воду к сегодняшнему счётчику.',
+29604|   input_schema:{type:'object',properties:{ml:{type:'integer',description:'миллилитры'}},required:['ml']}},
+29605|  {name:'log_weight',description:'Записать сегодняшний вес тела, кг.',
+29606|   input_schema:{type:'object',properties:{kg:{type:'number'}},required:['kg']}},
+29607|  {name:'log_sleep',description:'Записать сон прошедшей ночи в часах.',
+29608|   input_schema:{type:'object',properties:{hours:{type:'number'}},required:['hours']}},
+29609|  /* Поле 17.08: «сказал тренеру требования — пусть программа там и собирается».
+29610|     Тренер собирает программу Зала сам, тем же генератором, что и анкета. */
+29611|  {name:'build_program',description:'Собрать (пересобрать) программу тренировок в Зале по требованиям пользователя. Чего не хватает (дни недели, инвентарь) — спроси, не выдумывай. Текущая программа будет заменена, история сохраняется.',
+29612|   input_schema:{type:'object',properties:{
+29613|     days:{type:'integer',description:'тренировок в неделю, 2–6'},
+29614|     dows:{type:'array',items:{type:'integer'},description:'дни недели тренировок: 1=Пн … 7=Вс, ровно days штук'},
+29615|     equip:{type:'string',enum:['gym','db','bw'],description:'gym=полноценный зал, db=дом с гантелями/штангой, bw=только свой вес'},
+29616|     exp:{type:'string',enum:['nov','int','mid','adv'],description:'стаж: nov=до года, int=1–2 года, mid=2–5 лет, adv=5+'},
+29617|     goal:{type:'string',enum:['hyper','strength','recomp'],description:'hyper=масса, strength=сила, recomp=рекомпозиция/поддержание'},
+29618|     effort:{type:'string',enum:['health','growth','hard'],description:'жёсткость: health=поддержание, growth=близко к отказу (дефолт), hard=до отказа'},
+29619|     inj:{type:'array',items:{type:'string'},description:'проблемные зоны из списка приложения (передавай только если пользователь называл боль/травму)'}
+29620|   },required:['days','dows','equip','exp','goal']}}
+29621| ];
+29622| /* v612: скрытый тег ответа — по инструменту (папки чата: «питание», «травмы»,
+29623|    «корректировки»…). v613: тег ставится в askCoach и ТОЛЬКО когда инструмент
+29624|    реально записал (PUTN вырос) — вызов без мутации данных остаётся без тега. */
+29625| const TOOL_TAG={swap_exercise:'травмы',hide_exercise:'травмы',log_food:'питание',log_water:'питание',
+29626|   build_program:'корректировки',move_workout:'корректировки',log_set:'зал',log_weight:'тело',log_sleep:'тело'};
+29627| const TAG_ORDER=['питание','травмы','корректировки','зал','тело','разное'];
+29628| async function coachTool(name,inp){
+29629|   try{
+29630|     if(name==='move_workout'){
+29631|       /* v667: тренер переносит той же дверью, что экран (dayToToday, v644), а долг
+29632|          берёт из очереди (debtDows, v665: по содержанию за 7 дней), а не «за 3 дня
+29633|          по факту подходов» через старый moveWk. */
+29634|       const D=td();
+29635|       const plan=(S.prog&&S.prog.plan)||[];
+29636|       const debt=debtDows(D);
+29637|       let dw=(inp&&inp.from_dow>=1&&inp.from_dow<=7)?+inp.from_dow:null;
+29638|       if(!dw) dw=debt[0]||null;
+29639|       if(!dw) return 'Несделанных дней программы за неделю не нашёл — переносить нечего.';
+29640|       const pd=plan.find(p=>p.dow===dw&&p.ex&&p.ex.some(i=>!i.hidden));
+29641|       if(!pd) return 'На этот день недели тренировки в программе нет.';
+29642|       if(debt.indexOf(dw)<0&&dayDoneDow(D)===dw) return 'День «'+pd.n+'» уже ведётся сегодня.';
+29643|       if(effDow(D)===dw&&SETS.some(s=>s.d===D&&!s.wu)) return 'День «'+pd.n+'» уже идёт сегодня — подходы записаны.';
+29644|       await dayToToday(dw);
+29645|       return 'Сделано: «'+pd.n+'» ('+(DOW[dw]||dw)+') стоит на сегодня. Календарный день вернётся на ближайший выходной; вернуть — «Вернуть» в шапке дня.';
+29646|     }
+29647|     if(name==='swap_exercise'){
+29648|       const dw=effDow(td()); const day=S.prog&&S.prog.plan&&S.prog.plan.find(d=>d.dow===dw);
+29649|       const it=day&&day.ex.find(i=>!i.hidden&&i.n===inp.from);
+29650|       if(!it) return 'В сегодняшнем плане нет «'+inp.from+'». Сегодня в плане: '+(day?day.ex.filter(i=>!i.hidden).map(i=>i.n).join(', '):'ничего')+'.';
+29651|       if(!EX.find(e=>e.n===inp.to)) return 'В базе приложения нет «'+inp.to+'» — назови точное имя из базы.';
+29652|       /* Считаем ДО замены: после неё заменяемого движения в плане уже нет.
+29653|          Тренер обязан сказать то же, что говорит интерфейс — иначе через
+29654|          разговор с тренером работа мышцы исчезает молча (аудит 22.08). */
+29655|       const lost=(function(){ try{ return subLostBySwap(inp.from,inp.to); }catch(_){ return null; } })();
+29656|       await applySwap(inp.from,inp.to,(+inp.start_w>0?+inp.start_w:null));
+29657|       return 'Сделано: «'+inp.from+'» заменено на «'+inp.to+'»'+(+inp.start_w>0?(' со стартом ~'+r0(+inp.start_w)+' кг'):'')+'.'
+29658|         +(lost?(' ВАЖНО: после этой замены «'+lost+'» в программе не делает больше никто — скажи об этом пользователю и предложи вернуть или добавить движение на эту работу.'):'');
+29659|     }
+29660|     if(name==='hide_exercise'){
+29661|       const dw=effDow(td()); const day=S.prog&&S.prog.plan&&S.prog.plan.find(d=>d.dow===dw);
+29662|       const it=day&&day.ex.find(i=>!i.hidden&&i.n===inp.name);
+29663|       if(!it) return 'В сегодняшнем плане нет «'+inp.name+'».';
+29664|       /* Через exHide, а не руками: там чистится осиротевший суперсет. Прямое
+29665|          it.hidden=1 обходило это и возвращало значок «СС A» без пары —
+29666|          ровно тот дефект, что чинили в v337, только другим путём (22.08). */
+29667|       const lostH=(function(){
+29668|         try{
+29669|           const was=((EX.find(x=>x.n===inp.name)||{}).sub)||[];
+29670|           if(!was.length||!S.prog) return null;
+29671|           const rest={...S.prog,plan:(S.prog.plan||[]).map(d=>({...d,ex:(d.ex||[]).filter(i=>i.n!==inp.name)}))};
+29672|           const pv=progSubVolume(rest);
+29673|           const dead=was.filter(k=>(pv[k]||0)<=0).map(k=>SUBN[k]).filter(Boolean);
+29674|           return dead.length?dead.join(', '):null;
+29675|         }catch(_){ return null; }
+29676|       })();
+29677|       exHide(day,inp.name);
+29678|       await put('settings',S,'main').catch(()=>{});
+29679|       try{ rTrain(); }catch(e){}
+29680|       return 'Сделано: «'+inp.name+'» убрано из сегодняшнего дня. Вернуть — строка «Убрано из этого дня» в шапке.'
+29681|         +(lostH?(' ВАЖНО: «'+lostH+'» теперь не делает никто в программе — скажи пользователю.'):'');
+29682|     }
+29683|     if(name==='log_set'){
+29684|       const ex=inp.exercise; if(!ex) return 'Нужно имя упражнения.';
+29685|       const r=Math.round(+inp.r||0); if(!(r>0&&r<200)) return 'Повторы выглядят неправдоподобно.';
+29686|       const w=+inp.w||0; if(w<0||w>500) return 'Вес выглядит неправдоподобно.';
+29687|       const prA=await logWorkSet(ex,w,r,td());
+29688|       try{ rTrain(); }catch(e){}
+29689|       return 'Записал подход: '+ex+' '+(w||'—')+'×'+r+'.'
+29690|         +(prA?(' И это личный рекорд' + (function(){ try{ const t=prText(prA); return t?(' ('+t+')'):''; }catch(_){ return ''; } })() + ' — поздравь пользователя.'):'');
+29691|     }
+29692|     if(name==='log_food'){
+29693|       const loc=pnLocalFood(inp.name,1);
+29694|       if(!loc) return 'В твоей базе нет «'+inp.name+'» — запиши его сканом этикетки или поиском на Еде, дальше смогу логировать сам.';
+29695|       const perU=(loc.u!=100);                       // штучный продукт: 1 запись = 1 штука/порция
+29696|       const un=perU?(loc.un||'шт'):(loc.un||'г');
+29697|       /* Штучное граммами не пишем: «Яйцо ×100» вместо двух яиц — это
+29698|          полторы тысячи лишних калорий в дневнике. Лучше переспросить. */
+29699|       if(perU&&!(+inp.portions>0)) return '«'+loc.n+'» у тебя записан(о) в штуках: 1 '+un+' = '+r0(loc.k)+' ккал, Б'+r1(loc.p)+'. Граммы для него не подходят — спроси у пользователя, сколько '+un+', и вызови меня снова с portions.';
+29700|       const a=perU?Math.max(0.25,Math.round((+inp.portions)*4)/4)
+29701|                   :Math.max(1,Math.round(+inp.grams||100));
+29702|       const m=perU?a:a/100;
+29703|       const sl=curSlot();   // v646: приём — из личного списка
+29704|       await put('log',{d:td(),n:loc.n,sup:!!loc.sup,u:loc.u||100,un,a,
+29705|         k:loc.k*m,p:loc.p*m,f:loc.f*m,c:loc.c*m,sl,ua:Date.now()});
+29706|       /* Экран, записывая продукт, запоминает порцию и поднимает его в «твоих
+29707|          продуктах». Тренер этого не делал — человек, который диктует еду,
+29708|          каждый раз видел свой творог внизу списка с чужой граммовкой. */
+29709|       if(loc.id!=null){ const f=FOODS.find(x=>x.id===loc.id);
+29710|         if(f){ f.used=(f.used||0)+1; f.last=a; try{ await put('foods',f); FOODS=await all('foods'); }catch(e){} } }
+29711|       LOG=await all('log');
+29712|       try{ renderAll(); }catch(e){}
+29713|       return 'Записал: '+loc.n+' '+r1(a)+' '+un+' — '+r0(loc.k*m)+' ккал, Б'+r0(loc.p*m)+'.';
+29714|     }
+29715|     if(name==='log_water'){
+29716|       const ml=Math.round(+inp.ml||0); if(!(ml>0&&ml<=3000)) return 'Объём воды выглядит неправдоподобно.';
+29717|       S.water=S.water||{}; S.water[td()]=(S.water[td()]||0)+ml;
+29718|       const wev=(S.waterEv&&S.waterEv.d===td()&&Array.isArray(S.waterEv.list))?S.waterEv:{d:td(),list:[]};
+29719|       wev.list.push({hm:nowHM(),ml,ua:Date.now()}); if(wev.list.length>24) wev.list=wev.list.slice(-24);
+29720|       S.waterEv=wev;   // журнал глотков — тренер пишет по прямой просьбе, без дубль-переспроса
+29721|       await put('settings',S,'main').catch(()=>{});
+29722|       try{ renderAll(); }catch(e){}
+29723|       // Единый источник правды о жидкости — fluidToday (ручная вода + напитки
+29724|       // из дневника). Полевой кейс 04.08: тул отчитывался по одной ручной воде
+29725|       // и «не видел» кофе с молоком — цифра расходилась с экраном.
+29726|       return 'Добавил '+ml+' мл. Всего жидкости за день '+fluidToday(td())+' из '+waterGoalOf()+' мл (вместе с напитками из дневника).';
+29727|     }
+29728|     if(name==='log_weight'){
+29729|       const kg=+inp.kg; if(!(kg>=30&&kg<=300)) return 'Вес вне разумного диапазона.';
+29730|       await put('weight',{d:td(),kg});
+29731|       W=await all('weight');
+29732|       /* Ровно то же, что делает экран и голос: у новичка без цели её сначала
+29733|          надо поставить, а пересчёт расхода идёт НЕ форсированно. force=true
+29734|          пересчитывал расход при каждом взвешивании через тренера, минуя
+29735|          недельный шаг — и цель у того, кто диктует вес, ползла иначе, чем у
+29736|          того, кто вбивает его руками (аудит 22.08). */
+29737|       if(S.tdee==null&&S.target==null&&typeof seed==='function') seed();
+29738|       try{ await recalc(false); }catch(e){}
+29739|       /* seed() цель ставит, но не сохраняет, а recalc на недельном шаге может
+29740|          выйти сразу — без этой строки цель новичка, продиктовавшего вес
+29741|          тренеру, жила до перезагрузки. Экран её сохраняет, значит и мы. */
+29742|       try{ await put('settings',S,'main'); }catch(e){}
+29743|       try{ renderAll(); }catch(e){}
+29744|       return 'Записал вес: '+r1(kg)+' кг.';
+29745|     }
+29746|     if(name==='log_sleep'){
+29747|       const h=+inp.hours; if(!(h>0&&h<=16)) return 'Часы сна вне разумного диапазона.';
+29748|       /* Запись сна лежит одной строкой на день: {d, bed, wake, h}. Прямой
+29749|          put затирал строку целиком — человек отметил на экране отбой и
+29750|          подъём, потом сказал тренеру «спал семь часов», и время исчезло
+29751|          без следа. Дописываем в существующую, а не подменяем (22.08). */
+29752|       const was=(SLP||[]).find(x=>x&&x.d===td())||{d:td()};
+29753|       const hR=r1(h);
+29754|       /* Но и оставлять их слепо нельзя: «отбой 23:00, подъём 7:00» рядом с
+29755|          «спал 6 ч» — экран, который спорит сам с собой. Расходятся больше чем
+29756|          на полчаса — верим свежему слову человека, а старые часы убираем
+29757|          (не выдумывая новых). */
+29758|       let bed=was.bed||null, wake=was.wake||null, drop=0;
+29759|       if(bed&&wake){ let dh=hh(wake)-hh(bed); if(dh<0) dh+=24;
+29760|         if(Math.abs(dh-hR)>0.5){ bed=null; wake=null; drop=1; } }
+29761|       await put('sleep',{...was,d:td(),bed,wake,h:hR});
+29762|       SLP=await all('sleep');
+29763|       try{ renderAll(); }catch(e){}
+29764|       try{ rSleep(); }catch(e){}
+29765|       return 'Записал сон: '+hR+' ч.'
+29766|         +(drop?' Отбой и подъём не сходились с этой цифрой — убрал их, чтобы экран не спорил сам с собой.'
+29767|               :((bed||wake)?' Время отбоя и подъёма оставил как было.':''));
+29768|     }
+29769|     if(name==='build_program'){
+29770|       const days=Math.round(+inp.days||0);
+29771|       if(!(days>=2&&days<=6)) return 'Дней в неделю должно быть от 2 до 6.';
+29772|       const dows=Array.isArray(inp.dows)?[...new Set(inp.dows.map(x=>Math.round(+x)))].filter(x=>x>=1&&x<=7).sort((a,b)=>a-b):[];
+29773|       if(dows.length!==days) return 'Нужно ровно '+days+' разных дней недели (1=Пн…7=Вс), пришло: '+dows.join(',')+'. Уточни у пользователя.';
+29774|       const equip=['gym','db','bw'].includes(inp.equip)?inp.equip:'gym';
+29775|       const exp=['nov','int','mid','adv'].includes(inp.exp)?inp.exp:'int';
+29776|       const goal=['hyper','strength','recomp'].includes(inp.goal)?inp.goal:'hyper';
+29777|       if(['health','growth','hard'].includes(inp.effort)) S.effort=inp.effort;
+29778|       /* Травмы: если тренер их не назвал — берём из текущего конфига, а не
+29779|          обнуляем. Экранные входы так и делают (анкета, пакет, каталог тянут
+29780|          P.cfg.inj), а тренер — нет: человек с больной поясницей просил
+29781|          «сделай 4 дня вместо 3», и в плане снова появлялись становая, тяга в
+29782|          наклоне и румынская. Хуже того, S.prog.cfg.inj затирался пустым —
+29783|          и дальше уже все входы теряли отметку о травме (аудит 22.08).
+29784|          Пустой массив, присланный ЯВНО, по-прежнему снимает травмы: это
+29785|          осознанное «спина в порядке». */
+29786|       const inj=Array.isArray(inp.inj)?inp.inj.filter(k=>INJ[k])
+29787|         :(((S.prog&&S.prog.cfg&&S.prog.cfg.inj)||[]).filter(k=>INJ[k]));
+29788|       const cfg={days,equip,exp,goal,effort:S.effort||'growth',inj,dows};
+29789|       const P=genProgram(cfg);
+29790|       if(!P.plan.some(d=>d.ex.length)) return 'С такими ограничениями упражнений не осталось — ослабь ограничения или смени инвентарь.';
+29791|       progSnap('тренер','Программа от тренера: '+days+' дн/нед, '+({gym:'зал',db:'гантели',bw:'свой вес'}[equip]||equip)+', '+goal);
+29792|       S.prog=P; await put('settings',S,'main');
+29793|       trkDaily('program_set');
+29794|       try{ await sanityFix(true); }catch(e){}
+29795|       try{ rTrain(); rProgHist(); }catch(e){}
+29796|       return 'Сделано: программа собрана — '+days+' дн/нед ('+dows.map(d=>DOW[d]||d).join(', ')+'), '+({gym:'зал',db:'гантели',bw:'свой вес'}[equip])+'. Она уже в Зале: тренировка дня ждёт на вкладке Зал.';
+29797|     }
+29798|   }catch(e){ return 'Не вышло: '+(e.message||'ошибка'); }
+29799|   return 'Неизвестный инструмент.';
+29800| }
+29801| /* v667: в запрос уходят только role и content. С v612 у сообщений истории есть
+29802|    ts и tag — API их не принимает («messages: Extra inputs are not permitted»),
+29803|    и любой вопрос при непустой истории падал (полевой отчёт владельца 27.09:
+29804|    «перенеси Низ B на сегодня» — два раза красная плашка). */
+29805| function askHist(){ return ASKH.slice(0,-1).slice(-6).map(m=>({role:m.role,content:m.content})); }
+29806| async function askCoach(){
+29807|   const q=(($('askQ')&&$('askQ').value)||'').trim(); if(!q) return;
+29808|   if(!aiReady()){ toast(AI_GATE_MSG); return openSet('Key'); }
+29809|   $('askQ').value='';
+29810|   ASKH.push({role:'user',content:q,ts:Date.now()}); askhSave();   // v612: время у каждого сообщения
+29811|   window._askTag=null;                                            // v612: тег ответа ставит coachTool
+29812|   renderAsk(true);
+29813|   /* ДЕЙСТВИЯ УЖЕ ВЫПОЛНЕНЫ — ПРЕДЛАГАТЬ ПОВТОР НЕЛЬЗЯ.
+29814|      Живёт ВНЕ try: в catch этот список и нужен больше всего, а объявленный
+29815|      внутри блока он оттуда не виден. */
+29816|   const did=[];
+29817|   try{
+29818|     const sys='Ты — тренер приложения «Без воды» (питание и силовые). Отвечай по-русски, на «ты», коротко и конкретно: 2–6 предложений, без воды. Опирайся ТОЛЬКО на данные пользователя ниже и спортивную науку; чего в данных нет — попроси записать в приложение. В данных есть блок «СЕЙЧАС» с часом дня: итог дня по еде и по тренировке подводи только если день закончен, до этого сравнивай с ожидаемым к этому часу и говори о том, что впереди. ДАННЫЕ НИЖЕ ГЛАВНЕЕ ПЕРЕПИСКИ: если старое сообщение в чате противоречит им (инвентарь, программа, вес, цель) — оно устарело, верь данным. Ты не врач: при боли и симптомах советуй показаться врачу, диагнозов не ставь.\n\nУ тебя есть инструменты-действия: перенести пропущенную тренировку, заменить или убрать упражнение сегодня, записать подход, еду (только из базы пользователя, макросы не выдумывай), воду, вес и сон. Пользователь просит действие — выполняй сразу и сообщи результат; сомневаешься в параметрах — переспроси одной фразой. Имена упражнений бери точно из плана и базы.\n\nДАННЫЕ ПОЛЬЗОВАТЕЛЯ:\n'+coachCtx();
+29819|     let msgs=askHist().concat([{role:'user',content:sys+'\n\nВопрос: '+q}]);
+29820|     let out='';
+29821|     /* Инструменты пишут в дневник СРАЗУ, а ответ модели приходит после. Если
+29822|        связь оборвалась между этим или круги инструментов кончились без текста,
+29823|        приложение говорило «Пустой ответ — нажми ещё раз». Человек нажимал —
+29824|        и еда, вода или подход записывались ВТОРОЙ раз. Теперь помним, что
+29825|        реально изменилось (по счётчику записей, а не по тексту ответа), и
+29826|        вместо приглашения к повтору говорим, что уже сделано (24.08). */
+29827|     for(let round=0;round<3;round++){
+29828|       const res=await aiFetch({model:'claude-sonnet-5',max_tokens:800,messages:msgs,tools:COACH_TOOLS},'ask');
+29829|       if(!res.ok) throw await aiFail(res);
+29830|       const j=await res.json();
+29831|       const tus=(j.content||[]).filter(c=>c.type==='tool_use');
+29832|       const txt=(j.content||[]).filter(c=>c.type==='text').map(c=>c.text).join('').trim();
+29833|       if(txt) out=txt;
+29834|       if(!tus.length) break;
+29835|       msgs=msgs.concat([{role:'assistant',content:j.content}]);
+29836|       const trs=[];
+29837|       for(const tu of tus){
+29838|         const n0=PUTN;
+29839|         const r=await coachTool(tu.name,tu.input||{});
+29840|         if(PUTN>n0){ const ru=TOOL_RU[tu.name]||tu.name; if(did.indexOf(ru)<0) did.push(ru);
+29841|           window._askTag=TOOL_TAG[tu.name]||window._askTag||null; }   // v613: тег — только по факту записи
+29842|         trs.push({type:'tool_result',tool_use_id:tu.id,content:r});
+29843|       }
+29844|       msgs=msgs.concat([{role:'user',content:trs}]);
+29845|     }
+29846|     if(!out){
+29847|       if(!did.length) throw new Error('Пустой ответ — нажми ещё раз');
+29848|       out='Сделал: '+did.join(', ')+'. Прокомментировать не успел — повторять не нужно, всё уже записано.';
+29849|     }
+29850|     ASKH.push({role:'assistant',content:out,ts:Date.now(),tag:window._askTag||null});   // v612
+29851|     if(ASKH.length>20) ASKH=ASKH.slice(-20);
+29852|     askhSave();
+29853|     renderAsk();
+29854|   }catch(e){
+29855|     /* Оборвалось ПОСЛЕ действий — молчать об этом нельзя: человек повторит
+29856|        вопрос и удвоит записи. Оборвалось до — обычная ошибка, повтор безопасен. */
+29857|     if(did.length){
+29858|       ASKH.push({role:'assistant',content:'Сделал: '+did.join(', ')+'. Связь оборвалась до ответа — повторять не нужно, всё уже записано.',ts:Date.now(),tag:window._askTag||null});
+29859|       if(ASKH.length>20) ASKH=ASKH.slice(-20);
+29860|       askhSave(); renderAsk();
+29861|       toast('Записано. Ответ тренера не дошёл');
+29862|     } else { renderAsk(); toast(netErr(e)); }
+29863|   }
+29864| }
+29865| if($('bAsk')) $('bAsk').onclick=()=>{ try{ coachCards(); }catch(e){} sheet('sh-ask',true); renderAsk(); setTimeout(()=>{try{$('askQ').focus()}catch(_){}},80); };   // v613: расчёт карточек — при открытии, из любой вкладки
+29866| if($('bAskGo')) $('bAskGo').onclick=askCoach;
+29867| if($('askQ')) $('askQ').onkeydown=e=>{ if(e.key==='Enter') askCoach(); };
+29868| /* Голос в чат тренера: сказал — распозналось — сразу ушло вопросом.
+29869|    Распознавание браузерное (бесплатное), гейт ИИ сработает уже в askCoach. */
+29870| function askVoice(){
+29871|   const SR=window.SpeechRecognition||window.webkitSpeechRecognition;
+29872|   if(!SR) return toast('Голосовой ввод не поддерживается этим браузером');
+29873|   try{ if(voiceRec) voiceRec.abort(); }catch(e){}
+29874|   const rec=new SR(); voiceRec=rec; voiceSheet='sh-ask';
+29875|   rec.lang='ru-RU'; rec.interimResults=false; rec.maxAlternatives=1;
+29876|   const b=$('bAskMic'), micSvg='<svg class="ic"><use href="#i-mic"/></svg>';
+29877|   const busy=on=>{ if(b){ b.innerHTML=on?'●':micSvg; b.classList.toggle('ai',on); } };
+29878|   busy(true);
+29879|   rec.onresult=ev=>{ busy(false); try{rec.stop()}catch(e){}
+29880|     const t=(ev.results[0][0].transcript||'').trim();
+29881|     if(!t) return toast('Не расслышал — скажи ещё раз');
+29882|     const q=$('askQ'); if(q) q.value=t;
+29883|     askCoach();
+29884|   };
+29885|   rec.onerror=ev=>{ busy(false); try{rec.stop()}catch(e){}
+29886|     toast({'not-allowed':'Нет доступа к микрофону — разреши в настройках браузера','no-speech':'Тишина — попробуй ещё раз'}[ev.error]||('Ошибка: '+ev.error)); };
+29887|   rec.onend=()=>{ busy(false); if(voiceRec===rec){ voiceRec=null; voiceSheet=null; } };
+29888|   try{ rec.start(); toast('Говори — слушаю'); }catch(e){ busy(false); toast('Микрофон занят — попробуй ещё раз'); }
+29889| }
+29890| if($('bAskMic')) $('bAskMic').onclick=askVoice;
+29891| /* ── Подписка: контур построен 03.08, продажи спят до платёжки (SALES_ON).
+29892|    Источник правды о статусе — сервер (RPC sub_status, писать может только
+29893|    панель/вебхук). Свой ключ Anthropic всегда бесплатен — это наш принцип. */
+29894| const SALES_ON=false;
+29895| const PRICING={founding:1490,year:2490,month:349};
+29896| async function subStatus(){
+29897|   if(!sbTok) return null;
+29898|   try{
+29899|     const r=await sbFetch('/rest/v1/rpc/sub_status',{method:'POST',body:'{}'});
+29900|     if(!r.ok) return null;
+29901|     const rows=await r.json();
+29902|     return (Array.isArray(rows)?rows[0]:rows)||null;
+29903|   }catch(e){ return null; }
+29904| }
+29905| async function rSub(){
+29906|   const box=$('subBox'); if(!box) return;
+29907|   const st=$('subSt');
+29908|   const sub=await subStatus();
+29909|   const act=sub&&sub.active;
+29910|   if(st) st.textContent=act?('активна до '+fd(sub.until)):(S.key?'свой ключ':'бесплатный план');
+29911|   /* Две строки и ссылка (решение владельца 03.09): статус и цена — на виду,
+29912|      таблица тарифов и объяснение — по тапу. Было 496 px текста в настройках.
+29913|      Замер 05.09 по форме владельца: «две строки» на деле были пятью плюс
+29914|      серая мёртвая кнопка «Скоро…» ещё на две. Теперь ровно две: «бесплатно»
+29915|      и цена месяца; «навсегда бесплатно», год и первые 100 — в «Подробнее».
+29916|      Мёртвая кнопка снята: пока продаж нет, нажимать нечего. */
+29917|   box.innerHTML=
+29918|     (act?`<div class="ib"><b>Подписка активна</b> · план «${esc(sub.plan)}» · до ${fd(sub.until)}.</div>`
+29919|         :`<div class="ib">Ядро бесплатно. ИИ и облако без ключа — по приглашению, потом ${PRICING.month} ₽ в месяц.</div>`)
+29920|     +`<details class="det" style="margin-top:8px"><summary>Подробнее о подписке</summary>
+29921|     <div class="stat"><span class="l">Дневник, зал, программа, замеры</span><span class="v">бесплатно навсегда</span></div>
+29922|     <div class="stat"><span class="l">ИИ и облако со своим ключом</span><span class="v">бесплатно</span></div>
+29923|     <div class="stat"><span class="l">ИИ и облако без ключа — год</span><span class="v">${PRICING.year} ₽</span></div>
+29924|     <div class="stat"><span class="l">ИИ и облако без ключа — месяц</span><span class="v">${PRICING.month} ₽</span></div>
+29925|     <div class="stat" style="border-bottom:0"><span class="l">Первым 100 — навсегда</span><span class="v" style="color:var(--ac)">${PRICING.founding} ₽/год</span></div>
+29926|     <div class="note">В подписку входит то, что стоит денег нам: ИИ-распознавание еды и зала, ИИ-тренер, подбор меню, облако. Отменить — в один тап, данные остаются.</div></details>`
+29927|     +(SALES_ON?`<button class="btn" id="bSubBuy" style="margin-top:12px">Оформить</button>`:'')
+29928| }
+29929| /* v676: тумблер вместо пары кнопок; осечка возвращает тумблер назад и называет причину */
+29930| $('pk_all').onchange=async()=>{
+29931|   const t=$('pk_all'); t.disabled=true;
+29932|   try{
+29933|     if(t.checked){ await pushEnable(); toast('Напоминания включены'); }
+29934|     else { await pushDisable(); toast('Напоминания выключены'); }
+29935|   }catch(e){
+29936|     t.checked=!!(S.push&&S.push.on);
+29937|     toast(netErr(e));
+29938|     // причина осечки должна быть видна в телеметрии, а не только в тосте
+29939|     try{ reportErr('push_enable', e.message||String(e)); }catch(_){}
+29940|   }
+29941|   finally{ t.disabled=false; rPushSt(); }
+29942| };
+29943| /* Галочки и часы применяются сами, пока напоминания включены: раньше человек должен был
+29944|    нажать «Включить» второй раз, иначе настройка не уезжала на сервер. */
+29945| { let _psT=null; const _psBox=$('psKinds'); if(_psBox) _psBox.addEventListener('change',()=>{
+29946|     if(!(S.push&&S.push.on)) return; clearTimeout(_psT);
+29947|     _psT=setTimeout(async()=>{ try{ await pushEnable(); rPushSt(); toast('Сохранено'); }catch(e){ toast(netErr(e)); } },800); }); }
+29948| $('bPushTest').onclick=async()=>{
+29949|   try{
+29950|     if(!pushSupported()) return toast('Браузер не умеет уведомления');
+29951|     if((await Notification.requestPermission())!=='granted') return toast('Разрешение не выдано');
+29952|     const reg=await navigator.serviceWorker.ready;
+29953|     await reg.showNotification('Без воды',{body:'Так будет выглядеть напоминание.',icon:'./icon.svg',tag:'bv-test'});
+29954|   }catch(e){ toast('Не вышло: '+(e.message||e)); }
+29955| };
+29956| $('bKeyDel').onclick=async()=>{
+29957|   if(!S.key) return toast('Ключа на устройстве нет');
+29958|   if(!await ask({title:'Убрать ключ ИИ с этого устройства?',text:'ИИ-функции пойдут через наш сервер по приглашению.',ok:'Убрать',danger:true})) return;
+29959|   S.key=''; $('s_key').value='';
+29960|   await put('settings',S,'main'); try{ rCoach(); }catch(e){}
+29961|   toast('Ключ убран');
+29962| };
+29963| /* ── РЕДАКТОР ПРИЁМОВ ДНЯ (v646) ── */
+29964| let _mealsTouched=false, _mealsDraft=null;
+29965| function renderMealsCfg(){
+29966|   const segN=$('s_mealsN'), box=$('s_mealsList'); if(!segN||!box) return;
+29967|   if(!_mealsDraft) _mealsDraft=mealSet();
+29968|   const n=_mealsDraft.length;
+29969|   segN.innerHTML=[3,4,5,6,7,8].map(k=>`<button data-mn="${k}" class="${k===n?'on':''}">${k}</button>`).join('');
+29970|   const hours=[]; for(let h=6;h<=24;h++) hours.push(h);
+29971|   box.innerHTML=_mealsDraft.map((m,i)=>`<div class="g3" style="gap:8px;margin:8px 0;grid-template-columns:1fr 84px 96px">
+29972|       <div class="field" style="margin:0"><input type="text" value="${esc(m[1])}" data-mname="${i}" maxlength="18" aria-label="Название приёма"></div>
+29973|       <div class="field" style="margin:0"><select data-mend="${i}" aria-label="До часа">${hours.map(h=>`<option value="${h}" ${h===m[3]?'selected':''}>до ${h}</option>`).join('')}</select></div>
+29974|       <div class="field" style="margin:0"><select data-mkind="${i}" aria-label="Вид"><option value="main" ${m[2]!=='small'?'selected':''}>основной</option><option value="small" ${m[2]==='small'?'selected':''}>малый</option></select></div>
+29975|     </div>`).join('')+`<div class="lst" style="margin:8px 0 0"><button type="button" class="lrow" id="s_mealsReset"><span class="g"><span class="t">Как рекомендовано</span></span><span class="ch"></span></button></div>`;   /* v676: строка, не «пилюля» */
+29976|   segN.onclick=e=>{ const b=e.target.closest?e.target.closest('[data-mn]'):null; if(!b) return; _mealsDraft=MEAL_TPL[+b.dataset.mn].map(x=>x.slice()); _mealsTouched=true; renderMealsCfg(); };
+29977|   box.oninput=e=>{ _mealsTouched=true; const t=e.target; const i=+(t.dataset.mname||t.dataset.mend||t.dataset.mkind); if(!(i>=0)||!_mealsDraft[i]) return;
+29978|     if(t.dataset.mname!=null) _mealsDraft[i][1]=t.value.trim()||_mealsDraft[i][1]; if(t.dataset.mend!=null) _mealsDraft[i][3]=+t.value; if(t.dataset.mkind!=null) _mealsDraft[i][2]=t.value; };
+29979|   const rs=$('s_mealsReset'); if(rs) rs.onclick=()=>{ delete S.meals; delete S.mealsN; delete S.slotB; _mealsDraft=null; _mealsTouched=false; renderMealsCfg(); toast('Приёмы — как рекомендовано'); };
+29980|   renderPrefNo();
+29981| }
+29982| function readMealsCfg(){
+29983|   if(!_mealsDraft) return null;
+29984|   const ids=new Set(); return _mealsDraft.map(m=>{ let id=m[0]; if(ids.has(id)) id=id+'x'; ids.add(id); return {id,n:m[1],kind:m[2],end:+m[3]||22}; });
+29985| }
+29986| function renderPrefNo(){
+29987|   const box=$('s_prefNo'); if(!box) return;
+29988|   const p=S.pref||{}; const items=[...Object.keys(p.no||{}).map(n=>['no',n]),...Object.keys(p.noDish||{}).map(n=>['noDish',n]),...Object.keys(p.pricey||{}).map(n=>['pricey',n])];
+29989|   if(!items.length){ box.innerHTML=''; return; }
+29990|   box.innerHTML=`<label style="font-weight:var(--fwm);font-size:var(--fs2);line-height:var(--lh2);margin-top:12px;display:block">Не предлагать</label>`
+29991|     +items.map(([k,n])=>`<div class="item"><div class="g"><div class="t">${esc(n)}</div><div class="s">${k==='pricey'?'дорого':'не люблю'}</div></div><button type="button" class="btn sm sec" data-prefx="${k}" data-prefn="${esc(n)}" aria-label="Вернуть"><svg class="ic"><use href="#i-close"/></svg></button></div>`).join('');
+29992|   box.querySelectorAll('[data-prefx]').forEach(b=>b.onclick=async()=>{ try{ delete S.pref[b.dataset.prefx][b.dataset.prefn]; }catch(e){} S.ua=Date.now(); try{ await put('settings',S,'main'); }catch(_){} renderPrefNo(); });
+29993| }
+29994| $('bSOk').onclick=async()=>{
+29995|   _mealsDraft=null;
+29996|   S.h=num($('s_h'))||S.h;S.age=num($('s_age'))||S.age;S.sex=$('s_sex').value;
+29997|   S.rate=num($('s_rate'));S.pkg=num($('s_p'))||2;
+29998|   S.fkg=Math.max(.5,num($('s_f'))||.9);
+29999|   /* Пустое поле ключа — не команда «удалить»: удаление — только кнопкой
+30000|      «Убрать ключ с устройства». Иначе любой сохранённый экран с не

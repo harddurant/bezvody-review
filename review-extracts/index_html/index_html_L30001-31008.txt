@@ -1,0 +1,1009 @@
+// ИЗВЛЕЧЕНИЕ ДЛЯ ЧТЕНИЯ: index.html, строки 30001–31008 из 31008. Номера строк совпадают с оригиналом. Код не менялся.
+30001|      заполнившимся полем стирал ключ молча. */
+30002|   { const kv=$('s_key').value.trim(); if(kv) S.key=kv; }
+30003|   S.gym=$('s_gym').value||'';S.shop=num($('s_shop'))||0;
+30004|   /* Храним ОТКАЗ, а не согласие: у обоих переключателей рабочее состояние —
+30005|      включённое, и при чистой установке они должны работать без похода
+30006|      в настройки. */
+30007|   { const sy=$('s_restSay'); if(sy){ if(sy.checked) S.restSay=1; else delete S.restSay; } }
+30008|   { const sn=$('s_restSnd'); if(sn){ if(sn.checked) delete S.restMute; else S.restMute=1; }
+30009|     const wk=$('s_restWake'); if(wk){ if(wk.checked) delete S.restNoWake; else S.restNoWake=1; }
+30010|     if(S.restNoWake) wakeOff(); }
+30011|   /* v646: приёмы дня — из редактора; сохраняем только если человек трогал,
+30012|      иначе число приёмов продолжает следовать за калориями */
+30013|   if(_mealsTouched){ const d=readMealsCfg(); if(d&&d.length>=3){ S.meals=d; S.mealsN=d.length; delete S.slotB; } }
+30014|   {
+30015|     const _wraw=String(($('s_water').value)||'').trim();
+30016|     const wg=parseInt(_wraw);
+30017|     if(!_wraw){
+30018|       /* Пустое поле — осознанный выход из ручного режима. Раньше выхода не
+30019|          было вовсе: вернуть расчёт можно было только угадав цифру в точности. */
+30020|       delete S.waterManual;
+30021|     } else if(wg>=500&&wg<=5000){
+30022|       /* Сверяем с БАЗОЙ, а не с целью дня: в тренировочный день цель на 500
+30023|          больше, и сравнение с ней замораживало цифру у всякого, кто просто
+30024|          заглянул в настройки. Восемь литров в поле больше не принимаем —
+30025|          это не амбиция, а разведение натрия; опечатка в один ноль проходила молча. */
+30026|       if(wg===waterAuto(curW())) delete S.waterManual; else S.waterManual=1;
+30027|       S.waterGoal=wg;
+30028|     }
+30029|   }
+30030|   const sg=parseInt($('s_steps').value); if(sg>=1000&&sg<=50000) S.stepGoal=sg;
+30031|   S.noTrack=$('s_track').checked?0:1;
+30032|   { const cb=$('s_cyc'); if(cb) S.cycOff=cb.checked?0:1; }
+30033|   /* Ручной калораж — единственное числовое поле на этом экране без границ:
+30034|      вода, шаги и часы приёмов проверяются, а тут принималось любое
+30035|      положительное число. Промах нулём (260 вместо 2600) приложение
+30036|      принимало молча и спокойно рисовало кольцо на 260 ккал (аудит 22.08). */
+30037|   const mk=num($('s_kcal'));
+30038|   if($('s_kcal').value.trim()!==''&&!(mk>0))
+30039|     return toast('Калораж — число. Оставь поле пустым, чтобы считать автоматически');
+30040|   if(mk>0&&mk<kcalFloor())
+30041|     return toast(r0(mk)+' ккал ниже безопасной черты ('+kcalFloor()+'). Ниже неё из еды не набрать ни белка, ни витаминов — такую цель я не поставлю');
+30042|   if(mk>6000)
+30043|     return toast(r0(mk)+' ккал — похоже на опечатку. Проверь число');
+30044|   S.kcalManual = (mk>0) ? mk : null;                      // ручной калораж (план тренера)
+30045|   if(S.kcalManual){ S.target=S.kcalManual; }              // держим намертво
+30046|   else if(S.tdee!=null){ S.target=S.tdee+S.rate*KPK/7; } else seed();
+30047|   await put('settings',S,'main');
+30048|   sheet('sh-s',false);rFood();rCoach();rTrain();toast('Сохранено');
+30049| };
+30050| 
+30051| /* data */
+30052| $('bExp').onclick=async()=>{
+30053|   const d={v:3,exported:new Date().toISOString(),
+30054|     /* Пароль и токены не экспортируем — а КОД ВОССТАНОВЛЕНИЯ наоборот кладём:
+30055|        файл бэкапа и так содержит все данные открытым текстом, зато у человека,
+30056|        который хоть раз нажал «Экспорт», код точно не потеряется (21.08). */
+30057|     settings:{...S,key:'',sbPass:'',sbKey:'',sbRefresh:''},
+30058|     foods:FOODS,log:LOG,weight:W,meas:M,photos:PH,sets:SETS,sess:SESS,ready:RDY,steps:STEPS,labs:LABS,subs:SUBS,
+30059|     adh:ADH,sleep:SLP,combos:CMB};
+30060|   const b=new Blob([JSON.stringify(d)],{type:'application/json'});
+30061|   const a=document.createElement('a');a.href=URL.createObjectURL(b);
+30062|   a.download='tracker-'+td()+'.json';a.click();
+30063|   toast('Файл сохранён — это твой бэкап. Раз в месяц достаточно; ключ ИИ в файл не входит.');
+30064| };
+30065| /* Импорт СЛИВАЕТСЯ, а не затирает. Тем же движком, что и синхронизация:
+30066|    записи сопоставляются по uid, новое добавляется, существующее не трогается.
+30067|    Импортировать можно сколько угодно раз — ничего не потеряется.
+30068|    Заставлять человека «делать это один раз и аккуратно» — верный способ его потерять. */
+30069| $('impI').onchange=async e=>{
+30070|   const f=e.target.files[0]; if(!f) return;
+30071|   try{
+30072|     const d=JSON.parse(await f.text());
+30073|     const IMP=['foods','log','weight','meas','photos','sets','sess','ready','steps','labs','subs','adh','sleep','combos'];
+30074|     // готовим входящий снимок: всем записям — uid и метку времени
+30075|     const inc={settings:d.settings||{},tomb:[]};
+30076|     // детерминированные uid/ua для записей без них: повторный импорт того же файла
+30077|     // не плодит дублей, а dedupeSets не склеивает одинаковые подходы одного дня (ua различны)
+30078|     const h32=t=>{let h=2166136261;for(let i=0;i<t.length;i++){h^=t.charCodeAt(i);h=Math.imul(h,16777619)}return (h>>>0).toString(36)};
+30079|     IMP.forEach(k=>{
+30080|       inc[k]=(d[k]||[]).map((x,i)=>({...x,
+30081|         uid:x.uid||('imp-'+k+'-'+h32(k+'|'+i+'|'+JSON.stringify(x))),
+30082|         ua:x.ua||(1+i)}));
+30083|     });
+30084|     /* v675: объяснение — на шаге действия, а не подстрочником в строке настроек */
+30085|     { const n=IMP.reduce((a,k)=>a+(inc[k]||[]).length,0);
+30086|       if(!await ask({title:'Импортировать '+n+' '+plural(n,'запись','записи','записей')+'?',text:'Сольются с тем, что уже есть: новое добавится, ничего не затрётся.',ok:'Импортировать'})){ e.target.value=''; return; } }
+30087|     // локальный снимок
+30088|     const loc={settings:{...S},tomb:await all('tomb')};
+30089|     for(const k of IMP) loc[k]=await all(k);
+30090| 
+30091|     // слияние по uid: новее — побеждает; ничего не удаляется
+30092|     let added=0, kept=0;
+30093|     for(const k of IMP){
+30094|       const m=new Map();
+30095|       /* Локальная запись БЕЗ uid раньше просто не попадала в карту, а стор
+30096|          дальше чистился целиком — то есть исчезала. uid ставится только
+30097|          синхронизируемым сторам, а фото не синхронизируются никогда (они
+30098|          тяжёлые): значит любой импорт бэкапа молча стирал все снимки
+30099|          прогресса, которых нет в файле (аудит 22.08). Ключ для таких —
+30100|          локальный, с чужими uid он не столкнётся. */
+30101|       (loc[k]||[]).forEach(r=>{ if(!r) return;
+30102|         m.set(r.uid||('loc-'+k+'-'+(r.id!=null?r.id:r.d)), r); });
+30103|       (inc[k]||[]).forEach(r=>{
+30104|         const p=m.get(r.uid);
+30105|         if(!p){ m.set(r.uid,r); added++ }
+30106|         else if((r.ua||0)>(p.ua||0)){ m.set(r.uid,r); kept++ }
+30107|       });
+30108|       await clr(k);
+30109|       for(const r of m.values()){
+30110|         if(BYDATE.has(k)) await rawput(k,r);
+30111|         else { const c={...r}; delete c.id; await rawput(k,c) }
+30112|       }
+30113|     }
+30114|     // настройки: не затираем секреты и то, что человек уже настроил руками
+30115|     const keep={key:S.key,sbEmail:S.sbEmail,sbRefresh:S.sbRefresh,sbPass:S.sbPass,sbKey:S.sbKey,gated:1};
+30116|     S={...mergeImportSettings(S,inc.settings||{}),...keep};
+30117|     await rawput('settings',S,'main');
+30118| 
+30119|     await loadAll(); await dedupeSets(); await loadAll();
+30120|     await sanitizeData();   // импортированный файл рисуется сразу — грязные записи без sanitize давали «NaN ккал» и «undefined кг» (аудит 01.08)
+30121|     renderAll(); showGate(false);
+30122|     toast(`Слито: +${added} новых${kept?', обновлено '+kept:''}`);
+30123|     schedSync();
+30124|   }catch(err){toast('Плохой файл: '+err.message)}
+30125|   e.target.value='';
+30126| };
+30127| $('bWipe').onclick=async()=>{
+30128|   if(!await ask({title:'Удалить ВСЁ безвозвратно?',text:'Сначала сделай экспорт.',ok:'Удалить',danger:true}))return;
+30129|   if(!await ask({title:'Точно?',text:'Это нельзя отменить. Копия в облаке (если была) останется, пока ты не войдёшь и не перезапишешь её.',ok:'Да, удалить',danger:true}))return;
+30130|   clearTimeout(syncTimer); sbTok=sbKey=sbUid=null;          // иначе первый же put воскресит всё с сервера
+30131|   for(const s of STORES) await clr(s);
+30132|   S={h:180,age:30,sex:'m',rate:-0.5,pkg:2,fkg:.9,tdee:null,lastCalc:null,target:null,seeded:false,
+30133|      key:'',prog:null,gym:'',shop:0,gated:1};
+30134|   await rawput('settings',S,'main');
+30135|   await loadAll();renderAll();toast('Удалено. Синхронизация отключена.');
+30136| };
+30137| 
+30138| /* nav */
+30139| const TT={food:'Еда',train:'Зал',body:'Тело',health:'Здоровье',coach:'Коуч'};
+30140| /* Подстрока шапки. Не дублирует название вкладки, а даёт по ней живой контекст:
+30141|    дата · день программы · последний вес · адаптивный расход. Пусто — скрывается. */
+30142| /* Подзаголовок шапки обновляется НЕ только при смене вкладки. Полоса недели
+30143|    обязана закраситься в тот момент, когда записан подход, а не когда человек
+30144|    сходил в другую вкладку и вернулся: иначе картинка врёт ровно тогда, когда
+30145|    на неё смотрят с гордостью. */
+30146| function hSubSync(v){
+30147|   try{
+30148|     v=v||(document.querySelector('.view.on')||{id:''}).id.replace('v-','');
+30149|     /* v633: прибор в шапке принадлежит «Еде» — на других вкладках он молчит.
+30150|        Метка ставится ЗДЕСЬ, а не только в goView: на старте вкладку
+30151|        показывает не всегда goView, и без метки кольцо оставалось скрытым
+30152|        даже после первой записи. */
+30153|     try{ document.documentElement.setAttribute('data-v',v); }catch(e){}
+30154|     const el=$('hS'); if(!el) return;
+30155|     const h=hSub(v);
+30156|     /* На «Еде» подзаголовок — кнопка (вход в лист дня), на остальных
+30157|        вкладках просто строка: кнопка без подписи и без действия — дефект. */
+30158|     if(v==='food'){
+30159|       let b=el.firstElementChild;
+30160|       if(!b||b.className!=='subBtn'){
+30161|         el.textContent='';
+30162|         b=document.createElement('button');
+30163|         b.type='button'; b.className='subBtn'; b.id='hSb';
+30164|         b.setAttribute('aria-haspopup','dialog');
+30165|         /* Обработчик один и висит на строке (делегирование): кнопка
+30166|            пересобирается, строка — нет. Тап дважды не откроет лист дважды. */
+30167|         el.appendChild(b);
+30168|       }
+30169|       b.textContent=h;
+30170|       return;
+30171|     }
+30172|     /* Разметку отдаём как разметку только там, где мы её сами и собрали. */
+30173|     if(v==='train'&&/^<span/.test(h)) el.innerHTML=h; else el.textContent=h;
+30174|   }catch(e){}
+30175| }
+30176| function hSub(v){
+30177|   try{
+30178|     if(v==='food'){
+30179|       /* v633: подзаголовок стал переключателем дня — значит показывает ТОТ
+30180|          день, который на экране, а не всегда сегодняшний. */
+30181|       const _d=vDate||td(), _dd=dn(_d)-dn(td());
+30182|       const _dt=new Date(_d+'T00:00:00');
+30183|       /* Слово и день недели вместе не помещаются в строку: «Сегодня ·
+30184|          понедельник, 21 сентября» переносилось на вторую строку и растило
+30185|          шапку на 20 px. Слово главнее дня недели — оно и остаётся. */
+30186|       /* На 320 px «Сегодня · 21 сентября» не помещалось в строку — месяц
+30187|          короткий там, где экран узкий (замер 21.09). */
+30188|       const _кор=_dt.toLocaleDateString('ru-RU',{day:'numeric',month:(innerWidth<=360?'short':'long')});
+30189|       if(_dd===0) return 'Сегодня · '+_кор;
+30190|       if(_dd===1) return 'Завтра · '+_кор;
+30191|       if(_dd===-1) return 'Вчера · '+_кор;
+30192|       return _dt.toLocaleDateString('ru-RU',{weekday:'long',day:'numeric',month:'long'});
+30193|     }
+30194|     if(v==='train'){
+30195|       const P=S.prog; if(!P||!P.plan) return '';
+30196|       /* Имя дня («Всё тело · 1») уже стоит крупным заголовком карточки прямо
+30197|          под шапкой — одно и то же значение дважды на одном экране, второе из
+30198|          которых мельче и серее, читается как недоделка. Шапка обязана нести
+30199|          факт, которого ниже НЕТ: как идёт неделя. Это же и есть ответ на
+30200|          «я успеваю?», за которым человек и смотрит наверх (24.08). */
+30201|       const day=P.plan.find(d=>d.dow===effDow(td()));
+30202|       const план=P.plan.filter(d=>d.ex&&d.ex.length).length;
+30203|       const t0=dn(td())-((dowOf(td())+6)%7);            // понедельник этой недели
+30204|       /* v665: считаем ДНИ ПРОГРАММЫ, закрытые по содержанию, а не походы в зал:
+30205|          «5 из 4» при несделанном «Низ B» врало (три подхода трицепса в среду
+30206|          и незакрытая сессия считались тренировками). Полоса ниже показывает
+30207|          любую работу, число — сколько дней плана закрыто. */
+30208|       const было=(function(){ const s=new Set(); for(let i=dn(td());i>=t0;i--){ const dw2=dayDoneDow(ds(i),P); if(dw2!=null) s.add(dw2); } return s.size; })();
+30209|       /* ── ПОЛОСА НЕДЕЛИ ВМЕСТО СЧЁТЧИКА (v503) ──
+30210|          «2 из 4 на неделе» — это ЧИСЛО: чтобы его понять, надо прочитать и
+30211|          сравнить. Семь точек — это КАРТИНКА: сделанные закрашены, сегодня
+30212|          обведён, плановые видны бледными. Ответ на «я успеваю?» приходит
+30213|          раньше чтения. Рекомендация №8 из разбора конкурентов.
+30214|          Штрафа за пропуск здесь нет и не будет: серия, которая обнуляется,
+30215|          выгоняет человека, а не возвращает. Пропущенный плановый день
+30216|          остаётся просто непокрашенным — без красного и без упрёка. */
+30217|       const _пн=dn(td())-((dowOf(td())+6)%7);
+30218|       const _дни=[];
+30219|       for(let i=0;i<7;i++){
+30220|         const d=ds(_пн+i), dw2=((_пн+i-dn(td()))%7+dowOf(td())+6)%7+1;
+30221|         const план2=P.plan.some(x=>x.dow===effDow(d)&&(x.ex||[]).some(e=>!e.hidden));
+30222|         const сдел=SETS.some(x=>!x.wu&&x.d===d);
+30223|         _дни.push('<i class="'+(сдел?'on':(план2?'plan':''))+(d===td()?' now':'')+'"></i>');
+30224|       }
+30225|       const неделя=план>0?(было+' из '+план):(было+' '+plural(было,'тренировка','тренировки','тренировок'));
+30226|       return '<span class="wkstrip">'+_дни.join('')+'</span><span class="wkn">'+неделя
+30227|         +(S.moveWk&&S.moveWk.d===td()?' · перенесена':'')+'</span>';
+30228|       /* « · сегодня отдых» здесь больше нет: та же фраза стоит заголовком
+30229|          тела шапки на 40 px ниже, а в подзаголовке она не влезала уже на
+30230|          390 («0 из 3 · сегодн…») и на 320 уезжала за край на 35 px. Полоса
+30231|          и так показывает: сегодняшняя точка не плановая. */
+30232|     }
+30233|     if(v==='body'){
+30234|       /* В ШАПКЕ — ТО ЖЕ ЧИСЛО, ЧТО В ГЕРОЕ ЭКРАНА.
+30235|          Шапка показывала последний СЫРОЙ замер, а карточка под ней — тренд:
+30236|          «вес 91.7 кг · 24.08» и тут же «Тренд 92.1». Два разных веса на одном
+30237|          экране, и оба подписаны честно — но человек читает шапку как «мой вес»
+30238|          и не понимает, почему ниже другое. Это и есть «всё скачет без логики».
+30239|          Весь экран «Тело» построен на том, что тренд главнее сырого веса
+30240|          (по нему считаются цель, прогноз и нормативы), значит и в шапке он.
+30241|          Пока замеров мало на тренд (меньше трёх), честнее показать сырой —
+30242|          тогда карточка ниже тоже говорит «мало данных» (24.08). */
+30243|       const T=trend();
+30244|       if(T.length>=3) return 'тренд '+r1(T[T.length-1].tr)+' кг';
+30245|       const last=W.reduce((a,x)=>(!a||x.d>a.d)?x:a,null);
+30246|       return last?('вес '+r1(last.kg)+' кг · '+fd(last.d)):'';
+30247|     }
+30248|     // расход показываем санитарный: невозможную цифру ниже базового обмена
+30249|     // человеку в шапку выносить нельзя — он ей поверит
+30250|     if(v==='coach'){ const ts=tdeeSane(); return ts?('расход ~'+r0(ts.v)+' ккал/день'+(ts.low?' · оценка':'')):''; }
+30251|     if(v==='health'){
+30252|       /* Здоровье — единственная вкладка, у которой подзаголовок бывал пустым:
+30253|          он говорил только про приём добавок, а у человека без добавок шапка
+30254|          оказывалась короче, чем на соседних вкладках. Вторая половина вкладки —
+30255|          анализы, и дата последней сдачи это ровно тот факт, который тут нужен. */
+30256|       /* Считаем ТЕМ ЖЕ счётчиком, что и список ниже: два независимых
+30257|          подсчёта одного и того же расходились прямо на одном экране. */
+30258|       if(typeof subDayCount==='function'){
+30259|         const c=subDayCount();
+30260|         if(c.total) return 'приём сегодня: '+c.done+' из '+c.total;
+30261|       }
+30262|       /* Дата сдачи теперь стоит в шапке самой карточки («Последняя сдача от
+30263|          19.08») — повторять её здесь значит написать одно и то же дважды на
+30264|          одном экране. Шапка отвечает на другой вопрос, которого в карточке
+30265|          нет: давно ли это было, то есть пора ли снова (24.08). */
+30266|       const lab=(LABS||[]).reduce((a,x)=>(!a||x.d>a.d)?x:a,null);
+30267|       if(!lab) return '';
+30268|       const дн=dn(td())-dn(lab.d);
+30269|       return 'анализы '+(дн<=0?'сегодня':дн===1?'вчера'
+30270|         :дн<30?(дн+' '+plural(дн,'день','дня','дней')+' назад')
+30271|         :(Math.round(дн/30)+' '+plural(Math.round(дн/30),'месяц','месяца','месяцев')+' назад'));
+30272|     }
+30273|   }catch(e){}
+30274|   return '';
+30275| }
+30276| /* Помним, где человек был. Обновил страницу посреди тренировки — остался в тренировке. */
+30277| const VKEY='bv_view', SKEY='bv_seg';
+30278| /* ── ВКЛАДКИ ПОМНЯТ ПРОКРУТКУ (NAVIGATION.md §2.4, сценарий P2, v593) ──
+30279|    HIG tab-bars: «preserving navigation state within each section». Ушёл с
+30280|    середины «Зала» в «Еду» и вернулся — стоишь там же; тап по УЖЕ активной
+30281|    вкладке — наверх (стандарт Apple). Позиция берётся у документа, а под
+30282|    замком листа (body position:fixed, scrollY=0) — из _shY, где замок держит
+30283|    настоящую координату; восстановление под замком тоже идёт через _shY,
+30284|    и снятие замка доводит её до документа. */
+30285| function goView(v,scroll){
+30286|   if(!TT[v]) v='food';
+30287|   const locked=document.documentElement.classList.contains('shlock');
+30288|   if(curV) VS[curV]=locked?_shY:(window.scrollY||0);
+30289|   const same=(curV===v); curV=v;
+30290|   document.querySelectorAll('nav button').forEach(x=>x.classList.toggle('on',x.dataset.v===v));
+30291|   document.querySelectorAll('.view').forEach(x=>x.classList.remove('on'));
+30292|   const _vw=$('v-'+v); if(_vw) _vw.classList.add('on'); $('hT').textContent=TT[v];
+30293|   hSubSync(v);   // v633: он же ставит data-v — метку вкладки для прибора в шапке
+30294|   /* v621: шаги подтягиваются при заходе на «Тело» — до рендера, но БЕЗ
+30295|      ожидания: мост фоновый, вкладка показывается сразу, а цифры и график
+30296|      обновятся сами, когда телефон ответит. */
+30297|   if(v==='body'){ try{ syncHealthKit(); }catch(e){} }
+30298|   if(TAB_DIRTY[v]){ TAB_DIRTY[v]=false; _RTAB[v](); }                  // v604: рисуем только помеченную; чистую — сразу показываем
+30299|   try{ localStorage.setItem(VKEY,v) }catch(e){}
+30300|   // ширины меряем ПОСЛЕ показа вкладки: у скрытого блока они нулевые,
+30301|   // и затухание полосы вкладок ставилось наугад
+30302|   try{ segMask(); }catch(e){}
+30303|   if(scroll!==false){ const y=same?0:(VS[v]||0); if(locked) _shY=y; else scrollTo(0,y); }   // активная — наверх, чужая — где был
+30304| }
+30305| document.querySelectorAll('nav button').forEach(b=>b.onclick=()=>goView(b.dataset.v));
+30306| // поле не должно прятаться под клавиатурой
+30307| addEventListener('focusin',e=>{ const t=e.target;
+30308|   if(t&&t.matches&&t.matches('input,select,textarea')){ setTimeout(()=>{ try{ t.scrollIntoView({block:'center',behavior:'smooth'}); }catch(_){} },300); }
+30309|   // числовое поле при фокусе выделяет содержимое: начал печатать — старый «0» заменился,
+30310|   // а не приклеился спереди (полевой отчёт 03.08: «0 автоматом не убирается»)
+30311|   /* v616: поля дробного ввода стали type="text" (запятая iOS) — правило
+30312|      выделения идёт по inputmode, иначе «0 не убирается» вернулось бы. */
+30313|   if(t&&t.matches&&t.matches('input[type="number"],input[inputmode="decimal"],input[inputmode="numeric"]')){ try{ t.select(); }catch(_){} }
+30314| });
+30315| /* Подвкладки. groups: одна кнопка может показывать НЕСКОЛЬКО панелей —
+30316|    так редкие разделы (объём/восстановление/рычаги) живут под одной вкладкой
+30317|    «Разбор», а ряд навигации остаётся коротким и помещается на экран. */
+30318| function segs(attr,pfx,cb,groups){
+30319|   groups=groups||{};
+30320|   const panelsOf=k=>groups[k]||[k];
+30321|   const pick=k=>{
+30322|     const show=new Set(panelsOf(k));
+30323|     const all=new Set();
+30324|     document.querySelectorAll('['+attr+']').forEach(x=>panelsOf(x.getAttribute(attr)).forEach(id=>all.add(id)));
+30325|     all.forEach(id=>{ const el=$(pfx+'-'+id); if(el) el.style.display=show.has(id)?((el.dataset&&el.dataset.disp)||'block'):'none'; });   // v611: #tr-log — флекс-колонка (data-disp)
+30326|     document.querySelectorAll('['+attr+']').forEach(x=>x.classList.toggle('on',x.getAttribute(attr)===k));
+30327|     try{ localStorage.setItem(SKEY+'_'+pfx,k) }catch(e){}
+30328|     if(cb) cb(k);
+30329|     /* Затухание у прокручиваемых рядов считается по ширине, а скрытая вкладка
+30330|        её не имеет: без пересчёта после показа последний чип обрезан. */
+30331|     try{ segMask(); }catch(e){}
+30332|   };
+30333|   document.querySelectorAll('['+attr+']').forEach(b=>b.onclick=()=>pick(b.getAttribute(attr)));
+30334|   // восстанавливаем сохранённую подвкладку (в т.ч. старые ключи до группировки)
+30335|   let saved=null; try{ saved=localStorage.getItem(SKEY+'_'+pfx) }catch(e){}
+30336|   const known=[...document.querySelectorAll('['+attr+']')].map(b=>b.getAttribute(attr));
+30337|   if(saved&&known.indexOf(saved)<0){                       // ключ схлопнули в группу — найдём её
+30338|     const g=Object.keys(groups).find(k=>groups[k].indexOf(saved)>=0);
+30339|     saved=g||null;
+30340|   }
+30341|   if(saved&&known.indexOf(saved)>=0) pick(saved);
+30342| }
+30343| segs('data-tr','tr',k=>{rTrain();if(k==='prog')rProgHist();});   // v615: две подвкладки — «Тренировка» и «Программа»
+30344| segs('data-bd','bd',k=>{rBody();if(k==='prg')rPh();if(k==='reg'){const zp=$('zPick');if(zp)zp.value=td();rSleep()}
+30345|   /* На «Прогрессе» в простом режиме карточка уже предлагает полный режим
+30346|      своими словами. Общая кнопка «Показать всё» под ней — вторая кнопка на то
+30347|      же действие: залитая и призрачная подряд. Прячем именно здесь. */
+30348|   { const uf=document.querySelector('#v-body [data-ui-full]');
+30349|     if(uf) uf.style.display=(k==='prg'&&document.documentElement.dataset.ui==='simple')?'none':''; }
+30350|   setTimeout(()=>{if(k==='w')chartW(trend());if(k==='reg'){rSteps();rSleep()}},30)},
+30351|   {prg:['m','p','g'],reg:['s','z']});
+30352| segs('data-hl','hl',()=>rHealth());
+30353| addEventListener('resize',()=>{
+30354|   const vb=$('v-body'), vt=$('v-train');   // после аварийного экрана секций нет — не добиваем (краш v101 из телеметрии)
+30355|   if(vb&&vb.classList.contains('on')){chartW(trend());rSteps()}
+30356|   if(vt&&vt.classList.contains('on'))drawRd();
+30357| });
+30358| /* Клавиатура в PWA закрывает пол-экрана и хоронит поля с кнопками (полевой
+30359|    отчёт 04.08 — «основная беда»). visualViewport меряет реальную высоту
+30360|    видимой области; открытой шторке даём нижний отступ ровно в клавиатуру —
+30361|    контент прокручивается выше неё, поле и «Сохранить» всегда достижимы. */
+30362| function kbFix(){
+30363|   try{
+30364|     const vv=window.visualViewport; if(!vv) return;
+30365|     const kb=Math.max(0, innerHeight - vv.height - (vv.offsetTop||0));
+30366|     document.querySelectorAll('.sheet.on .in').forEach(el=>{
+30367|       el.style.paddingBottom=kb>60?(kb+24)+'px':'';
+30368|     });
+30369|     if(kb>60){ const a=document.activeElement;
+30370|       if(a&&a.matches&&a.matches('input,select,textarea')){ try{ a.scrollIntoView({block:'center'}); }catch(e){} } }
+30371|   }catch(e){}
+30372| }
+30373| if(window.visualViewport){
+30374|   visualViewport.addEventListener('resize',kbFix);
+30375|   visualViewport.addEventListener('scroll',kbFix);
+30376| }
+30377| 
+30378| /* ══════════════ BOOT ══════════════ */
+30379| const SEED=[
+30380|  {n:'Куриная грудка',u:100,k:165,p:31,f:3.6,c:0,sup:0,used:0},
+30381|  {n:'Яйцо куриное',u:1,k:72,p:6.3,f:4.8,c:.4,sup:0,used:0},
+30382|  {n:'Рис отварной',u:100,k:130,p:2.7,f:.3,c:28,sup:0,used:0},
+30383|  {n:'Гречка отварная',u:100,k:110,p:4,f:1.1,c:21,sup:0,used:0},
+30384|  {n:'Овсянка сухая',u:100,k:379,p:13,f:6.5,c:67,sup:0,used:0},
+30385|  {n:'Творог 5%',u:100,k:121,p:17,f:5,c:1.8,sup:0,used:0},
+30386|  {n:'Творог обезжиренный',u:100,k:71,p:16,f:0.6,c:1.8,sup:0,used:0},
+30387|  {n:'Хлеб цельнозерновой',u:100,k:247,p:9,f:3.4,c:41,sup:0,used:0},
+30388|  {n:'Лосось',u:100,k:208,p:20,f:13,c:0,sup:0,used:0},
+30389|  {n:'Говядина постная',u:100,k:187,p:26,f:9,c:0,sup:0,used:0},
+30390|  {n:'Банан',u:1,k:105,p:1.3,f:.4,c:27,sup:0,used:0},
+30391|  {n:'Оливковое масло',u:100,k:884,p:0,f:100,c:0,sup:0,used:0},
+30392|  {n:'Сывороточный протеин (скуп 30 г)',u:1,k:120,p:24,f:1.5,c:2,sup:1,used:0},
+30393|  {n:'Казеин (скуп 30 г)',u:1,k:110,p:24,f:1,c:3,sup:1,used:0},
+30394|  {n:'Гейнер (порция 100 г)',u:1,k:380,p:20,f:4,c:65,sup:1,used:0},
+30395|  {n:'Креатин моногидрат (5 г)',u:1,k:0,p:0,f:0,c:0,sup:1,used:0},
+30396|  {n:'BCAA (порция)',u:1,k:20,p:5,f:0,c:0,sup:1,used:0},
+30397|  {n:'Омега-3 (капсула)',u:1,k:10,p:0,f:1,c:0,sup:1,used:0},
+30398| ];
+30399| /* num() для чистки данных — общий хелпер (v607, рядом с pf): число, грязная строка, объект → число или 0. */
+30400| /* Уже испорченное (v530): имена из дневника за 60 дней, которых нет в личной
+30401|    базе (записаны фото, приёмами, «Что съесть» до v530), заводятся один раз
+30402|    при загрузке. Отдельно от sanitizeData: тот зовётся и из импорта, и из
+30403|    синка, и смоук гоняет его параллельно другим проверкам. */
+30404| /* Уборка двойников, которых завела v530: безбрендовый продукт с тем же
+30405|    именем, что у продукта с брендом, заведённый после 06.09 и ни разу не
+30406|    выбранный руками (used ≤ 1). Свои безбрендовые продукты старше этого дня
+30407|    не трогаем — «Творог» без бренда и «Творог» Простоквашино могут быть
+30408|    разными продуктами по решению человека. Чистая часть — для смоука. */
+30409| const FOODS_DUP_SINCE=Date.UTC(2026,8,6);
+30410| function foodsUnbrandPlan(list,since){
+30411|   const out=[]; const low=x=>(x.n||'').trim().toLowerCase();
+30412|   list.forEach(f=>{
+30413|     if(!f||f.br||!(f.n||'').trim()) return;
+30414|     if((f.used||0)>1||!(f.ua>=(since||FOODS_DUP_SINCE))) return;
+30415|     const twin=list.find(x=>x!==f&&x.br&&low(x)===low(f));
+30416|     if(twin) out.push({dup:f,keep:twin});
+30417|   });
+30418|   return out;
+30419| }
+30420| async function foodsUnbrandDupes(){
+30421|   try{
+30422|     if((S.foodsSeen|0)>=2) return 0;
+30423|     const plan=foodsUnbrandPlan(FOODS,FOODS_DUP_SINCE); let n=0;
+30424|     for(const {dup,keep} of plan){
+30425|       keep.used=(keep.used||0)+(dup.used||0); if(dup.last) keep.last=dup.last;
+30426|       await put('foods',keep);
+30427|       if(dup.uid) await rawput('tomb',{uid:dup.uid,s:'foods',ua:Date.now()});
+30428|       if(dup.id!=null) await del('foods',dup.id,true); n++;
+30429|     }
+30430|     if(n) FOODS=await all('foods');
+30431|     S.foodsSeen=2; await put('settings',S,'main');
+30432|     return n;
+30433|   }catch(e){ return 0; }
+30434| }
+30435| async function foodsBackfill(){
+30436|   try{
+30437|     if(S.foodsSeen||typeof foodUpsert!=='function') return 0;
+30438|     const cut=ds(dn(td())-60); let n=0;
+30439|     for(const l of LOG){ if(!l||!l.n||l.d<cut||l.sup) continue;
+30440|       const r=foodUpsert(FOODS,l); if(r&&r.isNew){ r.f.id=await put('foods',r.f); n++; } }
+30441|     if(n) FOODS=await all('foods');
+30442|     S.foodsSeen=1; await put('settings',S,'main');
+30443|     return n;
+30444|   }catch(e){ return 0; }
+30445| }
+30446| async function sanitizeData(){
+30447|   /* Имя дня программы «День A/B/C» ничего не говорило человеку с гантелей в
+30448|      руке: одинокая буква в шапке Зала читается как обрывок слова. В каталоге
+30449|      сплитов дни переименованы во «Всё тело · N», но у тех, кто собрал программу
+30450|      раньше, старое имя лежит в сохранённой программе. Переименовываем один раз
+30451|      при загрузке — только точное «День <одна буква>», остальные названия
+30452|      («Жим», «Верх A», свои от тренера) не трогаем. */
+30453|   try{
+30454|     const pl=S.prog&&S.prog.plan;
+30455|     if(Array.isArray(pl)){
+30456|       let fixed=0;
+30457|       pl.forEach((d,i)=>{ if(d&&typeof d.n==='string'&&/^День\s+\S$/u.test(d.n.trim())){
+30458|         d.n='Всё тело · '+(i+1); fixed++; } });
+30459|       if(fixed){ S.ua=Date.now(); await put('settings',S,'main').catch(()=>{}); }
+30460|     }
+30461|   }catch(e){}
+30462|   // комбо-блюда без массива позиций роняют рендер — чиним и лечим в БД
+30463|   for(const c of (CMB||[])){
+30464|     if(!Array.isArray(c.items)){ c.items=[]; try{ await rawput('combos',c); }catch(e){} }
+30465|     else { const clean=c.items.filter(i=>i&&typeof i==='object');
+30466|       if(clean.length!==c.items.length){ c.items=clean; try{ await rawput('combos',c); }catch(e){} } }
+30467|   }
+30468|   CMB=(CMB||[]).map(c=>({...c,items:Array.isArray(c.items)?c.items:[]}));
+30469|   // числовые поля — не пускаем строки/NaN в математику дисплея
+30470|   LOG=(LOG||[]).map(l=>({...l,k:num(l.k),p:num(l.p),f:num(l.f),c:num(l.c),a:num(l.a)}));
+30471|   FOODS=(FOODS||[]).map(f=>({...f,k:num(f.k),p:num(f.p),f:num(f.f),c:num(f.c)}));
+30472|   W=(W||[]).map(x=>({...x,kg:num(x.kg)})).filter(x=>x.kg>0);
+30473|   SETS=(SETS||[]).map(x=>({...x,w:num(x.w),r:num(x.r)}));
+30474|   STEPS=(STEPS||[]).map(x=>({...x,n:num(x.n)}));
+30475|   SUBS=(SUBS||[]).filter(x=>x&&x.n);
+30476|   /* Сон и готовность тоже участвуют в математике, но в этом списке их не было.
+30477|      Сон: строка «7.5» вместо числа давала «Сон: в среднем NaN ч» и в разборе
+30478|      недели, и в сводке, которую читает тренер — то есть тренер рассуждал о NaN
+30479|      вслух. Готовность хуже: там сумма, и строки дают не NaN, а правдоподобную
+30480|      чушь — те же ответы «4,3,4,4,3» превращались из 67 % в 169425 %, а по этой
+30481|      цифре приложение решает, снижать ли нагрузку (аудит 22.08).
+30482|      Пустое значение оставляем пустым: превратить «не знаю» в ноль хуже, чем не
+30483|      знать — «спал 0 часов» приложение потом пересказывает как факт. */
+30484|   const nN=x=>{ if(x==null||x==='') return null; const n=+x; return isFinite(n)?n:null; };
+30485|   SLP=(SLP||[]).map(x=>({...x,h:nN(x.h)}));
+30486|   RDY=(RDY||[]).map(x=>{ const o={...x}; ['sq','sore','en','mot','str','sleep'].forEach(k=>{ if(o[k]!=null) o[k]=nN(o[k]); }); return o; });
+30487|   if(S.gymOff&&typeof S.gymOff!=='object') S.gymOff=null;
+30488|   if(S.waterEv&&(typeof S.waterEv!=='object'||!Array.isArray(S.waterEv.list))) S.waterEv=null;
+30489|   /* ── СДВИГ РАСПИСАНИЯ, КОТОРЫЙ УЖЕ ЛЕЖИТ У ЧЕЛОВЕКА ──
+30490|      Механизм чинён 31.08, но карта на семь дней уже записана на телефоне и
+30491|      будет врать до конца недели: владелец пришёл в зал в понедельник, а
+30492|      приложение показало ему воскресенье. Правило проекта — чинить не только
+30493|      будущее, но и оставленный след. Обрезаем карту тем же законом: она живёт
+30494|      до первого дня, который по календарю выходной, — он и поглощает
+30495|      сдвинутую тренировку. */
+30496|   try{ if(trimDayMap()){ S.ua=Date.now(); await put('settings',S,'main').catch(()=>{}); } }catch(e){}
+30497|   // схема упражнений импортированной программы: без lo/hi карточка писала «3×undefined»
+30498|   if(S.prog&&Array.isArray(S.prog.plan)) S.prog.plan.forEach(d=>(d.ex||[]).forEach(it=>{
+30499|     if(!(it.sets>0)) it.sets=3; if(!(it.lo>0)) it.lo=8; if(!(it.hi>=it.lo)) it.hi=Math.max(12,it.lo);
+30500|   }));
+30501| }
+30502| async function loadAll(){
+30503|   const s=await gt('settings','main'); if(s)S={...S,...s};
+30504|   // защита: битая/частичная программа или план тренера не должны ронять рендер
+30505|   if(S.prog){
+30506|     if(!Array.isArray(S.prog.plan)) S.prog.plan=[];
+30507|     S.prog.plan.forEach(d=>{ if(d&&!Array.isArray(d.ex)) d.ex=[]; });
+30508|     S.prog.plan=S.prog.plan.filter(d=>d&&typeof d==='object');
+30509|     if(!S.prog.cfg) S.prog.cfg={days:(S.prog.dows&&S.prog.dows.length)||S.prog.plan.filter(d=>d.ex&&d.ex.length).length||'?',equip:'gym',goal:'hyper',exp:'mid',inj:[],fromCoach:0};
+30510|     if(!S.prog.split) S.prog.split='План';
+30511|   }
+30512|   if(S.plan){
+30513|     if(!Array.isArray(S.plan.days)) S.plan.days=[];
+30514|     S.plan.days.forEach(d=>{ if(d&&!Array.isArray(d.ex)) d.ex=[]; });
+30515|     S.plan.days=S.plan.days.filter(d=>d&&typeof d==='object');
+30516|     if(!Array.isArray(S.plan.meals)) S.plan.meals=[];
+30517|     if(!Array.isArray(S.plan.supps)) S.plan.supps=[];
+30518|   }
+30519|   const r=await Promise.all(
+30520|     ['foods','log','weight','meas','photos','sets','sess','ready','steps','labs','subs','adh','sleep','combos'].map(all));
+30521|   [FOODS,LOG,W,M,PH,SETS,SESS,RDY,STEPS,LABS,SUBS,ADH,SLP,CMB]=r;
+30522|   try{ exExtraLoad(); }catch(_){}
+30523| }
+30524| /* Затухание у правого края полосы вкладок — только пока справа есть что листать. */
+30525| /* ПОДГОНКА РЯДА ПОД ЭКРАН.
+30526|    Полевая жалоба владельца 23.08: «строка Тренировка·Программа·Техника·Разбор
+30527|    должна умещаться на одном экране и быть ровной». Замер подтвердил: в Зале
+30528|    ряду нужно 416 px, а есть 358 — «Разбор» уезжал за край, и его надо было
+30529|    листать; на Еде «Перекус» не влезал на 11 px. Ряд ужимает кегль и боковые
+30530|    поля ступенями, пока не поместится; ниже пола не опускаемся — если и так не
+30531|    влезло, остаётся прокрутка с затуханием у края, как было. */
+30532| /* Подгонка ряда вкладок шла шагом в полпикселя: 14 → 13.5 → 13 → 12.5 …
+30533|    и соседние экраны получали разный размер — «Тренировка Программа Техника
+30534|    Разбор» 13px, «Завтрак Обед Ужин Перекус» 13.5px. Человек этого не
+30535|    называет словами, но видит: одинаковые по смыслу ряды выглядят по-разному
+30536|    (замер 27.08 по просьбе владельца про единый стиль).
+30537|    Сначала ужимаем ОТСТУП при том же размере, и только потом сходим на
+30538|    ступень ниже — и только на ступень из шкалы. */
+30539| const SEGSTEPS=[[15,16],[15,12],[15,8],[12,8],[12,4],[11,4]];
+30540| /* v597: пакетом и с памятью. Профиль 14.09 на 20×: подгонка рядов давала
+30541|    252 мс и львиную долю «(program)» — каждая ступень каждого ряда была
+30542|    записью стиля с немедленным замером, то есть принудительной раскладкой
+30543|    (ряды × ступени). Теперь: сначала все записи ступени, потом все замеры —
+30544|    одна раскладка на ступень; ряд с той же шириной и тем же текстом, что в
+30545|    прошлый раз, не меряется вовсе (подпись в data-segk). */
+30546| function segFit(){
+30547|   if(typeof document==='undefined'||!document.querySelectorAll) return;
+30548|   const all=[...document.querySelectorAll('.seg')].filter(sg=>{
+30549|     if(!(sg.clientWidth>0)) return false;      // невидимый ряд мерить нечем
+30550|     const key=sg.clientWidth+'|'+sg.textContent;
+30551|     if(sg.dataset.segk===key) return false;    // уже подогнан под эту ширину и эти подписи
+30552|     sg.dataset.segk=key; return true;
+30553|   });
+30554|   if(!all.length) return;
+30555|   /* Снимаем «растянуто» ПЕРЕД замером: с растянутыми кнопками ширина
+30556|      содержимого всегда равна ширине ряда, и вопрос «помещается ли» стал
+30557|      бы бессмысленным — ответ был бы «да» даже там, где подписи режутся. */
+30558|   all.forEach(sg=>sg.classList.remove('fit'));
+30559|   let rows=all;
+30560|   for(let i=0;i<SEGSTEPS.length&&rows.length;i++){
+30561|     rows.forEach(sg=>{ sg.style.setProperty('--segf',SEGSTEPS[i][0]+'px'); sg.style.setProperty('--segp',SEGSTEPS[i][1]+'px'); });
+30562|     rows=rows.filter(sg=>sg.scrollWidth>sg.clientWidth+1);   // поместился — дальше не ужимаем
+30563|   }
+30564|   const fit=all.filter(sg=>sg.scrollWidth<=sg.clientWidth+1);
+30565|   fit.forEach(sg=>sg.classList.add('fit'));
+30566| }
+30567| function segMask(){
+30568|   try{ segFit(); }catch(e){}
+30569|   const rows=[...document.querySelectorAll('.seg,.scr.row')];
+30570|   rows.forEach(s=>{ if(!s.dataset.mask){ s.dataset.mask='1'; s.addEventListener('scroll',()=>s.classList.toggle('ovf', s.scrollWidth-s.clientWidth-s.scrollLeft>4),{passive:true}); } });
+30571|   const ovf=rows.map(s=>s.scrollWidth-s.clientWidth-s.scrollLeft>4);   // все замеры — потом все записи
+30572|   rows.forEach((s,i)=>s.classList.toggle('ovf',ovf[i]));
+30573| }
+30574| addEventListener('resize',()=>{try{segMask()}catch(e){}});
+30575| /* ── renderAll — ЛЕНИВАЯ ПОЛНАЯ ПЕРЕРИСОВКА (v608, AUDIT_POINT_A §4.1) ──
+30576|    Старт, смена дня, синк, импорт, смена режима: раньше все пять вкладок
+30577|    рисовались разом — четыре из них в невидимый DOM. Теперь по-настоящему
+30578|    рисуется только текущая (curV, на старте — «Еда»), остальные помечаются в
+30579|    TAB_DIRTY и дорисовываются goView при первом тапе. rPh — галерея фото
+30580|    «Тела», дешёвая и без кэша по подписи — остаётся как была.
+30581|    __renderEager (харнесс гейта) — рисуем все пять: правила читают DOM
+30582|    скрытых вкладок без goView. */
+30583| function renderAll(){
+30584|   try{ applyUI(); }catch(e){}
+30585|   const cur=TAB_DIRTY.hasOwnProperty(curV||'')?curV:'food';
+30586|   if(globalThis.__renderEager){
+30587|     rFood_();rCoach_();rTrain_();rBody_();rHealth_();
+30588|     Object.keys(TAB_DIRTY).forEach(k=>{ TAB_DIRTY[k]=false; });
+30589|   } else {
+30590|     Object.keys(TAB_DIRTY).forEach(k=>{ TAB_DIRTY[k]=(k!==cur); });    // остальные — при первом тапе
+30591|     _RTAB[cur]();
+30592|   }
+30593|   rPh();
+30594|   __renderDay=td();
+30595|   try{ hSubSync(); }catch(e){}
+30596|   try{ segMask(); }catch(e){}
+30597|   try{ disPass(); }catch(e){}}
+30598| /* СМЕНА СУТОК ПРИ ОТКРЫТОМ ПРИЛОЖЕНИИ. PWA на телефоне не перезагружается:
+30599|    человек закрыл вечером, открыл утром — и видит вчерашний день. «Съедено
+30600|    2100 из 2200», вода полная, в Зале вчерашняя тренировка с записанными
+30601|    подходами. Первая же запись перерисует экран, и цифры прыгнут — но до
+30602|    этого момента приложение уверенно показывает вчерашнюю правду.
+30603|    Ловим только ВОЗВРАТ к приложению, не таймером: тот, кто тренируется
+30604|    ночью, держит приложение открытым и переходит полночь посреди подхода —
+30605|    перерисовать ему экран на пустой новый день было бы хуже, чем не трогать.
+30606|    Просмотр прошлого дня (vDate/vDay) сбрасываем: он ставился относительно
+30607|    «сегодня», которого уже нет. */
+30608| let __renderDay=null;
+30609| /* ── ОТКРЫТЫЙ ЛИСТ ПРИ СМЕНЕ ДНЯ (NAVIGATION.md, P2, v594) ──
+30610|    renderAll перерисовывает вкладки, но не лист поверх них: человек вернулся
+30611|    утром, а в «Подходе» или «Что съесть» — вчерашние цифры. Три исхода:
+30612|    · набранное (data-dirty=1) — лист НЕ трогаем: календарная привязка уже
+30613|      новая (vDay/vDate сброшены, запись уйдёт в новый день), цифры целы;
+30614|    · лист умеет перерисоваться на месте (DAY_SHEETS) — перерисовываем;
+30615|    · лист с цифрами дня, который на месте не обновить (DAY_CLOSE), —
+30616|      закрываем через стек с тостом (HIG: не показывать устаревшее).
+30617|    Листы без цифр дня (настройки, чат, поиск, база, синк…) и те, что рисует
+30618|    сам renderAll («Итоги недели», «Расход и цель», «План»), не трогаем. */
+30619| const DAY_SHEETS={
+30620|   'sh-meal':()=>{ const b=$('bMeal'); if(b&&b.onclick) b.onclick(); },     // «Что съесть» — остаток нового дня
+30621|   'sh-shop':()=>{ const b=$('bShop'); if(b&&b.onclick) b.onclick(); },     // «Закрыть КБЖУ»
+30622|   'sh-rep': ()=>{ const b=$('bRep');  if(b&&b.onclick) b.onclick(); },     // «Отчёт за неделю»
+30623|   'sh-st':  ()=>{ try{ exSyncBtn(); }catch(e){} stPrev(); },               // «Подход» — прошлый раз и подсказка на новый день
+30624|   'sh-ex':  ()=>{ if(!_exShown) throw new Error('нет упражнения'); showEx(_exShown); }
+30625| };
+30626| const DAY_CLOSE=['sh-sess'];                                                // «Закрыть тренировку» привязана к дню D
+30627| function dayRollSheet(){
+30628|   if(!NAV.stack.length) return 'нет';
+30629|   const id=navTop(), s=$(id);
+30630|   if(s&&s.getAttribute('data-dirty')==='1') return 'набрано';
+30631|   if(DAY_SHEETS[id]){ try{ DAY_SHEETS[id](); return 'обновлён'; }catch(e){} }
+30632|   else if(DAY_CLOSE.indexOf(id)<0) return 'не трогаем';
+30633|   navPop('code'); toast('Данные обновлены в связи со сменой дня'); return 'закрыт';
+30634| }
+30635| function dayRoll(){
+30636|   if(document.hidden) return false;
+30637|   const d=td();
+30638|   if(__renderDay===null||__renderDay===d) return false;
+30639|   vDate=null; vDay=null;
+30640|   try{ renderAll(); }catch(e){}
+30641|   try{ dayRollSheet(); }catch(e){}
+30642|   return true;
+30643| }
+30644| addEventListener('visibilitychange',()=>{ try{ dayRoll(); }catch(e){} });
+30645| addEventListener('focus',()=>{ try{ dayRoll(); }catch(e){} });
+30646| /* Старые записи (до синхронизации) не имеют uid — проставляем один раз.
+30647|    Без этого слияние не сможет их сопоставить между устройствами. */
+30648| async function dedupeSets(){
+30649|   const seen=new Set(), dels=[];
+30650|   // ключ = день+упражнение+метка времени. Копии из ранних импортов делят один ua,
+30651|   // реальные подходы записаны в разное время (разный ua) — их не трогаем.
+30652|   [...SETS].sort((a,b)=>(a.id||0)-(b.id||0)).forEach(s=>{
+30653|     const k=s.d+'|'+s.e+'|'+(s.ua||('id'+s.id));
+30654|     if(seen.has(k)) dels.push(s); else seen.add(k);
+30655|   });
+30656|   for(const s of dels){
+30657|     await rq(os('sets','readwrite').delete(s.id));
+30658|     if(s.uid) await rawput('tomb',{uid:s.uid,s:'sets',ua:Date.now()});
+30659|   }
+30660|   if(dels.length){ SETS=await all('sets'); }
+30661|   return dels.length;
+30662| }
+30663| // Единый ключ тождества продукта: имя+бренд (регистр и пробелы не важны).
+30664| // ОДИН источник правды для дедупа при сохранении (openF) и при старте (dedupeFoods).
+30665| // Раньше они расходились — dedupeFoods ключевал только по имени — из-за чего
+30666| // «Молоко» Простоквашино и «Молоко» Домик в деревне схлопывались в один продукт,
+30667| // макросы второго терялись, а tombstone удалял его на всех устройствах.
+30668| function foodKey(f){ return (f.n||'').trim().toLowerCase()+'|'+(f.br||'').trim().toLowerCase(); }
+30669| /* Победителя дедупа выбираем по uid, а не по локальному номеру записи.
+30670|    Локальный id — autoincrement своей базы: после слияния на двух телефонах
+30671|    лежит ОДИН И ТОТ ЖЕ набор продуктов, но номера розданы в разном порядке.
+30672|    Телефон A оставлял экземпляр X и хоронил Y, телефон B — наоборот, и в
+30673|    облако уезжали ДВА надгробия. Продукт исчезал с обоих устройств; так можно
+30674|    было потерять всю личную базу еды (аудит 22.08). uid одинаков везде —
+30675|    значит и решение одинаково. Выжившего перезаписываем через put: он получает
+30676|    свежий ua и переживает чужое надгробие, поставленное до этой правки. */
+30677| async function dedupeFoods(){
+30678|   const byName=new Map(); const dels=[];
+30679|   const ord=(a,b)=>{ const A=a.uid||'', B=b.uid||'';
+30680|     if(A&&B) return A<B?-1:A>B?1:0;      // оба синхронизируемые — по uid
+30681|     if(A!==B) return A?-1:1;             // запись с uid важнее локальной без него
+30682|     return (a.id||0)-(b.id||0); };
+30683|   [...FOODS].sort(ord).forEach(f=>{
+30684|     if(!(f.n||'').trim()) return;
+30685|     const k=foodKey(f);
+30686|     const ex=byName.get(k);
+30687|     if(!ex){ byName.set(k,f); }
+30688|     else { ex.used=(ex.used||0)+(f.used||0); if(f.last) ex.last=f.last;
+30689|       // берём более полные макросы, если у первого пусто
+30690|       if(!(ex.k>0)&&f.k>0){ ex.k=f.k;ex.p=f.p;ex.f=f.f;ex.c=f.c; }
+30691|       dels.push(f); }
+30692|   });
+30693|   for(const f of dels){ if(f.uid) await rawput('tomb',{uid:f.uid,s:'foods',ua:Date.now()}); await rq(os('foods','readwrite').delete(f.id)); }
+30694|   if(dels.length){ for(const f of byName.values()) await put('foods',f); FOODS=await all('foods'); }
+30695|   return dels.length;
+30696| }
+30697| /* Гибридные имена v139→v140. Имя упражнения — его идентичность (журнал,
+30698|    программа, видео), поэтому смена имени без переноса данных потеряла бы
+30699|    историю и прогрессию. Однократно, помечается флагом в настройках. */
+30700| /* ── v655: «ЖИМ НОГАМИ В ХАММЕРЕ» ДО v654 — ЭТО СИДЯЧИЙ ТРЕНАЖЁР ──
+30701|    С v547 по v653 приложение под этим именем показывало ролик сидячего
+30702|    горизонтального жима со стеком и давало его норматив: все, кто записывал
+30703|    «Жим ногами в Хаммере», делали сидячий тренажёр (владелец 25.09: «куда
+30704|    дели ролик про жим в тренажёре? он у меня в зале есть, и я его делаю»).
+30705|    С v654 это имя — настоящий рычажный Хаммер, а у тренажёра своё имя.
+30706|    Значит историю и программу переносим на «Жим ногами сидя в тренажёре»:
+30707|    подходы, записанные ДО выхода v654 (метка времени раньше EXREN_CUT), и
+30708|    программу — один раз (флаг в настройках). Новые записи под именем
+30709|    Хаммера после выхода v654 — уже про Хаммер, их не трогаем. Чистая
+30710|    функция отдельно — её меряет смоук. */
+30711| const EXREN={'Жим ногами в Хаммере':'Жим ногами сидя в тренажёре'}, EXREN_CUT=Date.UTC(2026,8,24,14,40,0);   // выход v654
+30712| function exRenamePlan(st){
+30713|   let n=0; const ren=x=>EXREN[x]||x;
+30714|   const fixP=P=>{ if(P&&P.plan) P.plan.forEach(d=>(d.ex||[]).forEach(it=>{ if(EXREN[it.n]&&!d.ex.some(o=>o.n===EXREN[it.n])){ it.n=EXREN[it.n]; n++; } })); };
+30715|   fixP(st.prog); (st.progHist||[]).forEach(h=>fixP(h&&h.prog));
+30716|   if(st.dayPlan) Object.keys(st.dayPlan).forEach(d=>{ const a=st.dayPlan[d]; if(Array.isArray(a)&&a.some(x=>EXREN[x])){ st.dayPlan[d]=a.map(ren); n++; } });
+30717|   ['pain','exNote','swapCnt','gymOff'].forEach(k=>{ const o=st[k]; if(!o||typeof o!=='object') return; Object.keys(EXREN).forEach(f=>{ if(f in o&&!(EXREN[f] in o)){ o[EXREN[f]]=o[f]; delete o[f]; n++; } }); });
+30718|   return n;
+30719| }
+30720| function exRenameSets(sets){ return (sets||[]).filter(x=>x&&EXREN[x.e]&&(+x.ua||0)<EXREN_CUT); }
+30721| async function migrateNames(){
+30722|   // Статика в программе со схемой «повторов» (10–15) — наследие генератора:
+30723|   // планку меряют секундами. Чиним на каждом запуске, как и имена.
+30724|   try{
+30725|     let fx=false;
+30726|     (S.prog&&S.prog.plan||[]).forEach(d=>d.ex.forEach(it=>{
+30727|       if(exStatic(it.n)&&it.hi<=20){ it.lo=30; it.hi=60; fx=true; }}));
+30728|     if(fx){ S.ua=Date.now(); await put('settings',S,'main'); }
+30729|   }catch(e){}
+30730|   const MAP={'Французский жим / разгибания на трицепс':'Французский жим',
+30731|              'Скручивания / пресс на блоке':'Скручивания'};
+30732|   let n=0;
+30733|   try{
+30734|     // ЖУРНАЛ НЕ ТРОГАЕМ: под гибридом лежат подходы ДВУХ разных движений,
+30735|     // и приписать их одному значит дать травмоопасную подсказку веса.
+30736|     // Старые записи остаются в истории, прогрессия новых имён — с нуля.
+30737|     // Сканируем КАЖДЫЙ запуск (это дёшево): флаг «уже мигрировано» не защищает —
+30738|     // второе устройство на старой версии может занести гибрид обратно через синк.
+30739|     const fixItems=P=>{ if(P&&P.plan) P.plan.forEach(d=>(d.ex||[]).forEach(it=>{ if(MAP[it.n]){ it.n=MAP[it.n]; delete it.start; n++; } })); };
+30740|     fixItems(S.prog);
+30741|     (S.progHist||[]).forEach(h=>fixItems(h.prog));
+30742|     // rawput НЕ обновляет метку времени — без bump'а синк «новее выигрывает»
+30743|     // возвращал гибрид с сервера после каждой починки (три воскрешения подряд).
+30744|     if(n){ S.ua=Date.now(); await rawput('settings',S,'main'); }
+30745|   }catch(e){}
+30746|   /* v655: перенос истории сидячего тренажёра — см. EXREN выше. После синхронной
+30747|      починки гибридов: наш await не должен разрывать её пополам. */
+30748|   try{
+30749|     const todo=exRenameSets(SETS);
+30750|     /* Правка записи, а не новый подход: имя меняем на месте, put ставит свежую
+30751|        метку — слияние «новее выигрывает» не вернёт старое имя с сервера. */
+30752|     for(const x of todo){ x.e=EXREN[x.e]; await put('sets',x); }
+30753|     /* Программа, собранная ДО выхода v654, — про сидячий тренажёр; собранная
+30754|        после — уже про настоящий Хаммер. Пишем только если что-то поменялось:
+30755|        пустая запись настроек зря будила бы синк. */
+30756|     if(!S.exRen655&&!(S.prog&&S.prog.created&&S.prog.created>='2026-09-25')){ const k=exRenamePlan(S); if(k){ S.exRen655=1; S.ua=Date.now(); await rawput('settings',S,'main'); n+=k; } }   // n>0 — вызывающий толкнёт синк
+30757|     if(!S.exOrd662&&S.prog&&S.prog.plan){ S.exOrd662=1; const k=orderProgram(S.prog); S.ua=Date.now(); await rawput('settings',S,'main'); n+=k; }   // v662: мышца к мышце — один раз для собранной ранее программы
+30758|     if(!S.rng664&&S.prog&&S.prog.plan){ S.rng664=1; const k=rangeMigrate(S.prog); S.ua=Date.now(); await rawput('settings',S,'main'); n+=k; }   // v664: коридор и RIR по классу движения — один раз для собранной ранее программы
+30759|   }catch(e){}
+30760|   return n;
+30761| }
+30762| async function migrateUids(){
+30763|   let n=0;
+30764|   for(const s of SYNC){
+30765|     const rows=await all(s);
+30766|     for(const r of rows){
+30767|       if(r&&!r.uid){ r.uid=uuid(); r.ua=r.ua||1; await rawput(s,r); n++; }
+30768|     }
+30769|   }
+30770|   if(S.ua==null){ S.ua=1; await rawput('settings',S,'main'); }
+30771|   return n;
+30772| }
+30773| function hideSplash(){
+30774|   const sp=$('splash'); if(!sp) return;
+30775|   sp.style.opacity='0'; setTimeout(()=>sp.remove(),400);
+30776| }
+30777| setTimeout(hideSplash,4000);   // страховка: не держим человека на сплеше при любом сбое
+30778| (async()=>{
+30779|   try{
+30780|     await opendb(); await loadAll();
+30781|     const mig=await migrateUids();
+30782|     if(mig){ await loadAll(); }
+30783|     if(await migrateNames()) schedSync();
+30784|     const dd=await dedupeSets();
+30785|     if(dd){ console.log('дублей подходов убрано:',dd); schedSync(); }
+30786|     const df=await dedupeFoods();
+30787|     if(df){ console.log('дублей продуктов убрано:',df); schedSync(); }
+30788|     await sanitizeData();
+30789|     try{ if(await foodsBackfill()) schedSync(); }catch(e){}
+30790|     try{ if(await foodsUnbrandDupes()) schedSync(); }catch(e){}
+30791|     if(!S.seeded&&!FOODS.length){
+30792|       for(const f of SEED) await put('foods',f);
+30793|       S.seeded=true; await put('settings',S,'main'); FOODS=await all('foods');
+30794|     }
+30795|     if(!S.stepsKey){ S.stepsKey=uuid(); await rawput('settings',S,'main'); }
+30796|     /* ── ШАГ МЕЗОЦИКЛА ──
+30797|        Раз в сутки при запуске. Внутри стоит своя защита «неделя та же —
+30798|        ничего не делаем», поэтому лишних вызовов бояться не нужно. */
+30799|     try{
+30800|       if(S.prog){
+30801|         let msg=null;
+30802|         if(dlActive()===null&&S.prog.meso&&S.prog.meso.done) msg=mesoNext(S.prog);
+30803|         if(!msg) msg=mesoTick(S.prog);
+30804|         if(msg){
+30805|           S.mesoSay=msg; S.mesoSayD=td();
+30806|           await put('settings',S,'main').catch(()=>{});
+30807|           schedSync&&schedSync();
+30808|         }
+30809|       }
+30810|     }catch(e){ console.warn('мезоцикл:',e&&e.message); }
+30811|     /* Подсказки заводятся ПРИ СТАРТЕ, а не при открытии Настроек. Замер 28.08:
+30812|        collapseHints() и наблюдатель вызывались только из openSet(), а CSS
+30813|        прячет .note безусловно — значит до первого захода в Настройки все
+30814|        подсказки (на «Зале» их одиннадцать) были скрыты и открыть их было
+30815|        нечем. Кнопка «Подробнее» просто не существовала. */
+30816|     collapseHints(); startHintObserver(); startViewportWatch(); startUxWatch();
+30817|     fillScUrl(); applyTheme(); lockPortrait(); resumeRest(); sweepStaleSess().then(n=>{ if(n) rTrain(); });
+30818|     pullStepsInbox(true);
+30819|     /* ── СТАРТ СРАЗУ С НУЖНОЙ ВКЛАДКИ (v610) ──
+30820|        Сохранённая вкладка (и ярлык ?go=) читается ДО первого renderAll: он
+30821|        ленивый (v608) и рисует curV, значит закрыл на «Зале» — соберётся только
+30822|        «Зал», «Еда» вхолостую не собирается. Показать её надо до снятия сплэша,
+30823|        иначе мелькнёт пустая «Еда». */
+30824|     let _startV='food';
+30825|     try{ const _go=new URLSearchParams(location.search).get('go');
+30826|       const _byGo=_go==='train'?'train':_go==='week'?'coach':(_go==='weight'||_go==='meal')?'food':null;
+30827|       let _last=null; try{ _last=localStorage.getItem(VKEY); }catch(e){}
+30828|       _startV=_byGo||((_last&&TT[_last])?_last:'food'); }catch(e){ _startV='food'; }
+30829|     curV=_startV;
+30830|     await recalc(false); renderAll();
+30831|     if(_startV!=='food') goView(_startV,false);   // уже собрана — goView только показывает
+30832|     hideSplash();
+30833|     /* v620: ПЕРВЫЙ ЗАМЕР ПАНЕЛИ — ЗДЕСЬ, А НЕ ПОСЛЕ ПЕРВОГО ПОВОРОТА ЭКРАНА.
+30834|        Высоты --navh и --hdrh мерял только обработчик resize, а до него в силе
+30835|        были запасные числа из CSS: 62 и 60 px. На телефоне без выреза это почти
+30836|        правда, и ошибку никто не видел. На iPhone с полосой хоум-свайпа панель
+30837|        вкладок высотой 101 px, шапка 141 — то есть страница резервировала снизу
+30838|        на 39 px меньше, чем занято, а таймер отдыха, полоса действий, всплывашка
+30839|        и строка обновления вставали на 39 px ниже, чем надо: под панель и в
+30840|        полосу свайпа. Замер 19.09 на 393×852 с вырезом 59 и полосой 34 это и
+30841|        показал — три элемента «Зала» оказались в полосе жеста. */
+30842|     /* v634: фоновый контур шагов заводится ЗДЕСЬ — в финальной точке старта,
+30843|        сразу за кадром геометрии, а не внутри hideSplash: тот зовётся и по
+30844|        страховочному таймеру при упавшем старте, и заводить оттуда мосты
+30845|        значило бы делать это на полумёртвом приложении. В обычном Safari
+30846|        initBackgroundHealthSync молча выходит, и работает прежний v621. */
+30847|     try{ barsSync(); }catch(e){}
+30848|     try{ requestAnimationFrame(()=>{ try{ barsSync(); }catch(e){} }); }catch(e){}
+30849|     try{ syncHealthKit(); }catch(e){}   // v621: шаги у телефона — фоном, без ожидания и без единого алерта
+30850|     try{ initBackgroundHealthSync(); }catch(e){}
+30851|     trkOpen();
+30852|     if(__trkQ.length) trkFlush();   // хвост прошлой сессии (закрыли в офлайне) — доотправить
+30853|     // Ярлыки долгого нажатия на иконку (manifest shortcuts): ?go=train|weight|meal
+30854|     let __wentGo=false;
+30855|     try{
+30856|       const go=new URLSearchParams(location.search).get('go');
+30857|       if(go){ __wentGo=true;
+30858|         history.replaceState(null,'',location.pathname);
+30859|         if(go==='train') goView('train',false);
+30860|         else if(go==='weight'){ goView('food',false);
+30861|           const dw=$('detW'); if(dw){ dw.open=true; setTimeout(()=>{try{dw.scrollIntoView({block:'center'});$('wIn').focus()}catch(_){}} ,300); } }
+30862|         else if(go==='meal'){ goView('food',false); const bm=$('bMeal'); if(bm) setTimeout(()=>bm.click(),300); }
+30863|         // Пуш «итог недели» (воскресенье 19:00) — сразу в лист «Разбор недели» (v558)
+30864|         else if(go==='week'){ goView('coach',false); setTimeout(()=>{ try{ sheet('sh-week',true); }catch(_){} },300); }
+30865|       }
+30866|     }catch(e){}
+30867|     // Автошаги: iOS «Команды» открывают ?steps=N — записываем и чистим URL.
+30868|     // Берём максимум с уже записанным за сегодня: ручной ввод не затирается меньшим числом.
+30869|     try{
+30870|       const sp=new URLSearchParams(location.search), sv=parseInt(sp.get('steps'));
+30871|       if(sv>0&&sv<200000){
+30872|         const ex=STEPS.find(x=>x.d===td()), n=Math.max(sv, (ex&&ex.n)||0);
+30873|         await put('steps',{...(ex||{}),d:td(),n});
+30874|         STEPS=await all('steps');
+30875|         history.replaceState(null,'',location.pathname);
+30876|         renderAll(); toast('Шаги за сегодня: '+n.toLocaleString('ru-RU'));
+30877|       }
+30878|     }catch(e){}
+30879|     /* v610: сохранённая вкладка уже показана до сплэша (см. _startV выше); ярлык ?go= сильнее неё — он отработал выше. */
+30880|     const empty=!W.length&&!SETS.length&&!LOG.length;
+30881|     if(empty&&!S.gated&&!S.sbEmail) showGate(true);
+30882|     /* Возврат по ссылке из письма о сбросе. Ловим до автовхода: старый
+30883|        ключ на устройстве всё равно уже не тот, а человек пришёл сюда
+30884|        именно за новым паролем (21.08). */
+30885|     let __fromLink=false;
+30886|     try{ __fromLink=await recoveryFromLink(); }catch(e){ console.warn('recovery',e); }
+30887|     // миграция старой схемы (отдельная фраза) → ключ из пароля, если пароль сохранён
+30888|     if(S.sbEmail && !S.keyScheme){
+30889|       if(S.sbPass){ S.sbKey='bv1|'+S.sbPass; S.keyScheme='pw'; await rawput('settings',S,'main'); }
+30890|       else { S.sbKey=''; await rawput('settings',S,'main'); }   // пароль не сохранён — попросим войти один раз
+30891|     }
+30892|     // тихий автовход: ключ на устройстве есть — подключаемся и синхронизируемся сами.
+30893|     // Любая сетевая беда здесь — это «синк подождёт», а не «приложение не запустилось»:
+30894|     // дневник обязан открываться и в самолёте, и на задушенном операторе.
+30895|     if(!__fromLink&&S.sbEmail&&S.sbKey&&S.sbRefresh){
+30896|       sbKey=S.sbKey;
+30897|       try{
+30898|         if(await sbRefresh()){
+30899|           rCoach();
+30900|           /* ПЕРЕЕЗД УЖЕ ВОШЕДШИХ. keySetup вызывается при входе — а тот, кто
+30901|              вошёл давно, входит через refresh-токен и мимо него. Значит у
+30902|              всех действующих пользователей не было бы ни отдельного ключа, ни
+30903|              кода восстановления: забытый пароль остался бы для них таким же
+30904|              смертельным, как раньше, и мы бы об этом даже не узнали
+30905|              (найдено 22.08 при разборе полевого случая). Переводим при первом
+30906|              же запуске; после переезда keyScheme='dek', и сюда больше не заходим. */
+30907|           if(S.keyScheme!=='dek'){
+30908|             try{
+30909|               if(S.sbPass){
+30910|                 const k=await keySetup(S.sbPass);
+30911|                 if(k&&(k.ok||k.code)){ S.sbKey=sbKey; S.needKey=0; await rawput('settings',S,'main'); }
+30912|                 if(k&&k.code) showRecovery(k.code,'moved');
+30913|               }else{
+30914|                 // пароль не сохранён — молча перевести нельзя, попросим один раз в настройках
+30915|                 const kr=await krGet();
+30916|                 if(!kr||!kr.wrap_pw){ S.needKey=1; await rawput('settings',S,'main'); rSync&&rSync(); }
+30917|               }
+30918|             }catch(e){ console.warn('переезд ключа',e); }
+30919|           }
+30920|           syncNow(false);
+30921|         }
+30922|         else if(S.sbPass){
+30923|           await sbLogin(S.sbEmail,S.sbPass);
+30924|           /* Ключ мог переехать на новую схему на другом устройстве — тогда
+30925|              сохранённый локально уже не подойдёт. Переспрашиваем сервер. */
+30926|           try{ const k=await keySetup(S.sbPass);
+30927|             if(k&&k.need==='code'){ askRecovery(S.sbPass,k.hint); }
+30928|             else if(k&&k.need==='oldpass'){ askOldPass(S.sbPass,k.ver); }
+30929|             else { S.sbKey=sbKey; await rawput('settings',S,'main'); }
+30930|           }catch(_){}
+30931|           rCoach(); syncNow(false);
+30932|         }
+30933|       }catch(err){ setSyncUI('ошибка'); console.warn('автовход',err) }
+30934|     }
+30935|     // старт пережит — ранний страж больше не нужен
+30936|     window.__bvBoot=true;
+30937|     const __be=document.getElementById('bvBootErr'); if(__be) __be.remove();
+30938|   }catch(e){
+30939|     document.querySelector('main').innerHTML=
+30940|       '<div class="card"><div class="eb"><b>Не удалось запустить.</b><br>'+esc(e.message||e)+
+30941|       '<br><br>Скорее всего браузер блокирует IndexedDB (приватный режим?). Открой в обычном окне.</div></div>';
+30942|     // сообщение уже на экране — оверлей стража поверх него не нужен
+30943|     window.__bvBoot=true;
+30944|     const __be=document.getElementById('bvBootErr'); if(__be) __be.remove();
+30945|     reportErr('boot',(e&&e.message)||String(e),(e&&e.stack)||'','');
+30946|   }
+30947| })();
+30948| 
+30949| /* ── ОБНОВЛЕНИЕ ПРИЛОЖЕНИЯ ──
+30950|    Полевой вопрос владельца 19.08: «почему у меня до сих пор 281, не
+30951|    обновляется». Деплой был выкачен, но приложение об этом молчало: новый
+30952|    service worker ставится и (из-за skipWaiting) сразу берёт управление, а
+30953|    открытая страница остаётся старой до полного перезапуска. Человек видит
+30954|    вчерашнюю версию и не знает ни что она вчерашняя, ни что делать.
+30955| 
+30956|    Теперь: проверяем обновление при каждом возврате к приложению и, когда
+30957|    новая версия готова, показываем одну строку с кнопкой. Никакой
+30958|    самовольной перезагрузки — человек может быть в середине подхода. */
+30959| let __swReg=null, __updShown=false;
+30960| function showUpdateBar(){
+30961|   if(__updShown) return; __updShown=true;
+30962|   const b=document.createElement('div');
+30963|   b.id='updBar';
+30964|   b.innerHTML='<span>Вышла новая версия приложения</span>'
+30965|     +'<button class="btn sm" id="updGo">Обновить</button>';
+30966|   document.body.appendChild(b);
+30967|   barsSync();
+30968|   const g=document.getElementById('updGo');
+30969|   /* Перезагрузка — не мгновенная: sw.js гоняет её через сеть с 5-секундным
+30970|      таймаутом (ТСПУ вешает соединение, а не рвёт). Наш же детектор «мёртвый
+30971|      тап» ждёт реакции экрана только 700 мс — тап уходил в краш-лог как
+30972|      сломанная кнопка, хотя обновление честно шло (сигнал с телефона 31.08).
+30973|      Кнопка обязана мутнуться СРАЗУ, до сети — тогда детектор видит ответ. */
+30974|   if(g) g.onclick=()=>{ g.disabled=true; g.textContent='Обновляю…'; try{ location.reload(); }catch(e){} };
+30975| }
+30976| if('serviceWorker' in navigator && location.protocol==='https:'){
+30977|   addEventListener('load',()=>{
+30978|     navigator.serviceWorker.register('./sw.js').then(reg=>{
+30979|       __swReg=reg;
+30980|       // новый SW уже стоит и ждёт — значит страница устарела прямо сейчас
+30981|       if(reg.waiting && navigator.serviceWorker.controller) showUpdateBar();
+30982|       reg.addEventListener('updatefound',()=>{
+30983|         const nw=reg.installing; if(!nw) return;
+30984|         nw.addEventListener('statechange',()=>{
+30985|           // «installed» при живом контроллере = приехала именно НОВАЯ версия,
+30986|           // а не первая установка на чистом устройстве
+30987|           if(nw.state==='installed'&&navigator.serviceWorker.controller) showUpdateBar();
+30988|         });
+30989|       });
+30990|     }).catch(()=>{});
+30991|     // возврат к приложению — самый честный момент спросить сервер
+30992|     /* try/catch не ловит ОТКАЗ промиса: update() отклоняется, когда сети нет
+30993|        или sw.js не отдался, и это прилетало в краш-лог как падение
+30994|        приложения — «Script sw.js load failed», дважды с телефона владельца
+30995|        27–28.08. Приложение при этом работало; в лог шёл шум, за которым
+30996|        легко не заметить настоящую поломку. */
+30997|     const check=()=>{ if(__swReg&&!document.hidden){
+30998|       try{ const pr=__swReg.update(); if(pr&&pr.catch) pr.catch(()=>{}); }catch(e){} } };
+30999|     addEventListener('visibilitychange',check);
+31000|     addEventListener('focus',check);
+31001|     setInterval(check,30*60*1000);   // и раз в полчаса, если приложение не закрывают
+31002|   });
+31003|   // новый SW взял управление, пока страница открыта — та же ситуация
+31004|   navigator.serviceWorker.addEventListener('controllerchange',()=>showUpdateBar());
+31005| }
+31006| </script>
+31007| </body>
+31008| </html>

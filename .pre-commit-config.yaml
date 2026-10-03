@@ -1,0 +1,21 @@
+# Установка: pip install pre-commit && pre-commit install
+# Прогоняется перед каждым коммитом. Блокирует секреты до попадания в git.
+repos:
+  - repo: https://github.com/Yelp/detect-secrets
+    rev: v1.5.0
+    hooks:
+      - id: detect-secrets
+        args: ["--baseline", ".secrets.baseline"]
+        exclude: '^(dist/|\.git/)'
+  - repo: local
+    hooks:
+      - id: forbid-secret-files
+        name: запрет коммита файлов-секретов
+        entry: bash -c 'git diff --cached --name-only | grep -Ei "(^|/)\.env($|\.|/)|\.pem$|\.key$|credentials.*\.json$|token\.json$|secrets.*\.json$|\.mcp\.json$" && { echo "Секретный файл в коммите — стоп"; exit 1; } || exit 0'
+        language: system
+        pass_filenames: false
+      - id: smoke-gate
+        name: smoke-тест рендера (тот же гейт, что на деплое)
+        entry: node tests/smoke.js
+        language: system
+        pass_filenames: false

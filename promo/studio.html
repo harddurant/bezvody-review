@@ -1,0 +1,298 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<link rel="icon" href="../icons/icon-192.png">
+<meta name="theme-color" content="#08090c">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Без воды — студия материалов</title>
+<style>
+@font-face{font-family:Manrope;src:url(../fonts/manrope-cyrillic.woff2) format('woff2');
+  unicode-range:U+0400-04FF;font-weight:400 800;font-display:block}
+@font-face{font-family:Manrope;src:url(../fonts/manrope-latin.woff2) format('woff2');
+  unicode-range:U+0000-024F;font-weight:400 800;font-display:block}
+*{margin:0;padding:0;box-sizing:border-box}
+:root{--bg:#08090c;--card:#121419;--line:#1e232d;--tx:#f4f6fa;--t2:#aeb4c0;--t3:#7d8494;--ac:#c3ff36}
+body{background:var(--bg);color:var(--tx);font-family:Manrope,system-ui,sans-serif;
+  padding:24px 16px 80px;line-height:1.5}
+.wrap{max-width:1040px;margin:0 auto}
+h1{font-size:30px;font-weight:800;letter-spacing:-.8px;margin-bottom:6px}
+.lead{color:var(--t2);font-size:15px;margin-bottom:26px;max-width:70ch}
+.seg{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:22px}
+.seg button{background:var(--card);border:1px solid var(--line);color:var(--t2);
+  border-radius:999px;padding:11px 20px;font:inherit;font-weight:700;font-size:14px;cursor:pointer}
+.seg button.on{background:var(--ac);border-color:var(--ac);color:#08090c}
+.panel{display:none}.panel.on{display:block}
+.grid{display:grid;grid-template-columns:minmax(280px,1fr) minmax(240px,340px);gap:24px;align-items:start}
+@media(max-width:800px){.grid{grid-template-columns:1fr}}
+.card{background:var(--card);border:1px solid var(--line);border-radius:18px;padding:18px}
+label{display:block;font-size:12px;font-weight:700;color:var(--t3);
+  text-transform:uppercase;letter-spacing:.6px;margin:14px 0 6px}
+label:first-child{margin-top:0}
+input,textarea,select{width:100%;background:#0d1014;border:1px solid var(--line);
+  color:var(--tx);border-radius:11px;padding:11px 13px;font:inherit;font-size:14px}
+textarea{resize:vertical;min-height:72px}
+.btn{display:block;width:100%;background:var(--ac);color:#08090c;border:0;border-radius:12px;
+  padding:14px;font:inherit;font-weight:800;font-size:15px;cursor:pointer;margin-top:18px}
+.btn.sec{background:transparent;color:var(--tx);border:1px solid var(--line);font-weight:700}
+canvas{width:100%;height:auto;border-radius:14px;border:1px solid var(--line);display:block;background:#000}
+.note{color:var(--t3);font-size:13px;margin-top:12px}
+.note b{color:var(--t2)}
+a{color:var(--ac)}
+.drop{border:1px dashed var(--line);border-radius:12px;padding:22px;text-align:center;
+  color:var(--t3);font-size:14px;cursor:pointer;margin-top:6px}
+.drop.hot{border-color:var(--ac);color:var(--ac)}
+</style>
+</head>
+<body>
+<div class="wrap">
+<h1>Студия материалов</h1>
+<p class="lead">
+  Всё, что нужно для канала и магазина, собирается здесь и не выходит за пределы проекта:
+  ни сторонних приложений, ни подписок, ни загрузки твоих картинок куда-либо.
+  Всё рисуется прямо в браузере и скачивается файлом.
+</p>
+
+<div class="seg">
+  <button class="on" data-p="post">Пост для канала</button>
+  <button data-p="shot">Скриншот для магазина</button>
+  <button data-p="ava">Аватар и обложка</button>
+  <button data-p="reel">Ролик</button>
+</div>
+
+<!-- ══ ПОСТ ══ -->
+<div class="panel on" id="p-post"><div class="grid">
+  <div><canvas id="cPost" width="1080" height="1350"></canvas></div>
+  <div class="card">
+    <label>Формат</label>
+    <select id="po_fmt">
+      <option value="1080x1350">Вертикальный 4:5 — лента</option>
+      <option value="1080x1080">Квадрат 1:1 — Telegram</option>
+      <option value="1080x1920">Сторис 9:16</option>
+    </select>
+    <label>Надзаголовок</label>
+    <input id="po_kick" value="Без воды" maxlength="30">
+    <label>Заголовок</label>
+    <textarea id="po_h" maxlength="120">Приложения считают калории по формуле</textarea>
+    <label>Выделенная строка</label>
+    <input id="po_ac" value="Мы считаем по тебе" maxlength="60">
+    <label>Подпись внизу</label>
+    <input id="po_sub" value="Расход пересчитывается по тренду веса, а не по справочнику" maxlength="140">
+    <button class="btn" id="po_dl">Скачать PNG</button>
+    <div class="note">Текст — половина работы. Один тезис на картинку, без списка из пяти пунктов: в ленте читают полторы секунды.</div>
+  </div>
+</div></div>
+
+<!-- ══ СКРИНШОТ ══ -->
+<div class="panel" id="p-shot"><div class="grid">
+  <div><canvas id="cShot" width="1080" height="1920"></canvas></div>
+  <div class="card">
+    <label>Скриншот приложения</label>
+    <div class="drop" id="sh_drop">Перетащи сюда файл или нажми,<br>чтобы выбрать</div>
+    <input type="file" id="sh_file" accept="image/*" style="display:none">
+    <label>Подпись сверху</label>
+    <textarea id="sh_cap" maxlength="90">206 видео техники вместо человечков</textarea>
+    <label>Фон</label>
+    <select id="sh_bg">
+      <option value="dark">Тёмный</option>
+      <option value="lime">Лаймовый</option>
+    </select>
+    <button class="btn" id="sh_dl">Скачать PNG</button>
+    <div class="note">
+      RuStore и Google Play просят минимум 2–3 скриншота, 1080×1920 подходит обоим.
+      Делай их <b>по одному тезису каждый</b>: первый — адаптивный расход, второй — видео техники,
+      третий — русская еда. Люди листают их как рекламу, а не как документацию.
+    </div>
+  </div>
+</div></div>
+
+<!-- ══ АВАТАР ══ -->
+<div class="panel" id="p-ava"><div class="grid">
+  <div><canvas id="cAva" width="640" height="640"></canvas></div>
+  <div class="card">
+    <label>Что показать</label>
+    <select id="av_mode">
+      <option value="logo">Только знак</option>
+      <option value="name">Знак и название</option>
+    </select>
+    <button class="btn" id="av_dl">Скачать PNG</button>
+    <div class="note">640×640 хватает и для аватара Telegram-канала, и для иконки в магазине после пересчёта.</div>
+  </div>
+</div></div>
+
+<!-- ══ РОЛИК ══ -->
+<div class="panel" id="p-reel"><div class="card" style="max-width:640px">
+  <p style="margin-bottom:14px">Вертикальный ролик 9:16 на 27 секунд лежит рядом:
+  <a href="reel.html">reel.html</a>.</p>
+  <p class="note" style="margin-top:0">
+    Это анимированная страница, а не видеофайл. Открываешь на телефоне, жмёшь <b>H</b> и <b>Пробел</b>,
+    включаешь встроенную запись экрана — получается готовый ролик для сторис.
+    Запись экрана есть в самой системе телефона, ставить ничего не нужно.<br><br>
+    Так сделано намеренно: текст, цифры и порядок сцен правятся одной строчкой,
+    а видеофайл пришлось бы перерисовывать целиком.
+  </p>
+</div></div>
+
+</div>
+
+<script>
+const $=id=>document.getElementById(id);
+const AC='#c3ff36', BG='#08090c', TX='#f4f6fa', T2='#aeb4c0';
+
+document.querySelectorAll('.seg button').forEach(b=>b.onclick=()=>{
+  document.querySelectorAll('.seg button').forEach(x=>x.classList.toggle('on',x===b));
+  document.querySelectorAll('.panel').forEach(p=>p.classList.toggle('on',p.id==='p-'+b.dataset.p));
+});
+
+/* Перенос по словам под заданную ширину — canvas сам этого не умеет */
+function wrap(ctx,text,maxW){
+  const out=[];
+  String(text).split('\n').forEach(par=>{
+    let line='';
+    par.split(/\s+/).filter(Boolean).forEach(w=>{
+      const t=line?line+' '+w:w;
+      if(ctx.measureText(t).width>maxW&&line){ out.push(line); line=w; } else line=t;
+    });
+    out.push(line);
+  });
+  return out;
+}
+function rr(ctx,x,y,w,h,r){
+  ctx.beginPath();
+  ctx.moveTo(x+r,y); ctx.arcTo(x+w,y,x+w,y+h,r); ctx.arcTo(x+w,y+h,x,y+h,r);
+  ctx.arcTo(x,y+h,x,y,r); ctx.arcTo(x,y,x+w,y,r); ctx.closePath();
+}
+function bg(ctx,w,h){
+  const g=ctx.createRadialGradient(w*.25,h*.08,0,w*.25,h*.08,Math.max(w,h)*1.1);
+  g.addColorStop(0,'#161b24'); g.addColorStop(.62,BG);
+  ctx.fillStyle=g; ctx.fillRect(0,0,w,h);
+}
+function logo(ctx,x,y,s){
+  ctx.save(); ctx.translate(x,y); ctx.scale(s/512,s/512);
+  const g=ctx.createLinearGradient(0,512,512,0);
+  g.addColorStop(0,'#9edc1c'); g.addColorStop(1,'#d6ff62');
+  ctx.strokeStyle=g; ctx.lineWidth=42; ctx.lineCap='round'; ctx.lineJoin='round';
+  ctx.beginPath();
+  const pts=[[92,322],[172,322],[212,216],[262,372],[302,254],[334,296],[420,296]];
+  pts.forEach((p,i)=>i?ctx.lineTo(p[0],p[1]):ctx.moveTo(p[0],p[1]));
+  ctx.stroke();
+  ctx.fillStyle='#d6ff62'; ctx.beginPath(); ctx.arc(420,296,25,0,7); ctx.fill();
+  ctx.restore();
+}
+function dl(canvas,name){
+  canvas.toBlob(b=>{
+    const a=document.createElement('a');
+    a.href=URL.createObjectURL(b); a.download=name; a.click();
+    setTimeout(()=>URL.revokeObjectURL(a.href),4000);
+  },'image/png');
+}
+
+/* ── ПОСТ ── */
+function drawPost(){
+  const c=$('cPost'), [w,h]=$('po_fmt').value.split('x').map(Number);
+  c.width=w; c.height=h;
+  const ctx=c.getContext('2d'), pad=Math.round(w*0.093);
+  bg(ctx,w,h);
+  const k=w/1080;
+
+  ctx.font=`700 ${Math.round(30*k)}px Manrope`; ctx.fillStyle='#7d8494';
+  ctx.letterSpacing=Math.round(5*k)+'px';
+  ctx.fillText(($('po_kick').value||'').toUpperCase(), pad, pad+Math.round(34*k));
+  ctx.letterSpacing='0px';
+
+  let y=pad+Math.round(150*k);
+  ctx.font=`800 ${Math.round(80*k)}px Manrope`; ctx.fillStyle=TX;
+  wrap(ctx,$('po_h').value,w-pad*2).forEach(l=>{ ctx.fillText(l,pad,y); y+=Math.round(92*k); });
+
+  y+=Math.round(28*k);
+  ctx.fillStyle=AC;
+  wrap(ctx,$('po_ac').value,w-pad*2).forEach(l=>{ ctx.fillText(l,pad,y); y+=Math.round(92*k); });
+
+  ctx.font=`500 ${Math.round(36*k)}px Manrope`; ctx.fillStyle=T2;
+  let sy=h-pad-Math.round(120*k);
+  const sub=wrap(ctx,$('po_sub').value,w-pad*2-Math.round(120*k));
+  sy-=(sub.length-1)*Math.round(48*k);
+  sub.forEach(l=>{ ctx.fillText(l,pad,sy); sy+=Math.round(48*k); });
+
+  logo(ctx,w-pad-Math.round(96*k),h-pad-Math.round(96*k),Math.round(96*k));
+}
+['po_fmt','po_kick','po_h','po_ac','po_sub'].forEach(id=>{
+  $(id).addEventListener('input',drawPost); $(id).addEventListener('change',drawPost);
+});
+$('po_dl').onclick=()=>dl($('cPost'),'bezvody-post.png');
+
+/* ── СКРИНШОТ ДЛЯ МАГАЗИНА ── */
+let shotImg=null;
+function drawShot(){
+  const c=$('cShot'), ctx=c.getContext('2d'), w=1080, h=1920;
+  const lime=$('sh_bg').value==='lime';
+  if(lime){
+    const g=ctx.createLinearGradient(0,0,w,h);
+    g.addColorStop(0,'#9edc1c'); g.addColorStop(1,'#5f8f10');
+    ctx.fillStyle=g; ctx.fillRect(0,0,w,h);
+  } else bg(ctx,w,h);
+
+  ctx.font='800 62px Manrope'; ctx.fillStyle=lime?'#08090c':TX; ctx.textAlign='center';
+  let y=180;
+  wrap(ctx,$('sh_cap').value,w-160).forEach(l=>{ ctx.fillText(l,w/2,y); y+=76; });
+  ctx.textAlign='left';
+
+  // рамка телефона
+  const fw=760, fh=1360, fx=(w-fw)/2, fy=y+40;
+  ctx.save();
+  ctx.shadowColor='rgba(0,0,0,.55)'; ctx.shadowBlur=60; ctx.shadowOffsetY=24;
+  ctx.fillStyle='#1e232d'; rr(ctx,fx,fy,fw,fh,54); ctx.fill();
+  ctx.restore();
+  const ix=fx+10, iy=fy+10, iw=fw-20, ih=fh-20;
+  ctx.save(); rr(ctx,ix,iy,iw,ih,46); ctx.clip();
+  if(shotImg){
+    const s=Math.max(iw/shotImg.width, ih/shotImg.height);
+    const dw=shotImg.width*s, dh=shotImg.height*s;
+    ctx.drawImage(shotImg, ix+(iw-dw)/2, iy, dw, dh);   // выравниваем по верху: шапка важнее подвала
+  } else {
+    ctx.fillStyle='#0d1014'; ctx.fillRect(ix,iy,iw,ih);
+    ctx.fillStyle='#3a4150'; ctx.font='600 34px Manrope'; ctx.textAlign='center';
+    ctx.fillText('Загрузи скриншот приложения', ix+iw/2, iy+ih/2);
+    ctx.textAlign='left';
+  }
+  ctx.restore();
+}
+function loadShot(file){
+  if(!file||!/^image\//.test(file.type)) return;
+  const img=new Image();
+  img.onload=()=>{ shotImg=img; drawShot(); };
+  img.src=URL.createObjectURL(file);
+}
+$('sh_drop').onclick=()=>$('sh_file').click();
+$('sh_file').onchange=e=>loadShot(e.target.files[0]);
+['dragenter','dragover'].forEach(ev=>$('sh_drop').addEventListener(ev,e=>{
+  e.preventDefault(); $('sh_drop').classList.add('hot'); }));
+['dragleave','drop'].forEach(ev=>$('sh_drop').addEventListener(ev,e=>{
+  e.preventDefault(); $('sh_drop').classList.remove('hot');
+  if(ev==='drop') loadShot(e.dataTransfer.files[0]); }));
+$('sh_cap').addEventListener('input',drawShot);
+$('sh_bg').addEventListener('change',drawShot);
+$('sh_dl').onclick=()=>dl($('cShot'),'bezvody-store.png');
+
+/* ── АВАТАР ── */
+function drawAva(){
+  const c=$('cAva'), ctx=c.getContext('2d'), s=640;
+  bg(ctx,s,s);
+  const named=$('av_mode').value==='name';
+  logo(ctx, named?(s-300)/2:(s-360)/2, named?110:140, named?300:360);
+  if(named){
+    ctx.font='800 62px Manrope'; ctx.fillStyle=TX; ctx.textAlign='center';
+    ctx.fillText('Без воды', s/2, 500); ctx.textAlign='left';
+  }
+}
+$('av_mode').addEventListener('change',drawAva);
+$('av_dl').onclick=()=>dl($('cAva'),'bezvody-avatar.png');
+
+/* Шрифт должен быть загружен ДО первой отрисовки, иначе canvas
+   молча подставит системный и всё поедет */
+(document.fonts&&document.fonts.ready||Promise.resolve()).then(()=>{
+  drawPost(); drawShot(); drawAva();
+});
+</script>
+</body>
+</html>

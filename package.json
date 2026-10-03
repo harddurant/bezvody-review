@@ -1,0 +1,12 @@
+{
+  "name": "bezvody",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Без воды — питание, тренировки, здоровье (PWA)",
+  "scripts": {
+    "test": "node tests/smoke.js",
+    "build": "node tests/smoke.js && node tests/build.js",
+    "sync": "node scripts/sync.js",
+    "ship": "node scripts/ship.js"
+  }
+}

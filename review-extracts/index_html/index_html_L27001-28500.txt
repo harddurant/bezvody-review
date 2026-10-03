@@ -1,0 +1,1501 @@
+// ИЗВЛЕЧЕНИЕ ДЛЯ ЧТЕНИЯ: index.html, строки 27001–28500 из 31008. Номера строк совпадают с оригиналом. Код не менялся.
+27001|   ['waist','shoulders','chest','hips','arm','thigh','neck'].forEach(k=>$('m_'+k).value=m[k]!=null?m[k]:'');});
+27002| $('stPick')&&($('stPick').onchange=()=>{const d=$('stPick').value,st=STEPS.find(x=>x.d===d);$('stIn').value=st?st.n:'';});
+27003| $('zPick')&&($('zPick').onchange=()=>rSleep());
+27004| $('phIn').onchange=async e=>{
+27005|   const f=e.target.files[0]; if(!f) return;
+27006|   toast('Обработка…');
+27007|   const img=await shrink(f,PH_MAX);
+27008|   if(!img){ toast('Не удалось прочитать фото — попробуй другой файл'); e.target.value=''; return; }
+27009|   await put('photos',{d:td(),img});PH=await all('photos');
+27010|   rPh();toast('Фото сохранено');e.target.value='';
+27011| };
+27012| /* ── СЖАТИЕ СНИМКА ПРОГРЕССА (числа замерены, v624) ──
+27013|    Кадр iPhone 3024×4032 весит около 10 МБ. Замер 19.09 на шумном кадре
+27014|    (плоскую заливку JPEG жмёт нечестно):
+27015|      900 px / 0.82 —  89 КБ   ← стоит сейчас
+27016|     1024 px / 0.72 — 133 КБ
+27017|     1024 px / 0.82 — 209 КБ
+27018|      900 px / 0.72 —  58 КБ
+27019|    Больший размер при меньшем качестве ТЯЖЕЛЕЕ: +29 % пикселей перевешивают
+27020|    падение качества. Коридор, ради которого правка задумывалась (80–120 КБ),
+27021|    держит именно 900/0.82. Числа вынесены в токены, чтобы следующая правка
+27022|    меняла их в одном месте и под замер, а не вразброс по файлу. */
+27023| const PH_MAX=900, PH_Q=.82;
+27024| function shrink(file,mx){return new Promise(res=>{
+27025|   const r=new FileReader();
+27026|   r.onerror=()=>res(null);
+27027|   r.onload=()=>{const i=new Image();
+27028|     i.onerror=()=>res(null);
+27029|     i.onload=()=>{let w=i.width,h=i.height;
+27030|       if(Math.max(w,h)>mx){const k=mx/Math.max(w,h);w=r0(w*k);h=r0(h*k)}
+27031|       const c=document.createElement('canvas');c.width=w;c.height=h;
+27032|       try{ c.getContext('2d').drawImage(i,0,0,w,h); res(c.toDataURL('image/jpeg',PH_Q)); }
+27033|       catch(e){ res(null); }};
+27034|     i.src=r.result};
+27035|   r.readAsDataURL(file)})}
+27036| $('bClrC').onclick=()=>{cmpSel=[];rPh()};
+27037| $('libS').oninput=debounce(rLib,120);
+27038| 
+27039| /* ── АНАЛИЗЫ ИЗ ФОТО ИЛИ PDF БЛАНКА (владелец 06.09: «хотел загрузить, чтоб
+27040|    прочитало данные в PDF, а такой функции нет»). Раньше я был против: модель
+27041|    прочитает 1.8 как 18, и это уедет в здоровье как факт. Слово владельца
+27042|    последнее, поэтому строим с двумя предохранителями: ничего не сохраняется
+27043|    само — прочитанное только заполняет форму, и человек нажимает «Сохранить»;
+27044|    неправдоподобное (вне пятикратного коридора нормы — сдвиг запятой) подсвечено и
+27045|    названо, неразборчивое модель обязана перечислить, а не додумать. PDF идёт
+27046|    в модель как документ (Anthropic читает PDF нативно), фото — как картинка. */
+27047| const LAB_PDF_MAX=3*1024*1024;
+27048| const P_LABS=`Это бланк результатов анализов (фото или PDF). Найди показатели из списка ниже.
+27049| Верни СТРОГО JSON, без markdown, без пояснений:
+27050| {"date":"YYYY-MM-DD"|null,"values":{"ключ":число,...},"units":{"ключ":"единицы как в бланке",...},"unsure":["ключи, где цифра неразборчива или не уверен"]}
+27051| Список показателей (ключ — название — наши единицы):
+27052| ${MK.map(m=>m.k+' — '+m.n+' — '+m.u).join(String.fromCharCode(10))}
+27053| Правила:
+27054| - Числа — как напечатано, ничего не додумывай. Нет показателя в бланке — не включай ключ.
+27055| - Если единицы в бланке отличаются от наших — пересчитай в наши и укажи исходные в units (мг/дл → ммоль/л: глюкоза ÷18, холестерин ÷38.67, триглицериды ÷88.57, креатинин ×88.4 из мг/дл в мкмоль/л).
+27056| - Дата — дата взятия материала, если она есть.
+27057| - Референсы лаборатории не переписывай — только значения.
+27058| - Если это не бланк анализов — верни {"error":"на документе нет анализов"}.`;
+27059| /* Чистая часть: разложить ответ модели по форме. Возвращает, что прочитано,
+27060|    что неправдоподобно, что неразборчиво — для строки над формой. */
+27061| function labsApply(j){
+27062|   const out={read:[],odd:[],unsure:[],date:null};
+27063|   if(!j||typeof j!=='object'||j.error) return out;
+27064|   const vals=j.values||{};
+27065|   MK.forEach(m=>{
+27066|     const v=pf(vals[m.k]); const el=$('lb_'+m.k); if(!el) return;
+27067|     if(isNaN(v)){ el.value=''; el.style.borderColor=''; return; }
+27068|     el.value=v; out.read.push(m.k);
+27069|     const R=(typeof mkRef==='function')?mkRef(m):{lo:m.lo,hi:m.hi};
+27070|     const lo=isFinite(R.lo)?R.lo:m.lo, hi=isFinite(R.hi)?R.hi:m.hi;
+27071|     /* Пятикратный коридор ловит именно сдвиг запятой: 14.5 вместо 145,
+27072|        12 вместо 1.2 — обе стороны вне ×5 от нормы. Двадцатикратный не ловил. */
+27073|     const odd=v<=0||v<lo/5||v>hi*5;
+27074|     el.style.borderColor=odd?'var(--bd)':'';
+27075|     if(odd) out.odd.push(m.n+' '+v+' '+m.u);
+27076|   });
+27077|   (Array.isArray(j.unsure)?j.unsure:[]).forEach(k=>{ const m=MK.find(x=>x.k===k); if(m) out.unsure.push(m.n); });
+27078|   if(typeof j.date==='string'&&/^[0-9]{4}-[0-9]{2}-[0-9]{2}$/.test(j.date)){ out.date=j.date; const d=$('lab_d'); if(d) d.value=j.date; }
+27079|   return out;
+27080| }
+27081| function labsNoteText(o){
+27082|   if(!o.read.length) return 'Ни одного показателя из нашего списка не прочитал — внеси руками.';
+27083|   let t='Прочитано '+o.read.length+' '+plural(o.read.length,'показатель','показателя','показателей')+(o.date?' от '+fd(o.date):'')+'. Проверь по бланку, потом «Сохранить».';
+27084|   if(o.odd.length) t+=' Неправдоподобно, проверь особенно: '+o.odd.join(', ')+'.';
+27085|   if(o.unsure.length) t+=' Модель не уверена: '+o.unsure.join(', ')+'.';
+27086|   return t;
+27087| }
+27088| $('labFile')&&($('labFile').onchange=async e=>{
+27089|   const f=e.target.files&&e.target.files[0]; e.target.value=''; if(!f) return;
+27090|   const note=$('labAiNote'); if(note){ note.hidden=false; note.textContent='Читаю бланк…'; }
+27091|   try{
+27092|     if(!aiReady()) throw new Error(AI_GATE_MSG+' (Настройки → Синхронизация)');
+27093|     const dataUrl=await new Promise((ok,bad)=>{ const r=new FileReader(); r.onload=()=>ok(String(r.result||'')); r.onerror=()=>bad(new Error('Не прочитал файл')); r.readAsDataURL(f); });
+27094|     const m=dataUrl.match(/^data:([^;]+);base64,(.+)$/); if(!m) throw new Error('Плохой файл');
+27095|     const isPdf=/pdf/i.test(m[1])||/\.pdf$/i.test(f.name||'');
+27096|     /* PDF не жмётся, как фото: тяжелее 3 МБ не пройдёт через сервер (лимит
+27097|        тела 4.5 МБ), и человек получал бы совет «попробуй по Wi-Fi» (обход
+27098|        ролей 06.09, инженер). Говорим до отправки и предлагаем камеру. */
+27099|     if(isPdf&&f.size>LAB_PDF_MAX) throw new Error('PDF весит '+r1(f.size/1048576)+' МБ, через сервер проходит до 3. Сфотографируй бланк камерой — фото ужмётся само.');
+27100|     const part=isPdf?{type:'document',source:{type:'base64',media_type:'application/pdf',data:m[2]}}
+27101|                     :{type:'image',source:{type:'base64',media_type:m[1],data:m[2]}};
+27102|     const res=await aiFetch({model:'claude-sonnet-5',max_tokens:1500,messages:[{role:'user',content:[{type:'text',text:P_LABS},part]}]},'labs');
+27103|     if(!res.ok) throw await aiFail(res);
+27104|     const j=await res.json();
+27105|     const txt=(j.content||[]).filter(c=>c.type==='text').map(c=>c.text).join('');
+27106|     const jm=txt.match(/\{[\s\S]*\}/); if(!jm) throw new Error('Не смог разобрать ответ');
+27107|     const parsed=JSON.parse(jm[0]);
+27108|     if(parsed.error) throw new Error(parsed.error);
+27109|     const o=labsApply(parsed);
+27110|     if(note) note.textContent=labsNoteText(o);
+27111|     try{ trk('labs_ai',null,(isPdf?'pdf':'img')+':'+o.read.length); }catch(_){}
+27112|   }catch(err){ if(note) note.textContent='Не вышло: '+(err.message||err); }
+27113| });
+27114| /* labs */
+27115| $('bAddLab').onclick=()=>{
+27116|   $('lab_d').value=td(); { const n=$('labAiNote'); if(n){ n.hidden=true; n.textContent=''; } }
+27117|   $('labForm').innerHTML=MK.map(m=>`<div class="field">
+27118|     <label>${m.n} <span style="color:var(--t3)">${m.lo}–${m.hi} ${m.u}</span>${m.crit?' <svg class="ic" style="width:11px;height:11px;stroke:var(--bd)"><use href="#i-warn"/></svg>':''}</label>
+27119|     <input type="number" step="0.01" id="lb_${m.k}" placeholder="—"></div>`).join('');
+27120|   sheet('sh-lab',true);
+27121| };
+27122| $('bLabOk').onclick=async()=>{
+27123|   const d=$('lab_d').value||td(); const L={d}; let any=0;
+27124|   MK.forEach(m=>{const v=pf($('lb_'+m.k).value); if(!isNaN(v)){L[m.k]=v;any=1}});
+27125|   if(!any) return toast('Заполни хоть один показатель');
+27126|   const exL=LABS.find(x=>x.d===d)||{};              // утренняя глюкоза + вечерние гормоны = одна запись
+27127|   await put('labs',{...exL,...L});LABS=await all('labs');
+27128|   sheet('sh-lab',false);rHealth();toast('Анализы сохранены');
+27129| };
+27130| $('bAddSub').onclick=()=>{sbEditId=null;$('bSbOk').textContent='Записать';
+27131|   $('sb_d').value=td();$('sb_t').value=nowHM();if($('sb_rel'))$('sb_rel').value='';
+27132|   ['sb_n','sb_v','sb_note','sb_act'].forEach(i=>{if($(i))$(i).value=''});
+27133|   supKindInit(); sheet('sh-sub',true)};
+27134| /* ── КАРТОЧКА ПРЕПАРАТА ──
+27135|    Заводится один раз при покупке и живёт в настройках рядом с остальными
+27136|    решениями человека. Приём после этого — один тап: что внутри, приложение
+27137|    уже знает. Ключ — по названию: сменил производителя, завёл заново. */
+27138| function supKey(n){ return String(n||'').trim().toLowerCase(); }
+27139| /* Список типов и подписка на изменения — один раз при старте. Тип угадываем
+27140|    по названию: человек, который пишет «Omega 3 Naturi», не должен ещё и
+27141|    выбирать «Омега-3» из списка. */
+27142| function supGuessKind(n){
+27143|   const t=String(n||'').toLowerCase();
+27144|   if(/омега|omega|рыбий жир|fish oil|epa|dha/.test(t)) return 'omega';
+27145|   if(/витамин\s*d|vitamin\s*d|холекальцифер|d3\b/.test(t)) return 'd3';
+27146|   if(/магни|magnesium|mg\b/.test(t)) return 'mg';
+27147|   if(/цинк|zinc/.test(t)) return 'zinc';
+27148|   if(/креатин|creatine/.test(t)) return 'creatine';
+27149|   if(/кофеин|caffeine/.test(t)) return 'caffeine';
+27150|   if(/желез|iron|ферритин/.test(t)) return 'iron';
+27151|   return 'other';
+27152| }
+27153| function supKindInit(){
+27154|   const sel=$('sb_kind'); if(!sel) return;
+27155|   if(!sel.options.length)
+27156|     sel.innerHTML=Object.keys(SUPACT).map(k=>`<option value="${k}">${esc(SUPACT[k].n)}</option>`).join('');
+27157|   const nm=($('sb_n')||{}).value, card=supCard(nm);
+27158|   sel.value=(card&&card.kind)||supGuessKind(nm)||'other';
+27159|   supKindFields();
+27160| }
+27161| function supCard(n){ return (S.supCard&&S.supCard[supKey(n)])||null; }
+27162| function supKindFields(){
+27163|   const kind=($('sb_kind')||{}).value||'other', A=SUPACT[kind]||SUPACT.other;
+27164|   /* Единица приёма по умолчанию — «мг», и для капсульной добавки это неверно:
+27165|      совет считался как для порошка и не называл, сколько капсул пить.
+27166|      У добавки с составом единица приёма — капсула, пока человек не скажет
+27167|      иначе (замер формы в браузере 28.08). */
+27168|   { const su=$('sb_u');
+27169|     if(su&&(A.f||[]).length&&(su.value==='мг'||!su.value)) su.value=(kind==='creatine')?'г':'капс'; }
+27170|   const card=supCard(($('sb_n')||{}).value)||{};
+27171|   const per=(card.kind===kind&&card.per)||{};
+27172|   const box=$('sb_actf'); if(!box) return;
+27173|   box.innerHTML=(A.f||[]).length
+27174|     ? `<div class="field"><label>В одной ${esc(($('sb_u')||{}).value||'капс')} — с банки</label>
+27175|         <div class="${(A.f||[]).length>1?'g2':''}">${(A.f||[]).map(x=>
+27176|           `<div><label style="font-size:var(--fs1);line-height:var(--lh1)">${esc(x.n)}, ${A.u}</label>
+27177|            <input type="text" step="0.1" inputmode="decimal" id="sbp_${x.k}" value="${per[x.k]!=null?per[x.k]:''}"></div>`).join('')}</div>
+27178|         ${A.form?`<div style="margin-top:8px"><label style="font-size:var(--fs1);line-height:var(--lh1)">Форма</label>
+27179|           <select id="sbp_form">${A.form.map(f=>`<option${card.form===f?' selected':''}>${f}</option>`).join('')}</select></div>`:''}
+27180|         <div class="mini" style="color:var(--t3);margin-top:8px">${esc(A.why)}</div></div>`
+27181|     : '';
+27182|   const aw=$('sb_actw'); if(aw) aw.style.display=(A.f||[]).length?'none':'';
+27183|   supShowAdvice();
+27184| }
+27185| /* Совет считается прямо в форме, пока человек её заполняет: цифра, которую
+27186|    он сейчас вводит, тут же превращается в «сколько принимать». */
+27187| function supShowAdvice(){
+27188|   const box=$('sb_adv'); if(!box) return;
+27189|   const kind=($('sb_kind')||{}).value||'other';
+27190|   const cat=($('sb_c')||{}).value||'sup';
+27191|   /* Вето врача: нормы только для добавок и витаминов. Рецептурное,
+27192|      гормональное и пептиды — журнал факта, без цифр «сколько пить». */
+27193|   if(cat!=='sup'||kind==='other'){ box.innerHTML=''; return; }
+27194|   const per={}; (SUPACT[kind].f||[]).forEach(x=>{ const el=$('sbp_'+x.k); per[x.k]=el?num(el)||0:0; });
+27195|   let a=null; try{ a=suppAdvice(kind,per,($('sb_u')||{}).value,curW()); }catch(e){}
+27196|   box.innerHTML=a?`<div class="${a.warn?'wb':'ib'}" style="margin-bottom:12px;white-space:normal;line-height:var(--lhb)">${esc(a.txt)}</div>`:'';
+27197| }
+27198| /* Живые пересчёты: сменил тип — поменялись поля; ввёл миллиграммы или
+27199|    поменял единицу — тут же обновился совет. */
+27200| if($('sb_kind')) $('sb_kind').onchange=supKindFields;
+27201| if($('sb_c')) $('sb_c').addEventListener('change',supShowAdvice);
+27202| if($('sb_u')) $('sb_u').addEventListener('change',supKindFields);
+27203| if($('sb_n')) $('sb_n').addEventListener('blur',()=>{ const sel=$('sb_kind');
+27204|   if(sel&&sel.value==='other'){ const g=supGuessKind($('sb_n').value); if(g!=='other'){ sel.value=g; supKindFields(); return; } }
+27205|   const c=supCard($('sb_n').value); if(c&&sel){ sel.value=c.kind; supKindFields(); } });
+27206| if($('sb_actf')) $('sb_actf').addEventListener('input',supShowAdvice);
+27207| $('bSbOk').onclick=async()=>{
+27208|   const n=$('sb_n').value.trim(); if(!n) return toast('Введи название');
+27209|   const _kind=($('sb_kind')||{}).value||'other';
+27210|   const _A=SUPACT[_kind]||SUPACT.other;
+27211|   const _per={}; (_A.f||[]).forEach(x=>{ const el=$('sbp_'+x.k); const v=el?num(el):NaN; if(v>0) _per[x.k]=v; });
+27212|   /* Карточку препарата храним отдельно от факта приёма: состав не меняется
+27213|      от того, сколько капсул человек выпил сегодня. */
+27214|   if(_kind!=='other'&&Object.keys(_per).length){
+27215|     S.supCard=S.supCard||{};
+27216|     S.supCard[supKey(n)]={kind:_kind,per:_per,u:$('sb_u').value,
+27217|       form:($('sbp_form')&&$('sbp_form').value)||null,ua:Date.now()};
+27218|     put('settings',S,'main').catch(()=>{});
+27219|   }
+27220|   /* Строку `act` собираем сами — её показывает список приёмов, и раньше её
+27221|      писал человек руками, каждый раз по-своему. */
+27222|   const _actAuto=(_A.f||[]).filter(x=>_per[x.k]>0).map(x=>x.n.replace(/\s*\(.*\)/,'')+' '+_per[x.k]+' '+_A.u).join(' + ');
+27223|   const rec={d:$('sb_d').value||td(),t:$('sb_t').value||null,rel:$('sb_rel').value||null,c:$('sb_c').value,n,
+27224|     v:num($('sb_v'))||null,u:$('sb_u').value,
+27225|     kind:_kind!=='other'?_kind:null, per:Object.keys(_per).length?_per:null,
+27226|     act:_actAuto||(($('sb_act')&&$('sb_act').value.trim())||''),
+27227|     note:$('sb_note').value.trim()};
+27228|   if(sbEditId!=null) rec.id=sbEditId;                 // редактирование существующей записи
+27229|   await put('subs',rec);
+27230|   SUBS=await all('subs');sheet('sh-sub',false);rHealth();
+27231|   toast(sbEditId!=null?'Сохранено':'Записано'); sbEditId=null; $('bSbOk').textContent='Записать';
+27232| };
+27233| 
+27234| /* ── OPEN FOOD FACTS ── */
+27235| function openOffSearch(q){$('off_q').value=q||'';
+27236|   $('offBody').innerHTML='<div class="note keep" style="margin-top:0">Open Food Facts — открытая база, ~2.5 млн товаров, бесплатно, без ключа. Российское покрытие дырявое: чего нет — добавь руками, и оно останется у тебя навсегда.</div>';
+27237|   sheet('sh-off',true);if(q){doOff();}else{setTimeout(()=>$('off_q').focus(),250);}}
+27238| $('bOffGo').onclick=doOff;
+27239| $('off_q').onkeydown=e=>{if(e.key==='Enter')doOff()};
+27240| /* v679: отказ поиска — не тупик: причина по имени, «Повторить» и «Добавить
+27241|    руками» строками (CRAFT §4). Первый оборванный запрос повторяется сам один
+27242|    раз (Safari роняет первый запрос «Load failed», см. v168); таймаут не
+27243|    повторяется — это ещё 12 секунд. Пусто — тоже строка «Добавить руками». */
+27244| function offManualRow(q){
+27245|   return `<div class="lst" style="margin-top:12px"><button class="lrow" id="bOffManual"><svg class="ic lg" style="color:var(--ac)"><use href="#i-plus"/></svg><span class="g"><span class="t">Добавить руками</span></span><span class="ch"></span></button></div>`;
+27246| }
+27247| function offWireManual(q){ const b=$('bOffManual'); if(b) b.onclick=()=>{ sheet('sh-off',false); openF(true,{n:q}); }; }
+27248| function offFail(e,q){
+27249|   $('offBody').innerHTML=`<div class="wb">${esc((e&&e.message)||'Open Food Facts не отвечает')}</div>
+27250|     <div class="lst" style="margin-top:12px"><button class="lrow" id="bOffRetry"><svg class="ic lg" style="color:var(--ac)"><use href="#i-repeat"/></svg><span class="g"><span class="t">Повторить</span></span><span class="ch"></span></button>
+27251|     <button class="lrow" id="bOffManual"><svg class="ic lg" style="color:var(--ac)"><use href="#i-plus"/></svg><span class="g"><span class="t">Добавить руками</span></span><span class="ch"></span></button></div>`;
+27252|   $('bOffRetry').onclick=doOff; offWireManual(q);
+27253| }
+27254| async function doOff(){
+27255|   const q=$('off_q').value.trim(); if(!q) return;
+27256|   $('offBody').innerHTML='<div class="ib"><span class="load"></span>Ищу в Open Food Facts…</div>';
+27257|   let r=null, err=null;
+27258|   for(let i=0;i<2&&!r;i++){
+27259|     try{ r=await offSearch(q); }
+27260|     catch(e){ err=e; if(i===0&&!e.offTimeout) await new Promise(x=>setTimeout(x,800)); else break; }
+27261|   }
+27262|   if(!r){ offFail(err,q); return; }
+27263|   if(!r.length){ $('offBody').innerHTML='<div class="wb">Ничего не нашлось: российских товаров в базе мало.</div>'+offManualRow(q); offWireManual(q); return; }
+27264|   offList(r);
+27265| }
+27266| function offList(r){
+27267|   $('offBody').innerHTML=r.map((f,i)=>`<div class="item">
+27268|     <div class="g" data-off="${i}" style="cursor:pointer"><div class="t">${esc((f.br?f.br+' — ':'')+f.n)}</div>
+27269|     <div class="s">${f.k} ккал · Б${f.p} Ж${f.f} У${f.c} / 100 г</div></div>
+27270|     <div style="color:var(--t3)">+</div></div>`).join('')
+27271|     +'<div class="note">Данные краудсорсные — их вносят обычные люди. Сверь с упаковкой, прежде чем доверять.</div>';
+27272|   $('offBody').querySelectorAll('[data-off]').forEach(e=>e.onclick=()=>{
+27273|     const f=r[+e.dataset.off]; sheet('sh-off',false); sheet('sh-bar',false);
+27274|     openF(true,{n:f.n,br:f.br||null,k:f.k,p:f.p,f:f.f,c:f.c,u:100});
+27275|   });
+27276| }
+27277| let barHandled=false, barTarget='diary';
+27278| async function openScanner(target){
+27279|   barTarget=target||'diary'; barHandled=false;
+27280|   $('barMsg').className='ib';
+27281|   $('barMsg').textContent=barTarget==='pantry'?'Скан в КЛАДОВУЮ. Наведи рамку на штрихкод.':'Наведи рамку на штрихкод. Держи ровно, 5–10 см.';
+27282|   $('bar_m').value=''; sheet('sh-bar',true);
+27283|   const v=$('barVid');
+27284|   try{
+27285|     await startScan(v, async(code)=>{
+27286|       if(barHandled) return; barHandled=true;
+27287|       stopBar();
+27288|       $('barMsg').className='ib';$('barMsg').innerHTML='<span class="load"></span>Код '+esc(code)+' - ищу...';
+27289|       await barLookup(code);
+27290|     });
+27291|   }catch(e){
+27292|     stopBar();
+27293|     $('barMsg').className='wb';
+27294|     $('barMsg').innerHTML='Камера недоступна: '+esc(e.message||'')+'.<br>На iPhone сканер работает по https и на самом сайте (добавь на домашний экран). Или введи цифры под кодом вручную.';
+27295|   }
+27296| }
+27297| $('scB').onclick=()=>{sheet('sh-scan',false);openScanner('diary');};
+27298| $('bPnScan')&&($('bPnScan').onclick=()=>{ if(!sbTok){toast('Кладовая работает с аккаунтом');return} openScanner('pantry'); });
+27299| /* Ищем: сначала в нашем каталоге по штрихкоду (мгновенно), потом в Open Food Facts.
+27300|    Найденное в OFF КЭШИРУЕМ в общий каталог - база растёт вокруг того, что вы реально едите. */
+27301| async function barLookup(code){
+27302|   try{
+27303|     let prod=null;               // {id?, name, brand?, k,p,f,c, fromCat?}
+27304|     // 1. наш каталог по штрихкоду
+27305|     if(sbTok){
+27306|       try{
+27307|         const r=await sbFetch('/rest/v1/rpc/product_by_barcode',{method:'POST',body:JSON.stringify({p_code:code})});
+27308|         if(r.ok){const rows=await r.json(); if(rows&&rows[0]){const pr=rows[0];
+27309|           prod={id:pr.id,name:pr.name,brand:pr.brand,k:pr.kcal_per_100g,p:pr.protein_per_100g,f:pr.fat_per_100g,c:pr.carb_per_100g,serv:pr.default_serving_g,fromCat:1};
+27310|         }}
+27311|       }catch(e){}
+27312|     }
+27313|     // 2. Open Food Facts + кэш в каталог
+27314|     if(!prod){
+27315|       const f=await offBarcode(code);
+27316|       let newId=null;
+27317|       if(sbTok){
+27318|         try{ const added=await catAdd({name:f.n,kcal_per_100g:f.k,protein_per_100g:f.p,fat_per_100g:f.f,carb_per_100g:f.c,barcode:code,category:'Сканировано'});
+27319|              newId=added&&added.id; }catch(e){}
+27320|       }
+27321|       prod={id:newId,name:f.n,k:f.k,p:f.p,f:f.f,c:f.c};
+27322|     }
+27323|     stopBar(); sheet('sh-bar',false);
+27324|     // 3. диспетчер: в кладовую или в дневник
+27325|     if(barTarget==='pantry'){
+27326|       if(!prod.id){ toast('Распознан, но не попал в каталог — добавь через поиск в кладовой'); return; }
+27327|       try{ await catPantryAdd(prod.id); }catch(e){ toast(netErr(e)); return; }
+27328|       toast('В кладовую: '+String(prod.name).slice(0,22));
+27329|       if(typeof pnRefresh==='function' && $('sh-pantry') && $('sh-pantry').classList.contains('on')) pnRefresh();
+27330|       return;
+27331|     }
+27332|     barToAmt(prod);   // v659: сразу «Сколько», а не карточка продукта
+27333|     toast(prod.fromCat?('Из каталога: '+String(prod.name).slice(0,22)):('Найдено: '+String(prod.name).slice(0,24)));
+27334|   }catch(e){
+27335|     $('barMsg').className='wb';
+27336|     $('barMsg').innerHTML=esc(e.message)+'<br>Российских товаров в OFF мало. Введи цифры под кодом или заведи продукт руками - сохранится в каталог.';
+27337|   }
+27338| }
+27339| /* ── ШТРИХКОД → СРАЗУ ПОРЦИЯ (v659, очередь «Еды») ──
+27340|    Скан открывал карточку «Добавить в дневник»: одиннадцать полей, граммы
+27341|    внизу, «Сохранить в базу», бренд, «еда или спортпит». Человек у полки
+27342|    хотел одного — записать. Теперь код ведёт в «Сколько»: если продукт уже
+27343|    в своей базе — его же запись с прошлой порцией, иначе новый продукт с КБЖУ
+27344|    со штрихкода и порцией каталога (или 100 г). «Готово» пишет в дневник и
+27345|    заводит продукт в базе — как любая запись. Поправить бренд или тип можно
+27346|    потом в «Моих продуктах». */
+27347| function barToAmt(prod){
+27348|   const pre={n:String(prod.name||'').trim(),br:prod.brand||null,u:100,un:'г',k:+prod.k||0,p:+prod.p||0,f:+prod.f||0,c:+prod.c||0};
+27349|   const ex=foodMatch(FOODS,pre);
+27350|   askAmt(ex||Object.assign(pre,{last:(+prod.serv>0?+prod.serv:100)}));
+27351|   return ex?'own':'new';
+27352| }
+27353| $('bBarM').onclick=()=>{const c=$('bar_m').value.trim();
+27354|   if(!c) return toast('Введи цифры');
+27355|   $('barMsg').className='ib';$('barMsg').innerHTML='<span class="load"></span>Ищу...';barLookup(c)};
+27356| function stopBar(){
+27357|   barActive=false;
+27358|   try{ if(zx){zx.reset();zx=null} }catch(e){}
+27359|   if(barStream){ try{barStream.getTracks().forEach(t=>t.stop())}catch(e){} barStream=null; }
+27360|   barTrack=null; barTorchOn=false;
+27361|   const v=$('barVid'); if(v) v.srcObject=null;
+27362| }
+27363| $('sh-bar').addEventListener('click',e=>{if(e.target.id==='sh-bar')stopBar()});
+27364| $('sh-bar').querySelector('[data-close]').addEventListener('click',stopBar);
+27365| 
+27366| /* ── ХОЧУ ПОЕСТЬ ──
+27367|    Никакого AI. Берём остаток дня, отрезаем долю на этот приём, и решаем ту же
+27368|    задачу оптимизации — но по продуктам, которые ты РЕАЛЬНО ешь (по истории дневника).
+27369|    Чем дольше ведёшь еду, тем точнее попадает в твои привычки. */
+27370| /* ══════════════ ПП-ПРИЁМЫ: реальный рацион по слотам ══════════════
+27371|    Курируемая библиотека здоровых приёмов (5-6 на слот). Каждый — реальное
+27372|    сочетание, а не подгонка под макросы. Ингредиент: [название, граммы, ккал100, Б100, Ж100, У100].
+27373|    Масштабируются под остаток дня одним коэффициентом (клампится, чтобы порции не абсурдировали). */
+27374| /* границы слотов (час окончания): завтрак до bf, обед до ln, ужин до dn, иначе перекус */
+27375| /* ── ПРИЁМЫ ДНЯ — ЛИЧНЫЙ СПИСОК (v646) ──
+27376|    Четыре вшитых метки (завтрак, обед, ужин, перекус) заменены списком из N
+27377|    приёмов. Решение владельца 24.09 и аудит источников (NUTRITION.md §3–4):
+27378|    частота еды сама по себе на состав тела не влияет, число приёмов — про
+27379|    объём и комфорт, и оно личное: 1400 ккал — три приёма, 2758 — четыре,
+27380|    4500 — семь. По умолчанию N считается от калорий цели, человек меняет
+27381|    руками в настройках (имена, часы, основной/малый), приложение помнит.
+27382|    Старые метки bf/ln/dn/sn остаются id первых приёмов — записи дневника
+27383|    переносятся без правки; метка, которой в списке нет (старый «перекус»
+27384|    при трёх приёмах), читается как малый приём «Перекус».
+27385|    Все, кто спрашивает «какой сейчас приём», «сколько его доля», «как он
+27386|    называется», ходят через SLOTN / SLOTW / MEAL_KIND / MEAL_END, которые
+27387|    заполняет mealsSync(). Литералов из четырёх меток в коде больше нет. */
+27388| const SLOTN={}, SLOTW={}, MEAL_KIND={}, MEAL_END={}, MEALS={};
+27389| const MEAL_TPL={
+27390|  3:[['bf','Завтрак','main',11],['ln','Обед','main',16],['dn','Ужин','main',22]],
+27391|  4:[['bf','Завтрак','main',11],['ln','Обед','main',16],['sn','Полдник','small',18],['dn','Ужин','main',22]],
+27392|  5:[['bf','Завтрак','main',10],['m5','Второй завтрак','small',13],['ln','Обед','main',15],['sn','Полдник','small',18],['dn','Ужин','main',22]],
+27393|  6:[['bf','Завтрак','main',10],['m5','Второй завтрак','small',12],['ln','Обед','main',15],['sn','Полдник','small',17],['dn','Ужин','main',20],['m6','На ночь','small',23]],
+27394|  7:[['bf','Завтрак','main',9],['m5','Второй завтрак','small',11],['ln','Обед','main',14],['sn','Полдник','small',16],['m7','Второй обед','main',18],['dn','Ужин','main',21],['m6','На ночь','small',23]],
+27395|  8:[['bf','Завтрак','main',9],['m5','Второй завтрак','small',11],['ln','Обед','main',13],['m8','Второй перекус','small',15],['m7','Второй обед','main',17],['sn','Полдник','small',19],['dn','Ужин','main',21],['m6','На ночь','small',23]]
+27396| };
+27397| function mealsDefaultN(kcal){ return Math.max(3,Math.min(8,Math.round((kcal||2000)/650))); }
+27398| function mealSet(){
+27399|   if(Array.isArray(S.meals)&&S.meals.length>=3) return S.meals.map(m=>[m.id,m.n,m.kind,+m.end||22]);
+27400|   const n=(S.mealsN>=3&&S.mealsN<=8)?+S.mealsN:mealsDefaultN((function(){ try{ const t=tg(); return t&&t.k; }catch(e){ return 0; } })()||2000);
+27401|   const list=MEAL_TPL[n].map(m=>m.slice());
+27402|   if(S.slotB) list.forEach(m=>{ if(S.slotB[m[0]]>0) m[3]=S.slotB[m[0]]; });   // старые границы часов уважаем
+27403|   return list;
+27404| }
+27405| function mealsSync(){
+27406|   const list=mealSet();
+27407|   Object.keys(SLOTN).forEach(k=>{ delete SLOTN[k]; delete SLOTW[k]; delete MEAL_KIND[k]; delete MEAL_END[k]; delete MEALS[k]; });
+27408|   const smallW=list.length===4?0.13:0.10, smalls=list.filter(m=>m[2]==='small').length;
+27409|   const REL={bf:.9,ln:1.2,m7:1.0,dn:.9}, mains=list.filter(m=>m[2]!=='small');
+27410|   const relSum=mains.reduce((a,m)=>a+(REL[m[0]]||1),0)||1, mainTot=Math.max(0.4,1-smallW*smalls);
+27411|   list.forEach(m=>{ SLOTN[m[0]]=m[1]; MEAL_KIND[m[0]]=m[2]; MEAL_END[m[0]]=m[3];
+27412|     SLOTW[m[0]]=m[2]==='small'?smallW:mainTot*(REL[m[0]]||1)/relSum; MEALS[m[0]]=[m[1],SLOTW[m[0]]]; });
+27413|   return list;
+27414| }
+27415| /* Библиотека готовых приёмов и правила «что уместно» знают четыре рода
+27416|    приёма; личный приём сводится к роду: малый → перекус, второй обед → обед. */
+27417| function ppKind(sl){ if(sl==='bf'||sl==='ln'||sl==='dn'||sl==='sn') return sl; if(MEAL_KIND[sl]==='small'||!MEAL_KIND[sl]) return 'sn'; if(sl==='m7') return 'ln'; return 'dn'; }
+27418| function slotName(k){ return SLOTN[k]||(k==='sn'?'Перекус':'Приём'); }
+27419| function slotBounds(){ mealsSync(); return {bf:MEAL_END.bf||11,ln:MEAL_END.ln||16,dn:MEAL_END.dn||22}; }
+27420| function slotOfHour(h){ const list=mealsSync(); if(h<5) return list[list.length-1][0]; for(const m of list){ if(h<m[3]) return m[0]; } return list[list.length-1][0]; }
+27421| function curSlot(){ return slotOfHour(new Date().getHours()); }
+27422| try{ mealsSync(); }catch(e){}
+27423| const PPMEAL=[
+27424|  // ── ЗАВТРАКИ ──
+27425|  {slot:'bf',n:'Овсянка на молоке с бананом и яйцами',cook:1,ing:[['Овсянка сухая',60,379,13,6.5,67],['Молоко 2.5%',200,52,2.9,2.5,4.7],['Банан',100,89,1.1,0.3,23],['Яйцо',110,143,13,9.5,0.7]]},
+27426|  {slot:'bf',n:'Омлет с овощами и цельнозерновым хлебом',cook:1,ing:[['Яйцо',165,143,13,9.5,0.7],['Молоко 2.5%',40,52,2.9,2.5,4.7],['Овощи',80,30,1.5,0.3,5],['Хлеб цельнозерновой',50,247,9,3.4,41]]},
+27427|  {slot:'bf',n:'Творог с ягодами и орехами',cook:0,ing:[['Творог 5%',200,121,17,5,1.8],['Ягоды',80,45,0.7,0.3,10],['Грецкий орех',15,654,15,65,7]]},
+27428|  {slot:'bf',n:'Гречка с яйцом и овощами',cook:1,ing:[['Гречка отварная',200,110,4,1.1,21],['Яйцо',110,143,13,9.5,0.7],['Овощи',100,30,1.5,0.3,5]]},
+27429|  {slot:'bf',n:'Тост с авокадо и яйцом',cook:1,ing:[['Хлеб цельнозерновой',60,247,9,3.4,41],['Авокадо',70,160,2,15,9],['Яйцо',110,143,13,9.5,0.7]]},
+27430|  {slot:'bf',n:'Сырники из творога со сметаной',cook:1,ing:[['Творог 5%',200,121,17,5,1.8],['Яйцо',55,143,13,9.5,0.7],['Овсянка сухая',30,379,13,6.5,67],['Сметана 15%',40,158,2.6,15,3]]},
+27431|  // ── ОБЕДЫ ──
+27432|  {slot:'ln',n:'Куриная грудка с рисом и овощами',cook:1,ing:[['Куриная грудка',180,165,31,3.6,0],['Рис отварной',200,130,2.7,0.3,28],['Овощи',150,30,1.5,0.3,5]]},
+27433|  {slot:'ln',n:'Говядина с гречкой и салатом',cook:1,ing:[['Говядина постная',150,187,26,9,0],['Гречка отварная',200,110,4,1.1,21],['Салат овощной',150,30,1.5,0.3,5]]},
+27434|  {slot:'ln',n:'Лосось с картофелем и брокколи',cook:1,ing:[['Лосось',150,208,20,13,0],['Картофель отварной',200,82,2,0.4,17],['Брокколи',150,34,2.8,0.4,7]]},
+27435|  {slot:'ln',n:'Индейка с булгуром и овощами',cook:1,ing:[['Индейка филе',180,150,29,3,0],['Булгур отварной',200,83,3,0.2,18],['Овощи',150,30,1.5,0.3,5]]},
+27436|  {slot:'ln',n:'Паста с куриным фаршем в томатном соусе',cook:1,ing:[['Паста цельнозерновая отварная',200,124,5,0.9,25],['Куриный фарш',150,143,17,8,0],['Томатный соус',80,40,1.5,0.5,7]]},
+27437|  {slot:'ln',n:'Треска с рисом и овощами',cook:1,ing:[['Треска',200,82,18,0.7,0],['Рис отварной',180,130,2.7,0.3,28],['Овощи',150,30,1.5,0.3,5]]},
+27438|  /* Два обеда без мяса и рыбы: до 23.08 из шести обедов вегетарианцу не
+27439|     подходил НИ ОДИН, и после фильтра анкеты слот оставался пустым. */
+27440|  {slot:'ln',n:'Чечевица с рисом и овощами',cook:1,ing:[['Чечевица отварная',200,116,9,0.4,20],['Рис отварной',150,130,2.7,0.3,28],['Овощи',150,30,1.5,0.3,5],['Масло оливковое',10,884,0,100,0]]},
+27441|  {slot:'ln',n:'Нут с булгуром и овощами',cook:1,ing:[['Нут отварной',180,164,8.9,2.6,27],['Булгур отварной',180,83,3,0.2,18],['Овощи',150,30,1.5,0.3,5],['Масло оливковое',10,884,0,100,0]]},
+27442|  /* v649: без плиты. Владелец на работе (24.09): «все блюда с готовкой, а я
+27443|     на работе уж точно готовить не могу». Кулинария, консервы, крупа в
+27444|     пакетике, творог, хлеб, овощная нарезка — то, что реально покупают. */
+27445|  {slot:'ln',n:'Курица гриль из кулинарии с гречкой в пакетике и овощами',cook:0,ing:[['Курица гриль (кулинария)',180,190,27,9,0],['Гречка отварная',200,110,4,1.1,21],['Овощная нарезка',150,25,1.2,0.2,4]]},
+27446|  {slot:'ln',n:'Тунец с цельнозерновым хлебом и овощами',cook:0,ing:[['Тунец консервированный',150,116,26,1,0],['Хлеб цельнозерновой',60,247,9,3.4,41],['Овощная нарезка',150,25,1.2,0.2,4],['Масло оливковое',10,884,0,100,0]]},
+27447|  {slot:'ln',n:'Индейка из кулинарии с рисом в пакетике и салатом',cook:0,ing:[['Индейка запечённая (кулинария)',180,160,28,5,0],['Рис отварной',200,130,2.7,0.3,28],['Салат овощной',150,30,1.5,0.3,5]]},
+27448|  {slot:'ln',n:'Творог с хлебом и овощами',cook:0,ing:[['Творог 5%',250,121,17,5,1.8],['Хлеб цельнозерновой',60,247,9,3.4,41],['Огурцы и помидоры',200,20,1,0.2,4]]},
+27449|  {slot:'ln',n:'Горбуша консервированная с картофелем из кулинарии',cook:0,ing:[['Горбуша консервированная',150,136,21,6,0],['Картофель отварной',200,82,2,0.4,17],['Овощная нарезка',150,25,1.2,0.2,4]]},
+27450|  {slot:'ln',n:'Яйца с хлебом, авокадо и овощами',cook:0,ing:[['Яйцо',165,143,13,9.5,0.7],['Хлеб цельнозерновой',60,247,9,3.4,41],['Авокадо',70,160,2,15,9],['Овощная нарезка',100,25,1.2,0.2,4]]},
+27451|  // ── УЖИНЫ ──
+27452|  {slot:'dn',n:'Куриная грудка с овощами гриль',cook:1,ing:[['Куриная грудка',200,165,31,3.6,0],['Овощи',250,30,1.5,0.3,5]]},
+27453|  {slot:'dn',n:'Творог с овощным салатом',cook:0,ing:[['Творог 5%',200,121,17,5,1.8],['Салат овощной',200,30,1.5,0.3,5]]},
+27454|  {slot:'dn',n:'Треска с брокколи',cook:1,ing:[['Треска',220,82,18,0.7,0],['Брокколи',200,34,2.8,0.4,7]]},
+27455|  {slot:'dn',n:'Индейка с тушёными овощами',cook:1,ing:[['Индейка филе',200,150,29,3,0],['Овощи',250,30,1.5,0.3,5]]},
+27456|  {slot:'dn',n:'Омлет с овощным салатом',cook:1,ing:[['Яйцо',165,143,13,9.5,0.7],['Овощи',100,30,1.5,0.3,5],['Салат овощной',150,30,1.5,0.3,5]]},
+27457|  {slot:'dn',n:'Салат с тунцом и яйцом',cook:0,ing:[['Тунец консервированный',120,116,26,1,0],['Яйцо',110,143,13,9.5,0.7],['Салат овощной',200,30,1.5,0.3,5]]},
+27458|  {slot:'dn',n:'Курица гриль из кулинарии с овощной нарезкой',cook:0,ing:[['Курица гриль (кулинария)',220,190,27,9,0],['Овощная нарезка',250,25,1.2,0.2,4]]},
+27459|  {slot:'dn',n:'Горбуша консервированная с овощами',cook:0,ing:[['Горбуша консервированная',180,136,21,6,0],['Салат овощной',250,30,1.5,0.3,5]]},
+27460|  {slot:'dn',n:'Индейка из кулинарии с салатом',cook:0,ing:[['Индейка запечённая (кулинария)',200,160,28,5,0],['Салат овощной',250,30,1.5,0.3,5],['Масло оливковое',10,884,0,100,0]]},
+27461|  // ── ПЕРЕКУСЫ ──
+27462|  {slot:'sn',n:'Протеиновый коктейль с бананом',cook:0,ing:[['Протеин (порошок)',30,373,75,6,9],['Молоко 2.5%',250,52,2.9,2.5,4.7],['Банан',100,89,1.1,0.3,23]]},
+27463|  {slot:'sn',n:'Творог с ягодами',cook:0,ing:[['Творог обезжиренный',180,71,16,0.6,1.8],['Ягоды',100,45,0.7,0.3,10]]},
+27464|  {slot:'sn',n:'Греческий йогурт с орехами',cook:0,ing:[['Йогурт греческий 2%',200,73,9,2,4],['Грецкий орех',20,654,15,65,7]]},
+27465|  {slot:'sn',n:'Яблоко с арахисовой пастой',cook:0,ing:[['Яблоко',180,52,0.3,0.2,14],['Арахисовая паста',25,588,25,50,20]]},
+27466|  {slot:'sn',n:'Орехи с сухофруктами',cook:0,ing:[['Грецкий орех',25,654,15,65,7],['Сухофрукты',30,300,2.5,0.5,74]]},
+27467|  {slot:'sn',n:'Варёные яйца с овощами',cook:1,ing:[['Яйцо',165,143,13,9.5,0.7],['Овощи',150,30,1.5,0.3,5]]}
+27468| ];
+27469| function ppTot(m){ let k=0,p=0,f=0,c=0; m.ing.forEach(a=>{const x=a[1]/100;k+=a[2]*x;p+=a[3]*x;f+=a[4]*x;c+=a[5]*x;}); return {k,p,f,c}; }
+27470| /* масштабируем весь приём под targetK; коэффициент клампится, чтобы порции оставались реальными.
+27471|    v645: было 0.6–1.6, и обед выходил 1360 г («Индейка с булгуром», полевой
+27472|    скрин владельца 24.09) — по КБЖУ сходится, съесть нельзя. Теперь 0.75–1.25
+27473|    и тарелка не больше PLATE_MAX; недобор до цели лист называет словами
+27474|    («закрывает N % — добавь второе»), а не раздувает порцию. */
+27475| const PP_FAC=[0.75,1.25], PLATE_MAX=750;
+27476| function ppScaled(m,targetK){
+27477|   const t=ppTot(m); let fac=(targetK>0&&t.k>0)?targetK/t.k:1; fac=Math.max(targetK>0&&targetK<450?0.6:PP_FAC[0],Math.min(PP_FAC[1],fac));   // v648: маленькая цель (40 кг, 1200 ккал) — порция до ×0.6
+27478|   { const base=m.ing.reduce((a,x)=>a+x[1],0); if(base*fac>PLATE_MAX) fac=Math.max(PP_FAC[0],PLATE_MAX/base); }
+27479|   const ing=m.ing.map(a=>{let gg=Math.round(a[1]*fac); gg=gg>=100?Math.round(gg/10)*10:Math.round(gg/5)*5; gg=Math.max(5,gg); const x=gg/100; return {n:a[0],g:gg,k:a[2]*x,p:a[3]*x,f:a[4]*x,c:a[5]*x};});
+27480|   const tot=ing.reduce((a,i)=>({k:a.k+i.k,p:a.p+i.p,f:a.f+i.f,c:a.c+i.c}),{k:0,p:0,f:0,c:0});
+27481|   return {fac,ing,...tot};
+27482| }
+27483| /* sl — приём, который человек ВЫБРАЛ чипом. Без него запись раскладывалась
+27484|    по часу самой записи: человек, записывающий день вечером, отправлял завтрак
+27485|    в ужин, и дневник (теперь он наверху экрана) показывал это каждый день. */
+27486| /* ── Любая запись еды пополняет личную базу (обход ролей 05.09, нутрициолог) ──
+27487|    Список «своих» на «Еде» строился только из FOODS, а в дневник писали мимо
+27488|    неё четыре пути из пяти: разбор по фото, готовые приёмы, «Что съесть»,
+27489|    поисковый «+». Человек, две недели записывающий завтрак фотографией,
+27490|    никогда не получал свой список — каждый день искал заново, а под «Дневник ·
+27491|    3 зап.» стояло «Пока пусто». Обещание «три тапа» держится на этом списке.
+27492|    foodFromLog/foodUpsert — чистые (их стережёт смоук), foodRemember — запись. */
+27493| function foodFromLog(rec){
+27494|   const a=+rec.a||0; if(!(a>0)||!rec.n) return null;
+27495|   const u=(+rec.u===1)?1:100, m=u===1?a:a/100;
+27496|   if(!(m>0)) return null;
+27497|   return {n:String(rec.n).trim(),br:rec.br||null,u,un:rec.un||(u===1?'шт':'г'),k:r1((+rec.k||0)/m),p:r1((+rec.p||0)/m),f:r1((+rec.f||0)/m),c:r1((+rec.c||0)/m),sup:!!rec.sup,used:1,last:a};
+27498| }
+27499| /* Запись дневника бренда не хранит: «Творог» из дневника — это «Творог»
+27500|    Простоквашино из базы, а не второй продукт. Первая версия (v530) сверяла
+27501|    по ключу имя|бренд и заводила безбрендового двойника каждому продукту с
+27502|    брендом (полевой отчёт владельца 09.09: «дубляж продуктов»). Без бренда в
+27503|    записи ищем по имени — любой бренд. */
+27504| function foodMatch(list,f){
+27505|   const k=foodKey(f);
+27506|   let ex=list.find(x=>foodKey(x)===k);
+27507|   if(!ex&&!f.br){ const n=(f.n||'').trim().toLowerCase(); ex=list.find(x=>(x.n||'').trim().toLowerCase()===n); }
+27508|   return ex||null;
+27509| }
+27510| function foodUpsert(list,rec){
+27511|   const f=foodFromLog(rec); if(!f) return null;
+27512|   const ex=foodMatch(list,f);
+27513|   if(ex){ ex.used=(ex.used||0)+1; ex.last=f.last; if(!(ex.k>0)&&f.k>0){ ex.k=f.k; ex.p=f.p; ex.f=f.f; ex.c=f.c; } return {f:ex,isNew:false}; }
+27514|   list.push(f); return {f,isNew:true};
+27515| }
+27516| async function foodRemember(rec){
+27517|   try{ const r=foodUpsert(FOODS,rec); if(!r) return;
+27518|     if(r.isNew) r.f.id=await put('foods',r.f); else await put('foods',r.f);
+27519|     FOODS=await all('foods'); }catch(e){}
+27520| }
+27521| async function logPP(ing,sl){
+27522|   for(const i of ing){
+27523|     await put('log',{d:(vDate||td()),n:i.n,sup:0,u:100,a:i.g,k:i.k,p:i.p,f:i.f,c:i.c,sl:sl||null});
+27524|     await foodRemember({n:i.n,u:100,a:i.g,k:i.k,p:i.p,f:i.f,c:i.c});
+27525|   }
+27526|   LOG=await all('log');
+27527| }
+27528| /* насколько продукт «твой» в этом слоте: по часу метки времени ua прошлых записей */
+27529| /* Частота продукта ИМЕННО В ЭТОМ ПРИЁМЕ. Считали по часу записи и молча
+27530|    теряли то, что человек сам положил в приём: запись, отмеченную «завтрак»
+27531|    и внесённую вечером (вспомнил и дописал), функция относила к перекусу.
+27532|    У записи есть явное поле приёма — оно и решает, час только запасной. */
+27533| function slotScore(name,slot){
+27534|   const t=dn(td()); let s=0;
+27535|   LOG.forEach(l=>{ if(l.n!==name) return;
+27536|     const sl=l.sl||slotOfHour(l.ua?new Date(l.ua).getHours():12);
+27537|     if(sl!==slot) return;
+27538|     const age=t-dn(l.d);
+27539|     s += age<=7?3 : age<=30?1.5 : 0.6;
+27540|   });
+27541|   return s;
+27542| }
+27543| 
+27544| /* MEALS/SLOTN/SLOTW — см. блок «Приёмы дня» выше (v646) */
+27545| let mlKind='ln';   // по умолчанию — «Новое»: привычное ты и так знаешь
+27546| /* Твой продукт → формат решателя. u:1 (порция) считаем как «100 условных единиц». */
+27547| function foodToProd(f){
+27548|   const per=f.u==100?1:1;                    // макросы уже даны на 100 г ИЛИ на порцию
+27549|   const k=f.k,p=f.p,fa=f.f,c=f.c;
+27550|   const pr=k>0?(p*4)/k:0, fr=k>0?(fa*9)/k:0;
+27551|   const nm=f.n.toLowerCase();
+27552|   let cat='carb';
+27553|   if(/творог|кефир|молок|йогурт|сыр(?!о)|сметан/.test(nm)&&!/сгущ/.test(nm)) cat='dairy';   // «сырое» — не сыр; сгущёнка — сладкое, не молочное
+27554|   else if(pr>=0.35) cat='prot';
+27555|   else if(fr>=0.55) cat='fat';
+27556|   else if(/(^|[\s(])рис|гречк|булгур|киноа|перлов|пш[её]н|овсян|макарон|спагетти|лапш|кус-?кус|круп/.test(nm)) cat='carb';   // v656: «Смесь риса Дикий Бурый» — крупа, а не овощи (слово «смесь» делало её овощем: два гарнира на тарелке)
+27557|   else if(/овощ|брокколи|огур|помидор|капуст|шпинат|кабач|салат|перец|мексикан|нарезк|смесь|морков|свекл|тыкв|баклажан|фасоль стручк|горошек|редис|зелень|руккол/.test(nm)) cat='veg';
+27558|   else if(/банан|яблок|персик|апельсин|ягод|черник|виноград|груш|киви|мандарин|манго|арбуз|дын|слив|вишн|клубник|малин|хурм|гранат|абрикос|ананас|грейпфрут|нектарин|черешн|смородин/.test(nm)) cat='fruit';
+27559|   // cap не задаём: mlSolve всё равно перекрывает его adaptiveCap() от цели приёма
+27560|   return {n:f.n,k,p,f:fa,c,cat,u:f.u,src:f};
+27561| }
+27562| /* Адаптивный лимит порции: сколько продукта разумно на ОДИН приём — зависит от ЦЕЛИ приёма
+27563|    по КБЖУ, а не от константы. У кого приём 6000 ккал — порции больше, у кого 1800 — меньше.
+27564|    Один продукт может закрыть до ~85% своей ведущей макро в этом приёме. */
+27565| function adaptiveCap(o,g){
+27566|   /* Продукты общего каталога заданы на 100 г и поля `u` не имеют вовсе —
+27567|      проверка `o.u===100` для них была ложной, лимит считался как для штучного
+27568|      товара и выходил 1.6 «штуки». Решатель с таким лимитом не набирал ничего,
+27569|      и «Собрать из продуктов» на общем каталоге молча отвечало «не смог
+27570|      подобрать» (аудит 19.08). Нет единицы — значит на 100 г. */
+27571|   const per100 = o.u==null || +o.u===100;
+27572|   const per = per100 ? {p:o.p/100,f:o.f/100,c:o.c/100} : {p:o.p,f:o.f,c:o.c};
+27573|   const rate = Math.max(
+27574|     g.p>0?per.p/g.p:0,
+27575|     g.f>0?per.f/g.f:0,
+27576|     g.c>0?per.c/g.c:0
+27577|   );
+27578|   const cap = rate>0 ? 0.85/rate : (per100?250:4);
+27579|   return per100 ? Math.min(Math.max(cap,10),800) : Math.min(Math.max(cap,0.5),8);
+27580| }
+27581| /* Лимит порции — меньшее из двух: сколько разумно по цели приёма и сколько
+27582|    разумно по здравому смыслу для самого продукта. Раньше адаптивный лимит
+27583|    перекрывал собственный, и решатель выдавал «кефир 795 г» на обед: по КБЖУ
+27584|    сходится, а человек литр кефира за раз не пьёт (аудит 19.08).
+27585|    Отдельной функцией, чтобы проверка теста била в тот же код, что и экран. */
+27586| function portionCap(o,g){ return Math.min(o&&o.cap>0?o.cap:Infinity, adaptiveCap(o,g)); }
+27587| let mlView='pp';
+27588| /* ── РАМКИ ТАРЕЛКИ ДЛЯ «ИЗ ПРОДУКТОВ» (v645) ──
+27589|    Живой прогон 24.09 по аккаунту владельца: завтрак «Молоко 0,5 % 800 г +
+27590|    Морковь по-корейски 250 г», ужин «Мороженое манго 610 г + Мексиканская
+27591|    смесь 800 г», перекус «Кефир 350 г». По КБЖУ всё сходится — это и есть
+27592|    ошибка: решатель закрывал макросы, а не собирал еду. Рамки на один приём
+27593|    были в «Покупках» (mealCap, slotOKprod), но в «Что съесть» их не подключили.
+27594|    Здесь: напитки ≤ 300 мл, сладкое — не основа приёма (только перекус,
+27595|    ≤ 80 г), соусы ≤ 40 г, остальное — mealCap; продукты не своего приёма
+27596|    отсеиваются (молоко на обед, морковь на завтрак); тарелка целиком ≤ 850 г —
+27597|    иначе самый тяжёлый продукт ужимается и подбор идёт заново. */
+27598| const SWEET=/морожен|шоколад|конфет|печень|торт|пирож|вафл|халв|варень|сгущ|зефир|мармелад|пастил|чипс|батончик|пряник|кекс|десерт|сироп|мёд|сахар|круассан|булочк/i;
+27599| const DRINK=/молоко|кефир|ряженк|простокваш|(^|[^а-яё])сок([^а-яё]|$)|напиток|компот|морс|кола|лимонад|смузи|питьев|какао|латте|капучино|газиров|спрайт|фанта|пепси|энергетик|sprite|fanta|pepsi|cola/i;   // v656: \b не видит кириллицу — «сок» не ловился никогда; латинские бренды — тоже напитки
+27600| const SAUCE=/соус|кетчуп|майонез|горчиц|аджик/i;
+27601| const PICKLE=/по-корейски|по корейски|маринован|солён|солен|квашен|оливк|маслин/i;   // закуска, не гарнир (живой прогон 24.09: морковь по-корейски 320 г)
+27602| const PLATE_SOLVE=850;
+27603| function mealFrame(o,sl){
+27604|   const n=String(o&&o.n||'');
+27605|   if(SWEET.test(n)) return (MEAL_KIND[sl]==='small'||sl==='sn')?40:0;
+27606|   if(SAUCE.test(n)) return 40;
+27607|   if(PICKLE.test(n)) return 150;
+27608|   if(DRINK.test(n)) return 300;
+27609|   if(o.cat==='dairy'&&!(MEAL_KIND[sl]==='small'||sl==='sn')&&sl!=='bf') return Math.min(mealCap(o),200);   // творог на обед — порция, не основа тарелки
+27610|   return mealCap(o);
+27611| }
+27612| /* ── ПОЧЕМУ УБРАЛ (v646) ──
+27613|    Снятый из подбора продукт — сигнал, но какой, знает только человек. Один
+27614|    тап из пяти причин задаёт радиус: «не сейчас» — ничего не учим; «нет под
+27615|    рукой» — сегодня; «не люблю» — навсегда, похожее по имени тоже; «дорого» —
+27616|    на экономном бюджете не предлагать, иначе в конец; «не переношу» — слово
+27617|    уходит в анкету ограничений, то есть вся группа (молоко → всё молочное), и
+27618|    тренер с врачом видят это той же строкой «НЕ ЕСТ». */
+27619| let _whyRes=null; const mlSkipNow=new Set(); let mlSkipDay={d:'',set:new Set()};
+27620| const WHY=[['now','Не сейчас','только этот раз'],['today','Нет под рукой','сегодня не предлагать'],['no','Не люблю','больше не предлагать, похожее — реже'],['pricey','Дорого','дешевле при том же белке'],['ban','Не переношу','вся группа уходит из подбора, тренер и врач узнают']];
+27621| function askWhy(name,dish){
+27622|   return new Promise(res=>{
+27623|     if(_whyRes){ const r=_whyRes; _whyRes=null; r(null); }
+27624|     _whyRes=res;
+27625|     const list=dish?WHY.filter(x=>x[0]!=='pricey'&&x[0]!=='ban'):WHY;
+27626|     $('whyList').innerHTML=list.map(x=>`<button class="lrow" data-why="${x[0]}"><span class="g"><span class="t">${x[1]}</span><span class="s">${x[2]}</span></span></button>`).join('');
+27627|     sheet('sh-why',true);
+27628|   });
+27629| }
+27630| $('whyList')&&($('whyList').onclick=e=>{ const b=e.target.closest?e.target.closest('[data-why]'):null; if(!b) return; const r=_whyRes; _whyRes=null; try{ sheet('sh-why',false); }catch(_){} if(r) r(b.dataset.why); });
+27631| function prefRoot(n){ return wordRoot(String(n||'').replace(/[\d.,%]+/g,' ').trim().split(/\s+/)[0].toLowerCase()); }
+27632| function prefBanWord(n){ return String(n||'').replace(/[\d.,%]+/g,' ').replace(/\s+/g,' ').trim(); }
+27633| async function prefRemove(name,dish){
+27634|   const why=await askWhy(name,dish); if(!why) return false;
+27635|   S.pref=S.pref||{}; S.pref.no=S.pref.no||{}; S.pref.pricey=S.pref.pricey||{}; S.pref.noDish=S.pref.noDish||{};
+27636|   if(why==='now'){ mlSkipNow.add(name); return true; }
+27637|   if(why==='today'){ if(mlSkipDay.d!==td()) mlSkipDay={d:td(),set:new Set()}; mlSkipDay.set.add(name); return true; }
+27638|   if(why==='no'){ if(dish) S.pref.noDish[name]=Date.now(); else S.pref.no[name]=Date.now(); }
+27639|   else if(why==='pricey'){ S.pref.pricey[name]=1; }
+27640|   else if(why==='ban'){ const w=prefBanWord(name); const cur=String(S.foodBan||'').trim(); if(w&&!cur.toLowerCase().includes(w.toLowerCase())) S.foodBan=cur?cur+', '+w:w; }
+27641|   S.ua=Date.now(); try{ await put('settings',S,'main'); }catch(_){}
+27642|   toast(why==='ban'?'Записал в ограничения: '+prefBanWord(name).slice(0,24):(why==='no'?'Больше не предложу':'Учёл'));
+27643|   return true;
+27644| }
+27645| function prefOK(o){
+27646|   const n=o&&o.n||''; if(!n) return true;
+27647|   if(mlSkipNow.has(n)) return false;
+27648|   if(mlSkipDay.d===td()&&mlSkipDay.set.has(n)) return false;
+27649|   const p=S.pref||{};
+27650|   if(p.no){ if(p.no[n]) return false; const r=prefRoot(n); if(r.length>=3&&Object.keys(p.no).some(x=>prefRoot(x)===r)) return false; }
+27651|   if(p.pricey&&p.pricey[n]&&S.budget==='eco') return false;
+27652|   return true;
+27653| }
+27654| function prefDishOK(m){
+27655|   const p=S.pref||{};
+27656|   if(p.noDish&&p.noDish[m.n]) return false;
+27657|   if(p.no){ const roots=Object.keys(p.no).map(prefRoot).filter(r=>r.length>=3); if(roots.length&&(m.ing||[]).some(x=>roots.includes(prefRoot(x[0])))) return false; }
+27658|   return true;
+27659| }
+27660| function prefOrder(pool){ const p=S.pref||{}; if(!p.pricey) return pool; return pool.slice().sort((a,b)=>(p.pricey[a.n]?1:0)-(p.pricey[b.n]?1:0)); }
+27661| /* ── РОЛЬ И ПРАКТИЧНАЯ ПОРЦИЯ ПРОДУКТА (v647) ──
+27662|    Полевой отчёт владельца 24.09: «300 г молока отдельной строкой — не приём;
+27663|    70 г сгущёнки — мечта мальчика пяти лет, она добавка к творогу; лосось
+27664|    60 г — бред, стейк от 120». Класс один: решатель знал калории продукта, но
+27665|    не знал, ЧТО это на тарелке. Теперь у продукта роль и порция:
+27666|    основа (мясо, рыба, яйца, творог) — не меньше настоящей порции, добавка
+27667|    (сгущёнка, мёд, варенье, сметана) — 10–30 г и только к основе, молоко —
+27668|    стакан к каше или в коктейль, кефир — стакан, яйца — штуками, хлеб —
+27669|    ломтями. Ниже минимума — строки нет, а не «лосось 60 г». */
+27670| const ADDS=/сгущ|мёд|варень|джем|сироп|сметан|масло сливочн|арахисов|шоколад|какао-порош|изюм|курага|чернослив/i;
+27671| const ADD_BASE=/овсянк|каш|хлопь|мюсли|гранол|творог|йогурт|сырник|запеканк|блин|оладь|хлеб|тост|протеин|банан|рис/i;
+27672| const MILK_BASE=/овсянк|каш|хлопь|мюсли|гранол|протеин|какао|кофе|омлет|яичниц/i;
+27673| const MILK_RX=/молоко/i, KEFIR_RX=/кефир|ряженк|простокваш|айран|питьев/i;
+27674| function portionRule(o,sl){
+27675|   const n=String(o&&o.n||''), small=(MEAL_KIND[sl]==='small'||sl==='sn');
+27676|   if(ADDS.test(n)) return {min:10,max:30,step:5,role:'add'};
+27677|   if(MILK_RX.test(n)&&!/сгущ/i.test(n)) return {min:100,max:250,step:50,role:'milk'};
+27678|   if(KEFIR_RX.test(n)) return {min:150,max:300,step:50,role:'drink'};
+27679|   if(/протеин/i.test(n)) return {min:25,max:40,step:5,role:'base'};
+27680|   if(/яйц/i.test(n)) return {min:55,max:165,step:55,role:'base'};
+27681|   if(/творог|греческ|скир/i.test(n)) return {min:100,max:250,step:10,role:'base'};
+27682|   if(/сыр(?!о)/i.test(n)) return {min:20,max:50,step:5,role:'side'};
+27683|   if(/орех|миндал|кешью|фундук|фисташ|семеч|арахис/i.test(n)) return {min:15,max:40,step:5,role:'side'};
+27684|   if(/хлеб|тост|лаваш|булк/i.test(n)) return {min:30,max:90,step:30,role:'side'};
+27685|   if(o.cat==='prot') return {min:small?60:100,max:300,step:10,role:'base'};
+27686|   if(isDry(o)) return {min:40,max:100,step:10,role:'side'};
+27687|   if(o.cat==='fruit') return {min:80,max:250,step:10,role:'side'};
+27688|   if(o.cat==='veg') return {min:80,max:350,step:10,role:'side'};
+27689|   if(o.cat==='dairy') return {min:100,max:250,step:10,role:'base'};
+27690|   if(o.cat==='carb') return {min:80,max:350,step:10,role:'side'};
+27691|   return {min:20,max:300,step:5,role:'side'};
+27692| }
+27693| function portionSense(rows,sl,must){
+27694|   if(!rows||!rows.length) return rows;
+27695|   const mustN=new Set((must||[]).map(n=>typeof n==='string'?n:(n&&n.n)));   // скелет приёма: ниже порции — поднимаем, а не снимаем
+27696|   let out=rows.map(r=>{ if(r.o.u===1){ const pr=portionRule(r.o,sl); return {...r,pr:{role:pr.role,min:0,max:Infinity,step:1}}; }   // штучный продукт: роль та же, граммы свои
+27697|     const pr=portionRule(r.o,sl); let g=Math.min(pr.max,+r.g||0); g=Math.round(g/pr.step)*pr.step;
+27698|     if(g<pr.min&&((pr.role==='base'&&(r.o.cat==='prot'||/творог|яйц|протеин/i.test(r.o.n)))||mustN.has(r.o.n))) g=pr.min;   // основа и скелет не бывают «60 г лосося» — поднимаем до порции
+27699|     return {...r,g,pr}; });
+27700|   /* Сначала уходит то, что ниже порции, и только потом решается, есть ли
+27701|      основа для добавки и каши для молока: овсянка 30 г, которую сейчас
+27702|      снимут, не может держать стакан молока (живой прогон 24.09). */
+27703|   out=out.filter(r=>!r.pr||r.g>=r.pr.min);
+27704|   const has=re=>out.some(r=>re.test(r.o.n)&&!(r.pr&&(r.pr.role==='add'||r.pr.role==='milk')));
+27705|   out=out.filter(r=>{ if(!r.pr) return true;
+27706|     if(r.pr.role==='add'&&!has(ADD_BASE)) return false;      // сгущёнка без творога — не еда
+27707|     if(r.pr.role==='milk'&&!has(MILK_BASE)) return false;    // стакан молока сам по себе — не приём
+27708|     return true; });
+27709|   return out.map(r=>{ const {pr,...rest}=r; return rest; });
+27710| }
+27711| const isProtRow=o=>!SWEET.test(o.n)&&(o.cat==='prot'||(o.cat==='dairy'&&(o.p||0)>=15)||/яйц/i.test(o.n));   // белковая основа приёма
+27712| /* v652: после любой пересборки скелет приёма (гарнир, овощи, добор малого
+27713|    приёма) возвращается на место — белок сюда не входит: второй белковый
+27714|    источник снимают правила нарочно. */
+27715| function skelFill(rows,need,sl){
+27716|   const out=rows.slice();
+27717|   (need||[]).forEach(n=>{ if(!n||isProtRow(n)||out.some(r=>r.o.n===n.n)) return; out.push({o:n,g:portionRule(n,sl).min}); });
+27718|   return out;
+27719| }
+27720| function mlSolveRows(pool,g,sl){
+27721|   let cand=pool.filter(o=>mealFrame(o,sl)>0).map(o=>({...o,cap:Math.min(portionCap(o,g),mealFrame(o,sl))}));
+27722|   { const seen=new Set(); cand=cand.filter(o=>{ const r=prefRoot(o.n); if(r.length>=3&&seen.has(r)) return false; seen.add(r); return true; }); }   // «картофель» и «картофель по-деревенски» — один продукт на приём
+27723|   const CM={carb:1,veg:1,dairy:(sl==='bf')?2:1};   // v652: один гарнир и одна порция овощей на приём (две овощные смеси по 400 г съедали место гарниру), молочное одно
+27724|   let rows=solveBasket(cand,g,4,[],CM);
+27725|   /* v646: скелет приёма (NUTRITION.md). Основной — белковый продукт (мясо,
+27726|      рыба, яйца или творог) и гарнир; малый — молочное, яйца или орехи.
+27727|      Своих продуктов не хватает — занимаем у общего каталога, не молчим:
+27728|      живой прогон 24.09 давал ужин «творог + морковь по-корейски + картофель»
+27729|      и обед «курица + 320 г моркови по-корейски» без гарнира. */
+27730|   const small=(MEAL_KIND[sl]==='small'||sl==='sn');
+27731|   const isProt=isProtRow;
+27732|   const isAnchorSmall=o=>!SWEET.test(o.n)&&(o.cat==='prot'||(o.cat==='dairy'&&(o.p||0)>=8)||/яйц|орех|миндал|арахис/i.test(o.n));   // сгущёнка — не «молочное с белком»
+27733|   const isSide=o=>o.cat==='carb'&&!PICKLE.test(o.n)&&!SWEET.test(o.n);
+27734|   const borrow=test=>{ const own=cand.filter(test).sort((a,b)=>(b.p||0)-(a.p||0))[0]; if(own) return own;
+27735|     const ext=PROD.filter(o=>test(o)&&slotOKprod(o,sl)&&prefOK(o)&&mealFrame(o,sl)>0&&!cand.some(x=>x.n===o.n)).sort((a,b)=>(b.p||0)-(a.p||0))[0];
+27736|     if(ext){ const e2={...ext,cap:Math.min(portionCap(ext,g),mealFrame(ext,sl))}; cand=cand.concat([e2]); return e2; } return null; };
+27737|   const need=[];
+27738|   if(rows.length){
+27739|     if(!small&&!rows.some(r=>isProt(r.o))){ const pr=borrow(isProt); if(pr) need.push(pr); }
+27740|     if(small&&!rows.some(r=>isAnchorSmall(r.o))){ const an=borrow(isAnchorSmall); if(an) need.push(an); }
+27741|     if(!small&&(g.c||0)>=30&&!rows.some(r=>isSide(r.o))){ const sd=cand.filter(isSide).sort((a,b)=>(b.c||0)-(a.c||0))[0]||borrow(isSide); if(sd) need.push(sd); }
+27742|   }
+27743|   /* v652: овощи в обеде и ужине — не факультатив; малый приём добирается
+27744|      орехами или фруктом, а не стаканом молока (живой прогон 24.09: полдник
+27745|      «творог + виноград» на 229 из 366). */
+27746|   const isVeg=o=>o.cat==='veg'&&!PICKLE.test(o.n);
+27747|   const isSmallFill=o=>(o.cat==='fruit'||/орех|миндал|кешью|фундук|фисташ|арахис/i.test(o.n))&&!SWEET.test(o.n);
+27748|   if(rows.length&&!small&&sl!=='bf'&&!rows.some(r=>isVeg(r.o))){ const vg=borrow(isVeg); if(vg) need.push(vg); }
+27749|   if(rows.length&&small){ const kOf=rs=>rs.reduce((a,r)=>a+r.o.k*(r.o.u===1?r.g:r.g/100),0); if(kOf(rows)<g.k*0.75&&!rows.some(r=>isSmallFill(r.o))){ const fl=borrow(isSmallFill); if(fl) need.push(fl); } }
+27750|   if(need.length){
+27751|     const r2=solveBasket(cand,g,4,need,CM);
+27752|     rows=(r2.length&&need.every(n=>r2.some(r=>r.o.n===n.n)))?r2:rows.concat(need.filter(n=>!rows.some(r=>r.o.n===n.n)).map(n=>({o:n,g:Math.min(n.cap||150,small?100:120)})));
+27753|   }
+27754|   /* v652: один белковый источник на основной приём — «творог 200 + лосось 100» и
+27755|      «треска 150 + яичный белок 160» это два ужина, а не один */
+27756|   if(!small&&sl!=='bf'&&rows.filter(r=>r.o.cat==='prot').length>1){
+27757|     const top=rows.filter(r=>r.o.cat==='prot').sort((a,b)=>b.g*(b.o.p||0)-a.g*(a.o.p||0))[0];
+27758|     cand=cand.filter(o=>o.cat!=='prot'||o.n===top.o.n);
+27759|     const r4=solveBasket(cand,g,4,cand.filter(o=>o.n===top.o.n||need.some(x=>x.n===o.n)),CM);   // скелет (гарнир, овощи) не теряем
+27760|     if(r4.length&&r4.some(r=>r.o.cat==='prot')) rows=r4; else rows=rows.filter(r=>r.o.cat!=='prot'||r.o.n===top.o.n);
+27761|   }
+27762|   if(!small&&sl!=='bf'&&rows.some(r=>r.o.cat==='prot')&&rows.some(r=>r.o.cat==='dairy'&&(r.o.p||0)>=15)){
+27763|     const keep=rows.filter(r=>!(r.o.cat==='dairy'&&(r.o.p||0)>=15)).map(r=>r.o.n);
+27764|     cand=cand.filter(o=>!(o.cat==='dairy'&&(o.p||0)>=15));
+27765|     const r3=solveBasket(cand,g,4,cand.filter(o=>(keep.includes(o.n)&&o.cat==='prot')||need.some(x=>x.n===o.n)),CM);
+27766|     if(r3.length&&r3.some(r=>r.o.cat==='prot')) rows=r3; else rows=rows.filter(r=>!(r.o.cat==='dairy'&&(r.o.p||0)>=15));
+27767|   }
+27768|   /* v652: ужатие тарелки пересобирает набор — второй белковый источник не
+27769|      должен войти через эту дверь (живой прогон 24.09: «треска + яичный белок»
+27770|      появлялись именно после ужатия). Один белок в кандидатах — и всё. */
+27771|   if(!small&&sl!=='bf'){ const pr=rows.find(r=>r.o.cat==='prot'); if(pr) cand=cand.filter(o=>(o.cat!=='prot'||o.n===pr.o.n)&&!(o.cat==='dairy'&&(o.p||0)>=15)); }
+27772|   rows=skelFill(rows,need,sl);
+27773|   /* v652: тарелка тяжелее рамки — УЖИМАЕМ, а не пересобираем. Пересборка
+27774|      здесь заново звала решатель без правил скелета, и в ужин возвращались
+27775|      второй белок и терялись овощи (живой прогон 24.09: «индейка + творог +
+27776|      рис» вместо «творог + овощи + картофель»). Режем самое тяжёлое не-белковое
+27777|      по 20 %, но не ниже его порции; состав не меняется. */
+27778|   for(let t=0;t<16&&rows.length;t++){
+27779|     const pm=plateMass(rows); if(!(pm>PLATE_SOLVE)) break;
+27780|     const mass=r=>cookedG(r.o,r.g)||r.g;
+27781|     const h=rows.filter(r=>!isProtRow(r.o)&&r.o.u!==1).sort((a,b)=>((b.o.cat==='veg')-(a.o.cat==='veg'))||(mass(b)-mass(a)))[0];   // сначала овощи — они легче всего по калориям
+27782|     if(!h) break;
+27783|     const ng=Math.max(portionRule(h.o,sl).min,h.g*0.8); if(ng>=h.g-0.5) break;
+27784|     rows=rows.map(r=>r===h?{...r,g:ng}:r);
+27785|   }
+27786|   /* Рамка твёрдая: не ужалось перебором — ужимаем всё пропорционально, а
+27787|      итог по КБЖУ на экране считается от того, что реально на тарелке. */
+27788|   { const pm=plateMass(rows); if(pm>PLATE_SOLVE){ const f=PLATE_SOLVE/pm; rows=rows.map(r=>({...r,g:r.g*f})); } }
+27789|   rows=portionSense(rows,sl,need);   // v647: роль и практичная порция; v652: скелет держится
+27790|   return rows;
+27791| }
+27792| function mlRender(){
+27793|   if($('mlSrcField')) $('mlSrcField').style.display=(mlView==='solve')?'block':'none';
+27794|   { const cs=$('mlCookSeg'); if(cs){ cs.style.display=(mlView==='pp')?'':'none'; cs.querySelectorAll('[data-cook]').forEach(b=>b.classList.toggle('on',(b.dataset.cook==='nocook')===!!S.mlNoCook)); } }
+27795|   if(mlView==='pp'){ ppRender(); } else if(mlView==='cafe'){ mlGap(); cafeRender(); } else { mlGap(); mlSolve(); }
+27796| }
+27797| $('mlCookSeg')&&($('mlCookSeg').onclick=async e=>{ const b=e.target.closest?e.target.closest('[data-cook]'):null; if(!b) return;
+27798|   const v=b.dataset.cook==='nocook'; if(!!S.mlNoCook===v) return;
+27799|   if(v) S.mlNoCook=1; else delete S.mlNoCook; S.ua=Date.now(); try{ await put('settings',S,'main'); }catch(_){} mlRender(); });
+27800| /* ── В КАФЕ / ДОСТАВКА (v649) ──
+27801|    Блюда общепита из общего каталога (тег «общепит», вес порции как в кафе:
+27802|    плов, лагман, …). Порция целая или половина — по цели приёма; в 1.6 раза
+27803|    ничего не тянем: в кафе так не наливают. Отдельного «меню конкретного
+27804|    кафе» нет: без веса порции этого кафе это гадание (слово владельца 24.09). */
+27805| let CAFE=null;
+27806| async function cafeLoad(){
+27807|   if(CAFE) return CAFE;
+27808|   try{
+27809|     const r=await sbFetch('/rest/v1/products?select=name,kcal_per_100g,protein_per_100g,fat_per_100g,carb_per_100g,default_serving_g,serving_label&tags=cs.{общепит}&order=name&limit=200');
+27810|     if(!r.ok) throw new Error('каталог '+r.status);
+27811|     const a=await r.json();
+27812|     CAFE=(a||[]).filter(x=>x&&x.name&&+x.kcal_per_100g>0).map(x=>({n:x.name,k:+x.kcal_per_100g,p:+x.protein_per_100g||0,f:+x.fat_per_100g||0,c:+x.carb_per_100g||0,g:+x.default_serving_g||300,lbl:x.serving_label||'порция'}));
+27813|     return CAFE;
+27814|   }catch(e){ return null; }
+27815| }
+27816| /* Целая порция, если она входит в цель приёма с запасом 15 %; иначе половина. */
+27817| function cafeScale(d,targetK){ const sk=d.k*d.g/100; return (targetK>0&&sk>targetK*1.15)?0.5:1; }
+27818| /* v650: подпись недобора для кафе — «добери творогом» здесь не к месту:
+27819|    за столом добирают вторым блюдом, салатом или котлетой. */
+27820| function cafeShort(c,g){
+27821|   if(!g||!(g.k>=120)) return '';
+27822|   if(c.k<g.k*0.7) return ' · <b>закрывает '+r0(c.k/g.k*100)+'% цели приёма</b> — возьми второе или салат';
+27823|   if(!(g.p>=25)) return ''; const d=g.p-c.p; if(d<g.p*0.3) return '';
+27824|   return ' · <b>белка на '+r0(d)+' г меньше цели</b> — добавь белковое: котлету, яйцо или творожок';
+27825| }
+27826| function cafeRender(){
+27827|   const out=$('mlOut'); if(!out) return;
+27828|   out.innerHTML='<div class="ib">Ищу блюда…</div>';
+27829|   cafeLoad().then(list=>{
+27830|     if(mlView!=='cafe') return;
+27831|     if(!list){ out.innerHTML='<div class="wb">Каталог блюд сейчас недоступен — нужна сеть.</div>'; return; }
+27832|     const g=mlTarget(), targetK=(g&&g.k>=120)?g.k:0;
+27833|     /* v650: малый приём — только то, что помещается целиком: половина бешбармака на полдник — не еда. */
+27834|     const small=(MEAL_KIND[mlKind]==='small'||mlKind==='sn');
+27835|     const cards=list.filter(d=>foodBanOK({n:d.n})&&prefDishOK({n:d.n,ing:[]})&&!(small&&cafeScale(d,targetK)<1)).map(d=>{ const f=cafeScale(d,targetK), gg=Math.round(d.g*f/10)*10, m=gg/100; return {d,f,gg,k:d.k*m,p:d.p*m,fa:d.f*m,c:d.c*m}; });
+27836|     if(g&&g.k>=120) cards.sort((a,b)=>Math.abs(a.p-g.p)-Math.abs(b.p-g.p));
+27837|     if(!cards.length){ out.innerHTML='<div class="ib">Блюд под твои ограничения в каталоге нет.</div>'; return; }
+27838|     out.innerHTML=cards.map((c,i)=>`<div class="item">
+27839|       <div class="g"><div class="t wt">${esc(c.d.n)}</div>
+27840|         <div class="s">${r0(c.k)} ккал · Б${r0(c.p)} Ж${r0(c.fa)} У${r0(c.c)} · ${c.gg} г${c.f<1?' · полпорции':''}${cafeShort(c,g)}</div></div>
+27841|       <button class="btn sm" data-cafeadd="${i}" style="flex:0 0 auto"><svg class="ic"><use href="#i-plus"/></svg></button>
+27842|       <button class="btn sm sec" data-cafeno="${i}" style="flex:0 0 auto" aria-label="Убрать"><svg class="ic"><use href="#i-close"/></svg></button>
+27843|     </div>`).join('')+'<div class="note">Блюда кафе и доставки из общего каталога, порция как в кафе. Полпорции — когда целая не помещается в приём. <b>+</b> записывает в дневник.</div>';
+27844|     out.querySelectorAll('[data-cafeadd]').forEach(b=>b.onclick=async()=>{ const c=cards[+b.dataset.cafeadd]; if(!c) return;
+27845|       await put('log',{d:(vDate||td()),n:c.d.n,sup:0,u:100,un:'г',a:c.gg,k:c.k,p:c.p,f:c.fa,c:c.c,sl:mlKind,ua:Date.now()});
+27846|       try{ await foodRemember({n:c.d.n,u:100,a:c.gg,k:c.k,p:c.p,f:c.fa,c:c.c}); }catch(e){}
+27847|       LOG=await all('log'); sheet('sh-meal',false); rFood(); rCoach(); toast('Записано: '+c.d.n.slice(0,24)); });
+27848|     out.querySelectorAll('[data-cafeno]').forEach(b=>b.onclick=async()=>{ const c=cards[+b.dataset.cafeno]; if(!c) return; if(await prefRemove(c.d.n,true)) cafeRender(); });
+27849|   });
+27850| }
+27851| function setSlotChip(){ document.querySelectorAll('[data-ml]').forEach(x=>x.classList.toggle('on',x.dataset.ml===mlKind)); }
+27852| function renderMealChips(){ const seg=$('mlSlotSeg'); if(!seg) return; seg.innerHTML=mealsSync().map(m=>`<button data-ml="${m[0]}" class="${m[0]===mlKind?'on':''}">${esc(m[1])}</button>`).join(''); }
+27853| function openMeal(slot){
+27854|   if(!tg()) return toast('Нужен таргет — запиши свой вес на «Еде»');
+27855|   mlKind=(slot&&SLOTN[slot])?slot:curSlot(); mlView='pp'; mlSkipNow.clear(); renderMealChips(); setSlotChip();
+27856|   { const sel=$('ml_src'); if(sel&&S.mlSrc&&['new','all','mine'].includes(S.mlSrc)) sel.value=S.mlSrc; }   // v656: источник подбора помнится
+27857|   document.querySelectorAll('[data-mlv]').forEach(x=>x.classList.toggle('on',x.dataset.mlv==='pp'));
+27858|   mlRender(); sheet('sh-meal',true);
+27859| }
+27860| $('bMeal').onclick=()=>openMeal();
+27861| /* ── СТРОКА «СЕЙЧАС» (v660) ──
+27862|    Ближайший приём: первый по списку, которого сегодня ещё не было и чей
+27863|    час не прошёл; все прошли — последний несъеденный. Цель приёма — та же
+27864|    slotTarget, что в «Что съесть». Число приёма не повторяет остаток дня:
+27865|    когда это последний приём, стоит «остаток дня» (закон 2 — одно число
+27866|    один раз). «До зала» — из preGymSoon, той же функцией, что и хвост в
+27867|    «Что съесть». Прошлый и будущий день, нет цели — строки нет. */
+27868| function nowSlot(d,h){
+27869|   const list=mealsSync(), eaten=new Set(LOG.filter(l=>l.d===d&&l.sl).map(l=>l.sl));
+27870|   const open=list.filter(m=>!eaten.has(m[0])); if(!open.length) return null;
+27871|   return (open.find(m=>h<m[3])||open[open.length-1])[0];
+27872| }
+27873| function nowInfo(){
+27874|   const d=vDate||td(), t=tg(); if(!t||d!==td()) return null;
+27875|   const h=(typeof window!=='undefined'&&window.__hourNow!=null)?+window.__hourNow:new Date().getHours();
+27876|   const r=ringPct(d), left=t.k-LOG.filter(l=>l.d===d).reduce((a,l)=>a+(+l.k||0),0);
+27877|   const slot=nowSlot(d,h);
+27878|   if(left<120||!slot) return {done:1,title:r.over?'День закрыт: перебор':(r.inZone?'День в цели':'День закрыт'),sub:''};
+27879|   const g=slotTarget(slot), nm=slotName(slot), pg=(typeof preGymSoon==='function')?preGymSoon():null;
+27880|   const own=g&&g.k>=120&&Math.abs(g.k-left)>left*0.1;
+27881|   const parts=[]; if(pg) parts.push('до зала ~'+pg+' ч: легче, меньше жира');
+27882|   if(g) parts.push(g.p>0?'белка '+r0(g.p)+' г':'белок на сегодня добран');
+27883|   return {slot,title:nm+(own?' · ~'+r0(g.k/10)*10+' ккал':' · остаток дня'),sub:parts.join(' · ')};
+27884| }
+27885| function rNow(){
+27886|   const box=$('nowRow'); if(!box) return;
+27887|   const n=nowInfo(); if(!n){ box.style.display='none'; box.innerHTML=''; return; }
+27888|   box.innerHTML='<button type="button" class="lrow'+(n.done?' done':'')+'" data-now="'+(n.slot||'')+'"><span class="g"><span class="t">'+esc(n.title)+'</span>'+(n.sub?'<span class="s">'+esc(n.sub)+'</span>':'')+'</span>'+(n.slot?'<span class="ch"></span>':'')+'</button>';
+27889|   box.style.display='';
+27890|   if(!box._now){ box._now=1; box.addEventListener('click',e=>{ const b=e.target&&e.target.closest?e.target.closest('[data-now]'):null; if(b&&b.dataset.now) openMeal(b.dataset.now); }); }
+27891| }
+27892| $('mlSlotSeg')&&($('mlSlotSeg').onclick=e=>{ const b=e.target.closest?e.target.closest('[data-ml]'):null; if(!b) return;
+27893|   mlKind=b.dataset.ml; setSlotChip(); mlRender();
+27894| });
+27895| document.querySelectorAll('[data-mlv]').forEach(b=>b.onclick=()=>{
+27896|   document.querySelectorAll('[data-mlv]').forEach(x=>x.classList.remove('on'));
+27897|   b.classList.add('on'); mlView=b.dataset.mlv; mlRender();
+27898| });
+27899| $('ml_src').onchange=async()=>{ S.mlSrc=$('ml_src').value; S.ua=Date.now(); try{ await put('settings',S,'main'); }catch(_){} mlSolve(); };   // v656: выбор помнится
+27900| /* Приём тянется под цель ОДНИМ коэффициентом — по калориям, и коэффициент
+27901|    ещё и клампится, чтобы порция не вышла абсурдной. Значит совпасть с целью
+27902|    он может только случайно: строкой выше стоит «цель приёма: 1500 ккал,
+27903|    белок 160 г», под ней предложение на 492 ккал и Б40, и подпись гордо
+27904|    сообщает «под твою цель». Цифра без здравого смысла хуже её отсутствия —
+27905|    поэтому расхождение называем словами (23.08).
+27906|    Два разных промаха — две разные фразы. Приём, который физически не тянет
+27907|    на цель (не ел весь день, ужин объявлен добором), надо не «добирать
+27908|    белком», а дополнять вторым блюдом. И только когда калории сошлись, а
+27909|    белок нет, имеет смысл говорить про источник белка. */
+27910| const PSRC=[['творогом','Творог'],['яйцами','Яйцо'],['куриной грудкой','Куриная грудка'],
+27911|             ['рыбой','Треска'],['протеином','Протеин сывороточный'],['чечевицей','Чечевица отварная']];
+27912| function ppShort(sc,g,m){
+27913|   if(!g||!(g.k>=120)) return '';
+27914|   if(sc.k<g.k*0.7)
+27915|     return ' · <b>закрывает '+r0(sc.k/g.k*100)+'% цели приёма</b> — добавь второе';
+27916|   if(!(g.p>=25)) return '';
+27917|   const d=g.p-sc.p;
+27918|   if(d<g.p*0.3) return '';
+27919|   /* Совет обязан пройти ту же анкету, что и сам приём: «добери творогом»
+27920|      человеку с лактозой — ровно та ошибка, после которой анкете не верят.
+27921|      И не советуем то, что в приёме уже есть: «чечевица с рисом — добери
+27922|      чечевицей» человек читает как поломку, и он прав. */
+27923|   const inMeal=(((m&&m.ing)||[]).map(x=>x[0]).join(' ')+' '+((m&&m.n)||'')).toLowerCase();
+27924|   const src=PSRC.filter(x=>foodBanOK({n:x[1]})&&!inMeal.includes(wordRoot(x[1].split(' ')[0].toLowerCase())))
+27925|     .map(x=>x[0]).slice(0,2);
+27926|   return ' · <b>белка на '+r0(d)+' г меньше цели</b>'+(src.length?' — добери '+src.join(' или '):'');
+27927| }
+27928| /* Готовые ПП-приёмы под остаток дня */
+27929| function ppRender(){
+27930|   const out=$('mlOut'); if(!out) return;
+27931|   mlGap();
+27932|   const g=mlTarget();
+27933|   const targetK=(g&&g.k>=120)?g.k:0;
+27934|   const shop=shops()[S.shop||0]||shops()[0];
+27935|   const cards=PPMEAL.filter(m=>m.slot===ppKind(mlKind)&&ppOK(m)&&(!S.mlNoCook||!m.cook)).map(m=>({m,sc:ppScaled(m,targetK||ppTot(m).k)}));   // v649: «Без плиты» — только cook:0
+27936|   if(!cards.length&&S.mlNoCook&&PPMEAL.some(m=>m.slot===ppKind(mlKind)&&ppOK(m))){
+27937|     out.innerHTML=`<div class="ib">Без плиты на ${slotName(mlKind).toLowerCase()} в библиотеке пока нет. Переключись на «Все» или «В кафе».</div>`;
+27938|     return;
+27939|   }
+27940|   if(!cards.length){
+27941|     out.innerHTML=`<div class="ib">Готовых приёмов на ${slotName(mlKind).toLowerCase()} под твои ограничения (<b>${esc(String(S.foodBan||'').trim()||'—')}</b>) в библиотеке нет.
+27942|       Переключись на «Из продуктов» — там приём собирается из того, что тебе можно.</div>`;
+27943|     return;
+27944|   }
+27945|   // ближе к цели по белку — выше
+27946|   if(g&&g.k>=120) cards.sort((a,b)=>Math.abs(a.sc.p-g.p)-Math.abs(b.sc.p-g.p));
+27947|   out.innerHTML=cards.map((c,i)=>`
+27948|     <div class="item" style="flex-direction:column;align-items:stretch;gap:0">
+27949|       <div style="display:flex;align-items:center;gap:8px;width:100%">
+27950|         <div class="g" data-ppx="${i}" style="cursor:pointer">
+27951|           <div class="t wt">${esc(c.m.n)}${c.m.cook?'':' <span class="tag">без готовки</span>'}</div>
+27952|           <div class="s">${r0(c.sc.k)} ккал · Б${r0(c.sc.p)} Ж${r0(c.sc.f)} У${r0(c.sc.c)}${plateMass(c.sc.ing)?' · '+plateMass(c.sc.ing)+' г':''}${ppShort(c.sc,g,c.m)} · ▾</div>
+27953|         </div>
+27954|         <button class="btn sm" data-ppadd="${i}" style="flex:0 0 auto"><svg class="ic"><use href="#i-plus"/></svg></button>
+27955|         <button class="btn sm sec" data-ppno="${i}" style="flex:0 0 auto" aria-label="Убрать"><svg class="ic"><use href="#i-close"/></svg></button>
+27956|       </div>
+27957|       <div id="ppd${i}" style="display:none;margin-top:8px">
+27958|         ${c.sc.ing.map(x=>`<div class="stat"><span class="l">${esc(x.n)}</span><span class="v">${x.g} г · ${r0(x.k)} ккал <a href="${shop.u}${encodeURIComponent(x.n)}" target="_blank" rel="noopener" style="color:var(--ac2);text-decoration:none;padding:0 4px"><svg class="ic"><use href="#i-ext"/></svg></a></span></div>`).join('')}
+27959|       </div>
+27960|     </div>`).join('')
+27961|     +`<div class="note">Готовые ПП-приёмы подогнаны под остаток дня по КБЖУ. Тапни приём — раскроется состав с граммами.  — заказать ингредиент в «${esc(shop.n)}» (магазин меняется в Настройках). <b>+</b> записывает весь приём в дневник.${String(S.foodBan||'').trim()?`<br><br>Исключено по анкете: <b>${esc(String(S.foodBan).trim())}</b> — приёмы с этим не предлагаются.`:''}</div>`;
+27962|   out.querySelectorAll('[data-ppx]').forEach(e=>e.onclick=()=>{const d=$('ppd'+e.dataset.ppx);if(d)d.style.display=d.style.display==='none'?'block':'none';});
+27963|   out.querySelectorAll('[data-ppno]').forEach(b=>b.onclick=async()=>{ const c=cards[+b.dataset.ppno]; if(!c) return; if(await prefRemove(c.m.n,true)) ppRender(); });   // v646
+27964|   out.querySelectorAll('[data-ppadd]').forEach(b=>b.onclick=async()=>{
+27965|     await logPP(cards[+b.dataset.ppadd].sc.ing,mlKind); sheet('sh-meal',false); rFood(); rCoach(); toast('Записано: '+cards[+b.dataset.ppadd].m.n.slice(0,24));
+27966|   });
+27967| }
+27968| /* Честная доля приёма от ДНЯ (не прогрессивная «последний добирает всё»):
+27969|    утром при пустом дневнике ужин объявлял себя 2400 ккал — полевой кейс.
+27970|    Цель приёма = остаток дня, но не больше нормальной доли этого приёма.
+27971|    Вечером свойство добора сохраняется: остаток меньше доли — берём остаток. */
+27972| /* ДОЛЯ ПРИЁМА СЧИТАЕТСЯ ОТ ОСТАТКА ДНЯ, А НЕ ОТ ВСЕГО ДНЯ.
+27973|    Долей было две: MEALS (от остатка) для подбора готовых приёмов и SLOT_SHARE
+27974|    (от дня) для цели приёма и рецептов. Вторая в сумме давала 112% дневной
+27975|    цели — человек, честно закрывающий каждый ориентир, переедал на 240 ккал в
+27976|    день, то есть съедал весь свой дефицит (аудит 20.08).
+27977|    Доли остатка самосогласованы по построению: треть остатка на завтрак,
+27978|    половина оставшегося на обед, весь остаток на ужин — что бы человек ни съел
+27979|    до этого, сумма ориентиров равна дню, а не больше. */
+27980| /* Вес приёма в дне. Сумма — единица: это и есть обещание «сумма ориентиров
+27981|    равна дню». Ужин чуть весомее завтрака — так люди и едят. */
+27982| /* Доля ОСТАТКА для этого приёма: его вес против веса всех приёмов, которые
+27983|    ещё впереди. Пропустил завтрак — его доля честно достаётся обеду и ужину,
+27984|    а не пропадает; ужин последним получает весь остаток. Простые доли остатка
+27985|    этого не умеют: они зависят от порядка, и завтрак выходил больше обеда. */
+27986| function slotShare(slot,done,hour){
+27987|   /* Впереди — это не только «ещё не съел». Пропущенный завтрак тоже позади:
+27988|      его доля обязана достаться обеду и ужину, иначе человек, который утром не
+27989|      ел, недоберёт семьсот калорий и весь день будет видеть ориентиры, в сумме
+27990|      меньшие его цели. Перекус в этом порядке нейтрален — он бывает когда
+27991|      угодно. */
+27992|   /* v645: «позади» решает ЧАС, а не порядок в дне. Раньше любой приём,
+27993|      стоящий раньше выбранного, считался прошедшим — и в полдень «Ужин»
+27994|      получал весь остаток (2080 ккал у владельца 24.09), хотя обед впереди.
+27995|      Прошлый день (hour=24) — всё раньше выбранного действительно позади. */
+27996|   /* v646: порядок и часы — из личного списка приёмов; приём вне списка
+27997|      (старая метка) — малый и нейтральный, свою десятую долю получает. */
+27998|   const ids=mealsSync().map(m=>m[0]), i=ids.indexOf(slot);
+27999|   const h=(hour!=null)?hour:((typeof window!=='undefined'&&window.__hourNow!=null)?+window.__hourNow:new Date().getHours());   // __hourNow — подмена часа для стендов
+28000|   const w=k=>SLOTW[k]!=null?SLOTW[k]:0.10;
+28001|   let rest=0;
+28002|   const lastMain=ids.filter(k=>MEAL_KIND[k]!=='small').pop();
+28003|   ids.forEach((k,j)=>{
+28004|     if(k===slot){ rest+=w(k); return; }
+28005|     if(done&&done.has(k)) return;                              // съеден
+28006|     if(i>=0&&j<i&&h>=(MEAL_END[k]||0)) return;                 // его час прошёл
+28007|     /* Последний основной приём закрывает день: несъеденный малый приём
+28008|        перед ним отдаёт свою долю ему (так было для ужина и полдника). Малый
+28009|        приём ПОСЛЕ него («на ночь») свою долю держит. */
+28010|     if(slot===lastMain&&j<i&&MEAL_KIND[k]==='small') return;
+28011|     rest+=w(k);
+28012|   });
+28013|   if(i<0) rest+=w(slot);
+28014|   return rest>0?Math.min(1,w(slot)/rest):1;
+28015| }
+28016| function slotTarget(slot,day){
+28017|   const t=tg(); if(!t) return null;
+28018|   const d=day||td();
+28019|   const mine=LOG.filter(l=>l.d===d);
+28020|   const s=mine.reduce((a,l)=>({k:a.k+l.k,p:a.p+l.p,f:a.f+l.f,c:a.c+l.c}),{k:0,p:0,f:0,c:0});
+28021|   const done=new Set(mine.map(l=>l.sl).filter(Boolean));
+28022|   const sh=slotShare(slot,done,(d===td())?null:24);
+28023|   const left={k:Math.max(0,t.k-s.k),p:Math.max(0,t.p-s.p),f:Math.max(0,t.f-s.f),c:Math.max(0,t.c-s.c)};
+28024|   /* Доля приёма меньше порции, а день недоеден (обход ролей 05.09,
+28025|      нутрициолог): женщина с целью 1500 съела завтрак 700, открыла «Перекус» —
+28026|      доля 13 % от остатка 800 давала 107 ккал, и лист говорил «ты закрыт,
+28027|      уйдёшь в перебор» при восьмистах на руках. Порог «закрыт» — по остатку
+28028|      дня, а доля меньше 120 при живом остатке поднимается до порции (150 или
+28029|      весь остаток), с пометкой small — лист называет это словами. */
+28030|   let k=left.k*sh, small=false;
+28031|   if(k<120&&left.k>=120){ k=Math.min(left.k,150); small=true; }
+28032|   const f2=left.k>0?k/left.k:0;
+28033|   /* v646: у основного приёма нижняя планка белка 0,4 г/кг (NUTRITION.md §1), верхней нет */
+28034|   let p=left.p*f2;
+28035|   /* v648: планка от ЦЕЛЕВОГО веса, если он задан и меньше текущего (NUTRITION.md §6:
+28036|      норма белка — от целевого), и не выше 50 г: у человека в 200 кг это 80 г на
+28037|      каждый приём от фактического веса — правило для 40–200 кг, а не для 75. */
+28038|   if(MEAL_KIND[slot]&&MEAL_KIND[slot]!=='small'){ const w=curW()||75, wg=+S.wGoal||0; const floor=Math.min(50,0.4*((wg>0&&wg<w)?wg:w)); if(p<floor) p=Math.min(left.p,floor); }
+28039|   return {k,p,f:left.f*f2,c:left.c*f2,left,small};
+28040| }
+28041| function mlTarget(){ return slotTarget(mlKind); }
+28042| function mlGap(){
+28043|   const g=mlTarget(); if(!g) return;
+28044|   const e=$('mlGap');
+28045|   if(g.left.k<120){e.className='ob';e.innerHTML='<b>На сегодня ты уже закрыт.</b> Если всё равно поешь — уйдёшь в перебор, и это нормально раз в неделю.';return}
+28046|   e.className='ib';
+28047|   const smallNote=g.small?`<br><span style="opacity:.75">Обычно ${slotName(mlKind).toLowerCase()} — небольшая доля дня, но на сегодня осталось ${r0(g.left.k)} ккал: можно и больше, это твой запас.</span>`:'';
+28048|   /* «углеводы 0 г» в цели приёма — это не «ешь без углеводов», а «на сегодня
+28049|      уже добрал». Ноль в строке предписания человек читает как указание
+28050|      (тот же класс, что раскладка с 27 г углеводов): называем словами. */
+28051|   const MN={p:['белок','Белок','добран'],f:['жиры','Жиры','добраны'],c:['углеводы','Углеводы','добраны']};
+28052|   const have=['p','f','c'].filter(k=>r0(g[k])>0), full=['p','f','c'].filter(k=>r0(g[k])<=0);
+28053|   const done=full.length
+28054|     ? `<br><span style="opacity:.75">${full.map((k,i)=>i?MN[k][0]:MN[k][1]).join(' и ')} на сегодня уже ${full.length>1?'добраны':MN[full[0]][2]}${have.length?' — добирай '+have.map(k=>MN[k][0]).join(' и '):''}.</span>`
+28055|     : '';
+28056|   e.innerHTML=`<b>${slotName(mlKind)} — цель приёма:</b><br>
+28057|     ${r0(g.k)} ккал${have.length?' · '+have.map(k=>MN[k][0]+' '+r0(g[k])+' г').join(' · '):''}${done}${smallNote}
+28058|     <br><br><span style="opacity:.75">Осталось на весь день: ${r0(g.left.k)} ккал / ${r0(g.left.p)} г белка</span>${mlRestLine()}`;
+28059| }
+28060| /* v652: остаток дня по оставшимся приёмам одной строкой — план нутрициолога,
+28061|    а не таблица: «Дальше: Полдник ~370 · Ужин ~890». Только приёмы, чей час
+28062|    ещё не прошёл, и не тот, что открыт. */
+28063| function mlRestLine(){
+28064|   try{
+28065|     const h=(typeof window!=='undefined'&&window.__hourNow!=null)?+window.__hourNow:new Date().getHours();
+28066|     const all=mealsSync(), i=all.findIndex(m=>m[0]===mlKind);
+28067|     const done=new Set(LOG.filter(l=>l.d===td()&&l.sl).map(l=>l.sl));
+28068|     const list=all.filter((m,j)=>j>i&&h<m[3]&&!done.has(m[0]));
+28069|     const parts=list.map(m=>{ const t=slotTarget(m[0]); return t&&t.k>=120?esc(m[1])+' ~'+r0(t.k/10)*10:null; }).filter(Boolean);
+28070|     return parts.length?'<br><span style="opacity:.75">Дальше: '+parts.join(' · ')+'</span>':'';
+28071|   }catch(e){ return ''; }
+28072| }
+28073| /* ── ПРАВКА НА МЕСТЕ И ОБУЧЕНИЕ (v656) ──
+28074|    Шаг 4 плана «Что съесть». Полевой сценарий: обед на работе, в подборе
+28075|    «курица 180 г», а пачка у человека 200 г. Раньше граммы в подборе не
+28076|    правились, «×» пересобирал тарелку заново (и стирал всё, что человек уже
+28077|    поменял), а записанное из подбора ложилось БЕЗ метки приёма — так что
+28078|    «учиться» было не на чем: вечерняя запись обеда считалась ужином.
+28079|    Теперь: граммы правятся в строке, итог считается сразу; «⇄» — замена на
+28080|    похожее той же роли (белок на белок при том же белке, гарнир на гарнир
+28081|    при тех же калориях), повторный тап листает дальше; «×» убирает на месте;
+28082|    запись несёт метку приёма. Обучение читает журнал, а не отдельную память:
+28083|    продукты, которые человек ест именно в этот приём, идут в подбор первыми,
+28084|    а его последняя порция продукта в этом приёме заменяет расчётную, если
+28085|    отличается не больше чем на 35 % (200 г пачки вместо 183 г расчёта). */
+28086| function mlSlotMap(kind){ const t=dn(td()), m={};
+28087|   LOG.forEach(l=>{ if(!l||!l.n) return; const sl=l.sl||slotOfHour(l.ua?new Date(l.ua).getHours():12); if(sl!==kind) return;
+28088|     const age=t-dn(l.d); m[l.n]=(m[l.n]||0)+(age<=7?3:age<=30?1.5:0.6); });
+28089|   return m; }
+28090| /* Последняя порция продукта В ЭТОМ ПРИЁМЕ за 60 дней: граммы или штуки. */
+28091| function mlPortion(o,kind){
+28092|   const t=dn(td()); let best=null;
+28093|   for(const l of LOG){ if(!l||l.n!==o.n||l.sl!==kind||!(+l.a>0)) continue;
+28094|     if((l.u===1)!==(o.u===1)) continue; if(t-dn(l.d)>60||t-dn(l.d)<0) continue;
+28095|     if(!best||l.d>best.d||(l.d===best.d&&(l.ua||0)>(best.ua||0))) best=l; }
+28096|   return best?+best.a:null; }
+28097| function mlCapG(o,kind){ const pr=portionRule(o,kind), fr=mealFrame(o,kind); return {min:pr.min,max:Math.min(pr.max,fr>0?fr:pr.max),step:pr.step}; }
+28098| function mlSnap(rows,kind){
+28099|   return rows.map(r=>{ const g0=mlPortion(r.o,kind); if(!(g0>0)||!(r.g>0)) return r;
+28100|     if(Math.abs(g0-r.g)/r.g>0.35) return r;
+28101|     if(r.o.u!==1){ const c=mlCapG(r.o,kind); if(g0<c.min||g0>c.max) return r; }
+28102|     return {...r,g:g0,mine:1}; }); }
+28103| /* Роль продукта на тарелке — по ней ищется замена. */
+28104| function mlGroup(o){
+28105|   const n=String(o&&o.n||'');
+28106|   if(SWEET.test(n)) return 'sweet'; if(SAUCE.test(n)) return 'sauce'; if(DRINK.test(n)) return 'drink';   // кетчуп, «Спрайт» и варенье не гарнир и не фрукт (живой прогон 25.09)
+28107|   if(isProtRow(o)) return 'prot';
+28108|   if(/орех|миндал|кешью|фундук|фисташ|арахис|семеч/i.test(o.n)) return 'nut';
+28109|   if(o.cat==='carb'&&!PICKLE.test(o.n)&&!SWEET.test(o.n)) return 'side';
+28110|   return o.cat||'other'; }
+28111| function mlSwapG(from,fromG,to,kind){
+28112|   const m=from.u===1?fromG:fromG/100, key=mlGroup(from)==='prot'?'p':'k';
+28113|   const val=(+from[key]||0)*m, per=+to[key]||0;
+28114|   let g=per>0?(to.u===1?val/per:val/per*100):0;
+28115|   const mem=mlPortion(to,kind); if(mem>0&&g>0&&Math.abs(mem-g)/g<=0.35) g=mem;   // своя порция — по тому же порогу, что в подборе
+28116|   if(to.u===1) return Math.max(0.5,Math.round((g||1)*2)/2);
+28117|   const c=mlCapG(to,kind); if(!(g>0)) g=c.min;
+28118|   g=Math.max(c.min,Math.min(c.max,g)); return Math.round(g/c.step)*c.step||c.min; }   // шаг продукта: яйца штуками (55), хлеб ломтями (30)
+28119| function mlAlts(rows,i,pool,kind){
+28120|   const r=rows[i], grp=mlGroup(r.o), sm=mlSlotMap(kind);
+28121|   const eaten={}; LOG.forEach(l=>eaten[l.n]=(eaten[l.n]||0)+1);
+28122|   const taken=new Set(rows.filter((x,j)=>j!==i).map(x=>prefRoot(x.o.n)).filter(x=>x.length>=3));
+28123|   const seen=new Set([r.o.n]), out=[];
+28124|   [...pool,...PROD].forEach(o=>{ if(!o||seen.has(o.n)) return; seen.add(o.n);
+28125|     if(mlGroup(o)!==grp||!(mealFrame(o,kind)>0)||!slotOKprod(o,kind)||!prefOK(o)||!foodBanOK(o)) return;
+28126|     const rt=prefRoot(o.n); if(rt.length>=3&&(taken.has(rt)||rt===prefRoot(r.o.n))) return;
+28127|     out.push(o); });
+28128|   const dens=o=>(+o.p||0)/Math.max(1,+o.k||1);
+28129|   const same=o=>(grp==='prot'&&o.cat===r.o.cat)?1:0;   // мясо меняем сначала на мясо, творог — на творог
+28130|   return out.sort((a,b)=>(same(b)-same(a))||((sm[b.n]||0)*3+(eaten[b.n]||0))-((sm[a.n]||0)*3+(eaten[a.n]||0))
+28131|     ||(grp==='prot'?Math.abs(dens(a)-dens(r.o))-Math.abs(dens(b)-dens(r.o)):0)).slice(0,8); }
+28132| function mlMul(r){ return r.o.u===1?(+r.g||0):(+r.g||0)/100; }
+28133| function mlTot(rows){ return rows.reduce((a,r)=>{ const m=mlMul(r); return {k:a.k+r.o.k*m,p:a.p+r.o.p*m,f:a.f+r.o.f*m,c:a.c+r.o.c*m}; },{k:0,p:0,f:0,c:0}); }
+28134| /* Белок в итоге тарелки: жалуемся только на настоящий недобор. Живой прогон
+28135|    25.09: белок дня уже добран (цель приёма 0 г), а каждая тарелка писала
+28136|    «по белку недобор» — любое отклонение от нуля читалось как недобор. */
+28137| function mlProtShort(tot,g){ return tot.p<g.p*0.85; }
+28138| function mlSumHTML(rows,g){
+28139|   const live=rows.filter(r=>+r.g>0), tot=mlTot(live), pm=plateMass(live), nt=pm?plateNote(pm,tot.k):'';
+28140|   const short=mlProtShort(tot,g), low=g.k>=120&&tot.k<g.k*0.75;
+28141|   return `<div class="${short?'wb':'ob'}" id="mlSum" style="margin-bottom:12px">
+28142|       ${nvS(tot.k,tot.p,tot.f,tot.c)}${pm?' · <b>'+pm+' г</b> на тарелке':''}
+28143|       ${nt?'<br><br>'+nt:''}
+28144|       ${short?'<br><br>По белку недобор — ⇄ у белка даст продукт плотнее, или общий каталог.':''}${low?'<br><br>Калорий меньше цели приёма — добавь гарнир или второе блюдо.':''}
+28145|     </div>`; }
+28146| function mlRowSub(r){
+28147|   const m=mlMul(r), cg=r.o.u!==1?cookedG(r.o,+r.g||0):null;
+28148|   return (cg?'сухой ≈ '+cg+' г варёной · ':'')+r0(r.o.k*m)+' ккал · Б '+r0(r.o.p*m)+(r.mine?' · как обычно':''); }
+28149| let ML_ROWS=[], ML_POOL=[];
+28150| function mlSolve(){
+28151|   const out=$('mlOut'), g=mlTarget();
+28152|   if(!g||g.left.k<120){out.innerHTML='';return}
+28153|   const src=$('ml_src').value;
+28154|   const eaten={};
+28155|   LOG.forEach(l=>eaten[l.n]=(eaten[l.n]||0)+1);
+28156|   const sm=mlSlotMap(mlKind);   // v656: что человек ест ИМЕННО в этот приём — первым
+28157|   const known=new Set([...FOODS.map(f=>f.n.toLowerCase()),...Object.keys(eaten).map(x=>x.toLowerCase())]);
+28158|   const mine=FOODS.filter(f=>!f.sup&&f.k>0)
+28159|     .sort((a,b)=>((eaten[b.n]||0)+(b.used||0)+(sm[b.n]||0)*3)-((eaten[a.n]||0)+(a.used||0)+(sm[a.n]||0)*3));
+28160|   let pool;
+28161|   if(src==='new'){
+28162|     // только то, чего ты НЕ ел: лекарство от однообразия
+28163|     pool=PROD.filter(o=>![...known].some(k=>k.includes(o.n.toLowerCase().split(' ')[0])
+28164|                                           ||o.n.toLowerCase().includes(k.split(' ')[0])));
+28165|     if(pool.length<8) pool=PROD;   // если каталог исчерпан — берём весь
+28166|   } else if(src==='all'){
+28167|     pool=[...mine.slice(0,30).map(foodToProd),...PROD];
+28168|   } else {
+28169|     pool=mine.slice(0,26).map(foodToProd);
+28170|   }
+28171|   if(!pool.length){out.innerHTML='<div class="wb">Нет продуктов в базе.</div>';return}
+28172|   /* v645: продукты своего приёма; своих мало — добираем общим каталогом */
+28173|   pool=pool.filter(o=>slotOKprod(o,mlKind)&&prefOK(o));
+28174|   if(pool.length<5) pool=[...pool,...PROD.filter(o=>slotOKprod(o,mlKind)&&prefOK(o)&&!pool.some(x=>x.n===o.n))];
+28175|   pool=prefOrder(pool);
+28176|   let rows=mlSolveRows(pool,g,mlKind);
+28177|   /* v646: своих продуктов не хватило на цель приёма (меньше 75 % калорий) —
+28178|      добираем общим каталогом, а не показываем завтрак из двух молочных */
+28179|   { const kOf=rs=>rs.reduce((a,r)=>a+r.o.k*(r.o.u===1?r.g:r.g/100),0);
+28180|     if(src!=='new'&&g.k>=120&&kOf(rows)<g.k*0.75){
+28181|       const wide=[...pool,...PROD.filter(o=>slotOKprod(o,mlKind)&&prefOK(o)&&!pool.some(x=>x.n===o.n))];
+28182|       const r2=mlSolveRows(wide,g,mlKind); if(r2.length&&kOf(r2)>kOf(rows)) rows=r2; } }
+28183|   if(!rows.length){out.innerHTML='<div class="wb">Не смог подобрать — попробуй общий каталог.</div>';return}
+28184|   rows=rows.map(r=>({...r,g:r.o.u===1?Math.max(0.5,Math.round(r.g/100*2)/2):roundG(r.g)}));
+28185|   rows=mlSnap(rows,mlKind);   // v656: своя порция вместо расчётной, если близко
+28186|   ML_ROWS=rows; ML_POOL=pool;
+28187|   mlDraw(g,src);
+28188| }
+28189| function mlDraw(g,src){
+28190|   const out=$('mlOut'), rows=ML_ROWS; if(!out) return;
+28191|   const shop=shops()[S.shop||0]||shops()[0];
+28192|   out.innerHTML=`
+28193|     ${mlSumHTML(rows,g)}
+28194|     ${rows.map((r,i)=>`<div class="item mlrow" data-mlrow="${i}">
+28195|       <div class="t">${esc(r.o.n)}</div>
+28196|       <label class="mlq"><input type="text" inputmode="decimal" autocomplete="off" data-mlg="${i}" value="${r.o.u===1?r1(r.g):r0(r.g)}" aria-label="${r.o.u===1?'Порций':'Граммов'}: ${esc(r.o.n)}"><span>${r.o.u===1?'шт':'г'}</span></label>
+28197|       <button class="btn sm sec" data-mlsw="${i}" aria-label="Заменить на похожее: ${esc(r.o.n)}"><svg class="ic"><use href="#i-swap"/></svg></button>
+28198|       <button class="btn sm sec" data-mlno="${i}" aria-label="Убрать: ${esc(r.o.n)}"><svg class="ic"><use href="#i-close"/></svg></button>
+28199|       <div class="s" data-mlsub="${i}">${mlRowSub(r)}</div></div>`).join('')}
+28200|     ${rows.length?'':'<div class="ib">Тарелка пустая — смени приём или источник, и подбор соберёт заново.</div>'}
+28201|     ${rows.length?`<button class="btn" style="margin-top:12px" id="mlAll">Записать ${slotName(mlKind).toLowerCase()}</button>
+28202|     <div class="mlshop"><span>Найти в «${esc(shop.n)}»:</span>${rows.map(r=>`<a class="chip" href="${shop.u}${encodeURIComponent(r.o.n.replace(/\s*\(.*?\)/g,''))}" target="_blank" rel="noopener">${esc(r.o.n.replace(/\s*\(.*?\)/g,'').split(/\s+/).slice(0,2).join(' '))}</a>`).join('')}</div>`:''}
+28203|     <div class="note">
+28204|       ${src==='new'
+28205|         ? '<b>Режим «Новое»:</b> здесь только то, чего ты <b>ещё не ел</b> — и всё равно вписано в твоё КБЖУ. Лекарство от однообразия, которое не ломает цифры.'
+28206|         : src==='all'
+28207|           ? '<b>Смешанный режим:</b> твои продукты плюс общий каталог.'
+28208|           : '<b>Привычное:</b> чем чаще ты что-то ешь в этот приём, тем охотнее оно попадает в набор, а порция берётся твоя.'}
+28209|       <br><br>Граммы правятся прямо в строке, ⇄ меняет продукт на похожий, × убирает. Записывается то, что стоит в строках.
+28210|     </div>`;
+28211|   const upd=()=>{ const sm=$('mlSum'); if(sm) sm.outerHTML=mlSumHTML(ML_ROWS,g); };
+28212|   out.querySelectorAll('[data-mlg]').forEach(inp=>inp.oninput=()=>{ const i=+inp.dataset.mlg, r=ML_ROWS[i]; if(!r) return;
+28213|     let v=parseFloat(String(inp.value).replace(',','.')); if(!(v>=0)) v=0;
+28214|     r.g=Math.min(r.o.u===1?20:1500,v); r.mine=0;
+28215|     const sb=out.querySelector('[data-mlsub="'+i+'"]'); if(sb) sb.textContent=mlRowSub(r);
+28216|     upd(); });
+28217|   out.querySelectorAll('[data-mlsw]').forEach(b=>b.onclick=()=>{ const i=+b.dataset.mlsw, r=ML_ROWS[i]; if(!r) return;
+28218|     if(!r.alts){ r.alts=mlAlts(ML_ROWS,i,ML_POOL,mlKind); r.ai=-1; r.orig={o:r.o,g:r.g}; }
+28219|     if(!r.alts.length){ toast('Похожего под этот приём нет'); return; }
+28220|     r.ai=(r.ai+1)%(r.alts.length+1);
+28221|     const to=r.ai<r.alts.length?r.alts[r.ai]:r.orig.o;
+28222|     const g2=r.ai<r.alts.length?mlSwapG(r.orig.o,r.orig.g,to,mlKind):r.orig.g;
+28223|     ML_ROWS[i]={...r,o:to,g:g2,mine:mlPortion(to,mlKind)>0&&g2===mlPortion(to,mlKind)?1:0};
+28224|     mlDraw(g,src); });
+28225|   out.querySelectorAll('[data-mlno]').forEach(b=>b.onclick=async()=>{ const i=+b.dataset.mlno, r=ML_ROWS[i]; if(!r) return;
+28226|     if(!(await prefRemove(r.o.n,false))) return;
+28227|     ML_ROWS=ML_ROWS.filter((x,j)=>j!==i); mlDraw(g,src); });   // v656: на месте — правки человека не стираются пересборкой
+28228|   const bAll=$('mlAll'); if(bAll) bAll.onclick=async()=>{   // не «all»: так зовут чтение базы, и имя кнопки его перекрывало
+28229|     const live=ML_ROWS.filter(r=>+r.g>0); if(!live.length){ toast('Во всех строках 0 — записывать нечего'); return; }
+28230|     await mlLogRows(live,mlKind);
+28231|     LOG=await all('log'); sheet('sh-meal',false);
+28232|     rFood(); rCoach(); toast(slotName(mlKind)+' записан');
+28233|   };
+28234| }
+28235| /* Запись из подбора — одна дверь: дата открытого дня и МЕТКА ПРИЁМА. Без
+28236|    метки обед, записанный вечером, читался ужином, и подбор учился не тому. */
+28237| async function mlLogRows(rows,kind){
+28238|   for(const r of rows){ const m=mlMul(r);
+28239|     await put('log',{d:(vDate||td()),n:r.o.n,sup:0,u:r.o.u,a:r.g,k:r.o.k*m,p:r.o.p*m,f:r.o.f*m,c:r.o.c*m,sl:kind});
+28240|     await foodRemember({n:r.o.n,br:r.o.br||null,u:r.o.u,a:r.g,k:r.o.k*m,p:r.o.p*m,f:r.o.f*m,c:r.o.c*m}); }
+28241| }
+28242| 
+28243| /* ── ЗАКРЫТЬ КБЖУ ──
+28244|    Настоящая боль: «осталось 600 ккал и 50 г белка — что купить?»
+28245|    Бренд не важен, важна дырка в макросах. Решается локально, магазин — просто ссылка. */
+28246| let spMode='rest', spMust=new Set(), spExcl=new Set();
+28247| $('bShop').onclick=()=>{
+28248|   if(!tg()) return toast('Нужен таргет — запиши свой вес на «Еде»');
+28249|   spShopChips();
+28250|   spMust=new Set(); spExcl=new Set(); $('spOut').innerHTML='';
+28251|   // счётчики в заголовках раскрывашек: стены из 30 чипов не давят на экран,
+28252|   // а выбранное видно не раскрывая (полевой отчёт 03.08: «это же просто бардак»)
+28253|   const spSums=()=>{
+28254|     const ms=$('spMustSum'); if(ms) ms.textContent=spMust.size?('· '+spMust.size):'';
+28255|     const es=$('spExclSum'); if(es) es.textContent=spExcl.size?('· '+spExcl.size):'';
+28256|   };
+28257|   $('spMust').innerHTML=PROD.filter(o=>['prot','carb','dairy'].includes(o.cat))
+28258|     .map(o=>`<div class="chip" data-must="${esc(o.n)}">${esc(o.n)}</div>`).join('');
+28259|   $('spMust').querySelectorAll('[data-must]').forEach(c=>c.onclick=()=>{
+28260|     const n=c.dataset.must;
+28261|     spMust.has(n)?spMust.delete(n):spMust.add(n); c.classList.toggle('on'); spSums()});
+28262|   $('spExcl').innerHTML=Object.entries(CAT)
+28263|     .map(([k,v])=>`<div class="chip" data-ex="${k}">${v}</div>`).join('');
+28264|   $('spExcl').querySelectorAll('[data-ex]').forEach(c=>c.onclick=()=>{
+28265|     const k=c.dataset.ex;
+28266|     spExcl.has(k)?spExcl.delete(k):spExcl.add(k); c.classList.toggle('on'); spSums()});
+28267|   spSums();
+28268|   spGap(); sheet('sh-shop',true);
+28269| };
+28270| /* 11 магазинов чипами — стена на пол-экрана; выбирается один раз и помнится,
+28271|    поэтому компактный select (полевой отчёт 03.08) */
+28272| function spShopChips(){
+28273|   const box=$('spShops'); if(!box) return;
+28274|   const cur=Math.min(S.shop||0,shops().length-1);
+28275|   box.innerHTML=shops().map((sh,i)=>'<option value="'+i+'"'+(i===cur?' selected':'')+'>'+esc(sh.n)+'</option>').join('');
+28276|   box.onchange=async()=>{ S.shop=+box.value; try{ await put('settings',S,'main'); }catch(_){} };
+28277| }
+28278| $('sp_d').oninput=spGap;
+28279| /* Человеческие единицы в закупке: яйца — штуками, жидкая молочка — литрами.
+28280|    «Кефир 2.5 кг» и «яйцо 260 г» — полевой кейс: так не покупают. */
+28281| function spDisp(o,g){
+28282|   if(/яйц/i.test(o.n)) return '≈'+Math.max(1,Math.round(g/55))+' шт';
+28283|   if(/молоко|кефир|йогурт|ряженка|простокваша/i.test(o.n)) return g>=1000?r1(g/1000)+' л':r0(g)+' мл';
+28284|   return g>=1000?r1(g/1000)+' кг':r0(g)+' г';
+28285| }
+28286| function spTarget(){
+28287|   const t=tg(); if(!t) return null;
+28288|   const days=Math.max(1,Math.min(30,num($('sp_d'))||7));
+28289|   if(spMode==='day')  return {...t,days:1,lbl:'полный день'};
+28290|   if(spMode==='week') return {k:t.k*days,p:t.p*days,f:t.f*days,c:t.c*days,days,lbl:days+' дн.'};
+28291|   const dd=vDate||td();
+28292|   const mine=LOG.filter(l=>l.d===dd);
+28293|   const s=mine.reduce((a,l)=>({k:a.k+l.k,p:a.p+l.p,f:a.f+l.f,c:a.c+l.c}),{k:0,p:0,f:0,c:0});
+28294|   return {k:Math.max(0,t.k-s.k),p:Math.max(0,t.p-s.p),
+28295|           f:Math.max(0,t.f-s.f),c:Math.max(0,t.c-s.c),days:1,
+28296|           lbl:dd>td()?'остаток на завтра':dd<td()?'остаток на '+fd(dd):'остаток на сегодня'};
+28297| }
+28298| function spGap(){
+28299|   const g=spTarget(); if(!g) return;
+28300|   const near=g.k<80||g.p<8;
+28301|   $('spGap').className=near?'ob':'ib';
+28302|   $('spGap').innerHTML=near
+28303|     ? '<b>Дырки почти нет</b> — на сегодня ты уже закрыт. Переключись на «Полный день» или «Закупка», если планируешь наперёд.'
+28304|     : `<b>Нужно закрыть (${g.lbl}):</b><br>${r0(g.k)} ккал · белок ${r0(g.p)} г · жиры ${r0(g.f)} г · углеводы ${r0(g.c)} г`;
+28305| }
+28306| document.querySelectorAll('[data-sm]').forEach(b=>b.onclick=()=>{
+28307|   document.querySelectorAll('[data-sm]').forEach(x=>x.classList.remove('on'));
+28308|   b.classList.add('on'); spMode=b.dataset.sm;
+28309|   $('spDaysW').style.display=spMode==='week'?'block':'none';
+28310|   $('spOut').innerHTML=''; spGap();
+28311| });
+28312| $('bSpGo').onclick=()=>{
+28313|   const g=spTarget();
+28314|   if(!g||g.k<80) return toast('Нечего закрывать');
+28315|   const bOK=o=>!S.budget||S.budget==='free'||(o.b||2)<=(S.budget==='eco'?1:2);
+28316|   const pool=PROD.filter(o=>(!spExcl.has(o.cat)&&bOK(o)&&foodBanOK(o))||spMust.has(o.n));
+28317|   const must=PROD.filter(o=>spMust.has(o.n));
+28318|   if(!pool.length) return toast('Всё исключено — некуда подбирать');
+28319|   // «Полный день» — те же приёмы (завтрак/обед/ужин/перекус), что и остаток:
+28320|   // голый список продуктов на день никто не ест (полевой кейс)
+28321|   if(spMode!=='week'){ renderMealPlan(g,pool,must,spMode==='day'); return; }
+28322|   // «Меню из блюд» — ОСНОВНОЙ режим закупки (решение владельца 28.07):
+28323|   // человек покупает под то, что будет есть, а не список сырья.
+28324|   // Без аккаунта меню недоступно — сразу продукты, без ложных ожиданий.
+28325|   if(sbTok){ menuBasket(g.days||7); return; }
+28326|   productBasket(g,pool,must,'Меню из блюд появится после входа в синхронизацию — пока подбор из продуктов.');
+28327| };
+28328| function productBasket(g,pool,must,note){
+28329|   const maxN=12;   // неделя из 7 продуктов — не еда, а паёк
+28330|   let rows=solveBasket(pool,g,maxN,must).map(r=>({...r,g:roundG(r.g)})).filter(r=>r.g>0);
+28331|   if(!rows.length) return toast('Не смог подобрать — сними ограничения');
+28332|   const got=macroSum(rows), shop=shops()[S.shop||0]||shops()[0];
+28333|   const dp=Math.abs(got.p-g.p)/Math.max(1,g.p)*100;
+28334|   const ok=dp<8;
+28335|   $('spOut').innerHTML=`
+28336|     ${note?`<div class="ib" style="margin-bottom:12px">${esc(note)}</div>`:''}
+28337|     <div class="${ok?'ob':'wb'}" style="margin-bottom:12px">
+28338|       Набор даёт ${nvS(got.k,got.p,got.f,got.c)}<br>
+28339|       Промах: ккал ${got.k>=g.k?'+':''}${r0(got.k-g.k)}, белок ${got.p>=g.p?'+':''}${r0(got.p-g.p)} г.
+28340|       ${(g.days||1)>7?'<br><br>Молочка, мясо и овощи посчитаны на срок хранения, а не на все '+g.days+' дн. — их докупишь во второй половине. Крупы и масло взяты на весь период.':''}
+28341|       ${ok?'':'<br><br><b>По белку недобор.</b> Сними какое-нибудь исключение или добавь белковый продукт в «обязательно».'}
+28342|     </div>
+28343|     ${rows.map(r=>`<div class="item"><div class="g">
+28344|       <div class="t wt">${esc(r.o.n)}${spMust.has(r.o.n)?' <span class="tag">твой выбор</span>':''}</div>
+28345|       <div class="s">${r0(r.o.k*r.g/100)} ккал · Б${r1(r.o.p*r.g/100)} Ж${r1(r.o.f*r.g/100)} У${r1(r.o.c*r.g/100)}</div></div>
+28346|       <div class="k">${spDisp(r.o,r.g)}</div>
+28347|       <a href="${shop.u}${encodeURIComponent(r.o.n.replace(/\s*\(.*?\)/g,''))}" target="_blank" rel="noopener"
+28348|         style="color:var(--ac2);text-decoration:none;font-size:var(--fs3);line-height:var(--lh3);padding:0 6px"><svg class="ic"><use href="#i-ext"/></svg></a></div>`).join('')}
+28349|     ${sbTok?`<button class="btn ai" style="margin:2px 0 10px;width:100%" id="bMenuBasket">Вернуться к меню из блюд</button>`:''}
+28350|     <div class="item"><div class="g">
+28351|       <div class="t">Овощи любые — вне расчёта</div>
+28352|       <div class="s">огурцы, помидоры, капуста, зелень, перец, кабачки… В макросах почти не участвуют, поэтому решатель их не считает, а есть их надо: ${esc(vegHint().why)}.</div></div>
+28353|       <div class="k">~${r1(vegHint().kg*(g.days||1))} кг</div></div>
+28354|     <button class="btn sec" style="margin-top:12px" id="spCopy">Скопировать список</button>
+28355|     <div class="note">
+28356|       Граммовка — <b>вес продукта</b> (крупы и макароны — в сухом виде).
+28357|        открывает поиск в магазине: <b>${esc(shop.n)}</b>.<br><br>
+28358|       <b>Почему нет кнопки «всё в корзину».</b> Публичного API корзины покупателя нет ни у одного магазина — наружу торчит только Seller API для продавцов. Корзина это их конверсия, они её не отдают. Кто обещает автозаполнение — либо парсит сайт (сломается на первом редизайне), либо врёт.<br><br>
+28359|       <b>Цен тут тоже нет</b> и не будет — их неоткуда взять легально. Подбор идёт по макросам, не по деньгам.
+28360|     </div>`;
+28361|   const mb=$('bMenuBasket'); if(mb) mb.onclick=()=>menuBasket(g.days||7);
+28362|   $('spCopy').onclick=()=>{
+28363|     // В магазин уходит именно копия — единицы обязаны совпадать с экраном
+28364|     const txt=rows.map(r=>`${r.o.n} — ${spDisp(r.o,r.g)}`).join('\n')
+28365|       +'\nОвощи любые — ~'+r1(vegHint().kg*(g.days||1))+' кг';
+28366|     navigator.clipboard.writeText(txt).then(()=>toast('Скопировано')).catch(()=>toast('Не вышло'));
+28367|   };
+28368| };
+28369| 
+28370| /* «Остаток дня»: раскладка по приёмам вместо списка сухих продуктов */
+28371| function renderMealPlan(g,pool,must,all){
+28372|   const plan=mealPlanRest(g,pool,must,all);
+28373|   if(!plan.length){ toast('Не смог собрать приёмы — сними ограничения'); return; }
+28374|   const tot=plan.reduce((a,m)=>({k:a.k+m.sum.k,p:a.p+m.sum.p,f:a.f+m.sum.f,c:a.c+m.sum.c}),{k:0,p:0,f:0,c:0});
+28375|   const ok=Math.abs(tot.p-g.p)/Math.max(1,g.p)<0.12;
+28376|   window.__mealPlan=plan;
+28377|   $('spOut').innerHTML=`
+28378|     <div class="${ok?'ob':'wb'}" style="margin-bottom:12px">
+28379|       ${all?'План на полный день':'План на остаток дня'}: <b>${r0(tot.k)} ккал</b> · Б ${r0(tot.p)} · Ж ${r0(tot.f)} · У ${r0(tot.c)}
+28380|       (нужно ${r0(g.k)} · Б ${r0(g.p)})${ok?'':'<br><b>По белку недобор</b> — сними исключения или добавь белковое в «обязательно».'}
+28381|       ${(()=>{const ms=plan.map(m=>plateMass(m.rows));
+28382|         if(ms.some(x=>!x)) return '';
+28383|         const dm=ms.reduce((a,b)=>a+b,0), nt=plateNote(dm,tot.k);
+28384|         return '<br><br>Еды на тарелке: <b>'+dm+' г</b> за день — крупы варёными, овощи сверх этого.'+(nt?' '+nt:'');})()}
+28385|     </div>
+28386|     ${plan.map((m,mi)=>`<div class="card t" style="margin-bottom:12px">
+28387|       <div class="hd" style="margin-bottom:8px"><h2 style="margin:0">${SLOTN[m.sl]}</h2>
+28388|         <span class="mini">${r0(m.sum.k)} ккал · Б ${r0(m.sum.p)}${plateMass(m.rows)?' · '+plateMass(m.rows)+' г':''}</span></div>
+28389|       ${m.sl==='ln'&&S.eatOut==='out'?`<div class="mini" style="margin-bottom:8px">Ты обычно ешь днём вне дома — используй это как ориентир объёма: горячее с мясом/рыбой + гарнир, соус отдельно. Вечером сверь дневник.</div>`:''}
+28390|       ${m.rows.map(r=>{const ck=cookedG(r.o,r.g);
+28391|         return `<div class="item"><div class="g"><div class="t">${esc(r.o.n)}</div>
+28392|         <div class="s">${r0(r.o.k*r.g/100)} ккал · Б${r1(r.o.p*r.g/100)} Ж${r1(r.o.f*r.g/100)} У${r1(r.o.c*r.g/100)}</div></div>
+28393|         <div class="k" style="text-align:right">${spDisp(r.o,r.g)}${ck?`<div class="mini">≈${ck} г готового</div>`:''}</div></div>`;}).join('')}
+28394|       ${(m.sl==='ln'||m.sl==='dn')?(()=>{const vh=vegHint(); return `<div class="item"><div class="g"><div class="t" style="color:var(--t2)">+ Овощи любые</div>
+28395|         <div class="s">огурцы, помидоры, капуста, зелень — вне расчёта, ${esc(vh.why)}</div></div>
+28396|         <div class="k" style="color:var(--t2)">${vh.g}</div></div>`;})():''}
+28397|       <button class="btn sec sm" style="margin-top:8px;width:100%" data-splog="${mi}">Записать этот приём в дневник</button>
+28398|     </div>`).join('')}
+28399|     <div class="note">Порции масштабируются под твой вес: крупы — до ${mealCap({n:'(сух)',cat:'carb'})} г сухими на приём при твоей массе («≈ готового» — после варки).
+28400|     Это ориентир, а не приказ: замени продукт на равный по макросам — ничего не сломается.</div>`;
+28401|   $('spOut').querySelectorAll('[data-splog]').forEach(b=>b.onclick=async()=>{
+28402|     const m=window.__mealPlan[+b.dataset.splog]; if(!m) return;
+28403|     for(const r of m.rows)
+28404|       await put('log',{d:(vDate||td()),n:r.o.n,u:100,a:r.g,k:r.o.k*r.g/100,p:r.o.p*r.g/100,f:r.o.f*r.g/100,c:r.o.c*r.g/100,sl:m.sl});
+28405|     LOG=await all('log'); rFood(); rCoach();
+28406|     b.textContent='Записано ✓'; b.disabled=true;
+28407|     toast(SLOTN[m.sl]+': +'+r0(m.sum.k)+' ккал');
+28408|   });
+28409| }
+28410| 
+28411| /* ── КОРЗИНА ИЗ БЛЮД ──
+28412|    Меню на N дней из готовых блюд базы (suggest_day, те же вкусы/баны, что в
+28413|    «Что съесть») → одна корзина через generate_shopping_list: одинаковые блюда
+28414|    складываются порциями, кладовая вычитается. Ответ на полевой запрос
+28415|    «дай реальную корзину под то, что я буду есть, а не список сырья». */
+28416| /* Записать день меню в дневник: блюда порциями, как в «Что съесть» */
+28417| async function mbLogDay(rows,_w){
+28418|   const w=_w||put;   // _w — только для тестов: put объявлен const, не подменяется
+28419|   const mul=r=>+r.servings_mult>0?+r.servings_mult:1;
+28420|   for(const r of rows){ const m=mul(r);
+28421|     await w('log',{d:td(),n:r.name+(Math.abs(m-1)>0.05?' ×'+r1(m):''),u:1,a:1,un:'порц',
+28422|       k:r0(r.kcal_serv*m),p:r1(r.protein_serv*m),f:r1((r.fat_serv||0)*m),c:r1((r.carb_serv||0)*m)}); }
+28423|   if(!_w){ LOG=await all('log'); rFood(); rCoach(); }
+28424| }
+28425| async function menuBasket(days){
+28426|   const t=tg(); if(!t) return toast('Нужен таргет');
+28427|   const out=$('spOut');
+28428|   const fallback=note=>{ try{
+28429|     const g2=spTarget(); if(!g2) return;
+28430|     const bOK=o=>!S.budget||S.budget==='free'||(o.b||2)<=(S.budget==='eco'?1:2);
+28431|     const pool2=PROD.filter(o=>(!spExcl.has(o.cat)&&bOK(o)&&foodBanOK(o))||spMust.has(o.n));
+28432|     productBasket(g2,pool2,PROD.filter(o=>spMust.has(o.n)),note);
+28433|   }catch(e){ out.innerHTML='<div class="eb">'+esc(e.message)+'</div>'; } };
+28434|   try{
+28435|     const menus=[];
+28436|     for(let d=0;d<days;d++){
+28437|       out.innerHTML='<div class="ib"><span class="load"></span>Собираю меню из блюд… день '+(d+1)+' из '+days+'</div>';
+28438|       let rows=[];
+28439|       const ask=m=>catSuggestDay({target_kcal:t.k,target_protein:t.p,can_cook:true,meals:m,tolerance:0.2,
+28440|         p_exclude:foodBanArr(),p_seed:td()+':m'+d,p_ban:recBanIds(),p_like:recLikeIds()});
+28441|       // 4 приёма (с перекусом); не собралось — день из трёх, а не пустой
+28442|       try{ rows=await ask(4)||[]; }catch(e){}
+28443|       if(!rows.length){ try{ rows=await ask(3)||[]; }catch(e){} }
+28444|       menus.push(rows);
+28445|     }
+28446|     if(!menus.some(m=>m.length)){
+28447|       // Тупика нет: не собралось из блюд — молча падаем на продукты с пометкой
+28448|       fallback('Меню из блюд сейчас не собралось — вот подбор из продуктов. Попробуй меню позже.');
+28449|       return;
+28450|     }
+28451|     const mul=r=>+r.servings_mult>0?+r.servings_mult:1;
+28452|     const acc={};
+28453|     menus.forEach(rows=>rows.forEach(r=>{
+28454|       acc[r.recipe_id]=acc[r.recipe_id]||{recipe_id:r.recipe_id,servings:0};
+28455|       acc[r.recipe_id].servings+=mul(r);
+28456|     }));
+28457|     const list=await catShoppingList(Object.values(acc));
+28458|     const buy=list.filter(x=>!x.in_pantry), home=list.filter(x=>x.in_pantry);
+28459|     const shop=shops()[S.shop||0]||shops()[0];
+28460|     const pkg=x=>(+x.packages_qty>0&&x.package_label)?`${r0(x.packages_qty)} × ${x.package_label}`:null;
+28461|     // «Чеснок 5 г, мёд 30 г» — не покупки, а щепотки: мелочь без упаковки
+28462|     // уходит одной строкой, список перестаёт пугать длиной
+28463|     const petty=buy.filter(x=>!pkg(x)&&+x.needed_g<100);
+28464|     const major=buy.filter(x=>pkg(x)||+x.needed_g>=100);
+28465|     const txt=major.map(x=>`${x.product_name} — ${pkg(x)||r0(x.needed_g)+' г'}`).join('\n')
+28466|       +(petty.length?'\nМелочь (обычно уже дома): '+petty.map(x=>`${x.product_name} ${r0(x.needed_g)} г`).join(', '):'');
+28467|     out.innerHTML=
+28468|       menus.map((rows,d)=>rows.length?`<div class="card t" style="margin-bottom:8px">
+28469|         <div class="hd" style="margin-bottom:8px"><span style="font-weight:var(--fwm)">День ${d+1} · ${r0(rows.reduce((a,r)=>a+r.kcal_serv*mul(r),0))} ккал</span>
+28470|           <button class="btn sec sm" data-mblog="${d}" style="flex:0 0 auto">в дневник</button></div>
+28471|         ${rows.map(r=>{const m=mul(r);return `<div class="stat"><span class="l">${esc(r.category||'')} · ${esc(r.name)}${Math.abs(m-1)>0.05?' ×'+r1(m):''}</span><span class="v">${r0(r.kcal_serv*m)} ккал</span></div>`;}).join('')}
+28472|       </div>`:'').join('')
+28473|       +(buy.length?`<div class="hd" style="margin:12px 0 8px"><h2>Корзина под меню</h2></div>
+28474|         ${major.map(x=>`<div class="stat"><span class="l">${esc(x.product_name)}</span><span class="v">${pkg(x)?`<b>${esc(pkg(x))}</b>`:r0(x.needed_g)+' г'} <a href="${shop.u}${encodeURIComponent(x.product_name)}" target="_blank" rel="noopener" style="color:var(--ac2);text-decoration:none;padding:0 4px"><svg class="ic"><use href="#i-ext"/></svg></a></span></div>`).join('')}
+28475|         ${petty.length?`<div class="mini" style="margin-top:8px">Мелочь, обычно уже дома: ${esc(petty.map(x=>x.product_name+' '+r0(x.needed_g)+' г').join(', '))}</div>`:''}
+28476|         ${home.length?`<div class="hd" style="margin:14px 0 4px"><h2>Дома уже есть</h2><span class="mini">не попало в корзину</span></div>
+28477|         <div class="mini" style="color:var(--t3);margin-bottom:8px">Кладовая сама не убывает — она помнит то, что ты в ней отметил. Кончилось — скажи, и продукт уедет в корзину.</div>
+28478|         ${home.map(x=>`<div class="stat"><span class="l">${esc(x.product_name)}</span><span class="v">${x.product_id?`<button class="btn sm sec" data-pnout="${esc(x.product_id)}" style="padding:2px 10px;font-size:var(--fs1);line-height:var(--lh1)">кончилось</button>`:'<span class="mini">дома</span>'}</span></div>`).join('')}`:''}
+28479|         <button class="btn sec" style="margin-top:12px;width:100%" id="mbCopy">Скопировать корзину</button>`
+28480|         :'<div class="ob" style="margin-top:12px">Всё для меню уже есть дома — докупать нечего.</div>')
+28481|       +'<div class="note" style="margin-top:8px">Меню собрано из готовых блюд базы под твои КБЖУ (вкусы и «не предлагать» учтены). Одинаковые блюда разных дней сложены в одну покупку, кладовая вычтена. Тап по блюду в «Что съесть» покажет рецепт.</div>'
+28482|       +'<button class="btn sec" style="margin-top:8px;width:100%" id="mbProducts">Собрать из продуктов (обычный список)</button>';
+28483|     const mc=$('mbCopy'); if(mc) mc.onclick=async()=>{ try{ await navigator.clipboard.writeText(txt); toast('Скопировано'); }catch(e){ askText({title:'Скопируй',value:txt,ok:'Готово'}); } };
+28484|     const mp=$('mbProducts'); if(mp) mp.onclick=()=>fallback();
+28485|     /* ТОЧКА ПОСЛЕДСТВИЯ. Кладовая — список, который человек ведёт руками: съел
+28486|        творог, а в кладовой он остался, и корзина молча его вычла. Дальше магазин
+28487|        и «а творога-то нет». Инвентаризацию тут строить нечем: запись в дневнике
+28488|        хранит только имя, а кладовая — product_id общего каталога, связывать
+28489|        пришлось бы по названиям. Поэтому спрашиваем ровно там, где ответ имеет
+28490|        цену, — в момент сборки корзины, одним тапом (23.08). */
+28491|     out.querySelectorAll('[data-pnout]').forEach(b=>b.onclick=async()=>{
+28492|       const pid=b.dataset.pnout; b.disabled=true; b.textContent='убираю…';
+28493|       try{
+28494|         await catPantryDel(pid);
+28495|         try{ pnHave.delete(pid); }catch(e){}
+28496|         toast('Убрал из кладовой — пересобираю корзину');
+28497|         menuBasket(days);
+28498|       }catch(e){ b.disabled=false; b.textContent='кончилось'; toast(netErr(e)); }
+28499|     });
+28500|     out.querySelectorAll('[data-mblog]').forEach(b=>b.onclick=async()=>{

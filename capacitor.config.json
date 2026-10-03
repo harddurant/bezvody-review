@@ -1,0 +1,21 @@
+{
+  "appId": "com.bezvody.app",
+  "appName": "Без воды",
+  "webDir": "dist",
+  "ios": {
+    "backgroundColor": "#000000",
+    "contentInset": "never",
+    "allowsLinkPreview": false,
+    "limitsNavigationsToAppBoundDomains": true
+  },
+  "android": {
+    "backgroundColor": "#000000"
+  },
+  "plugins": {
+    "Keyboard": {
+      "resize": "none",
+      "style": "dark",
+      "resizeOnFullScreen": false
+    }
+  }
+}

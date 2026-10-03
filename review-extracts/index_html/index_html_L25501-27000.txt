@@ -1,0 +1,1501 @@
+// ИЗВЛЕЧЕНИЕ ДЛЯ ЧТЕНИЯ: index.html, строки 25501–27000 из 31008. Номера строк совпадают с оригиналом. Код не менялся.
+25501| function restSave(){
+25502|   try{
+25503|     localStorage.setItem('restEndAt',String(restEndAt));
+25504|     localStorage.setItem('restTotal',String(restTotal||0));
+25505|     if(restPause>0) localStorage.setItem('restPause',String(restPause));
+25506|     else localStorage.removeItem('restPause');
+25507|   }catch(e){}
+25508| }
+25509| let restFlashT=0;
+25510| let restWhat='';           // что это за отдых: «между подводящими», «перед первым рабочим»
+25511| /* ── СИГНАЛ ПОД ЗАБЛОКИРОВАННЫМ ЭКРАНОМ (форма владельца 09.09: «при
+25512|    выключенном телефоне ничего не приходило») ──
+25513|    Заблокированный iPhone усыпляет страницу: таймеры стоят, WebAudio молчит.
+25514|    Не усыпляет он страницу, которая ИГРАЕТ ЗВУК через медиаэлемент: на время
+25515|    отдыха крутим тишину (запуск — из того же тапа, что и старт отдыха, иначе
+25516|    браузер не пустит), а сам сигнал в конце играем тем же элементом как
+25517|    WAV, собранный на лету — без файла и без веса в исходнике. Выключается
+25518|    вместе с отдыхом; в настройках тот же «без звука». */
+25519| let _restAud=null, _wavSilent=null, _wavBeep=null;
+25520| function mkWav(seq){ // seq: [[частота, мс], …]; 8 кГц, 8 бит — сигнал, а не музыка
+25521|   const sr=8000, n=seq.reduce((a,x)=>a+Math.round(sr*x[1]/1000),0), buf=new Uint8Array(44+n);
+25522|   const w32=(o,v)=>{ buf[o]=v&255; buf[o+1]=(v>>8)&255; buf[o+2]=(v>>16)&255; buf[o+3]=(v>>24)&255; };
+25523|   const w16=(o,v)=>{ buf[o]=v&255; buf[o+1]=(v>>8)&255; };
+25524|   [..."RIFF"].forEach((c,i)=>buf[i]=c.charCodeAt(0)); w32(4,36+n); [..."WAVEfmt "].forEach((c,i)=>buf[8+i]=c.charCodeAt(0));
+25525|   w32(16,16); w16(20,1); w16(22,1); w32(24,sr); w32(28,sr); w16(32,1); w16(34,8); [..."data"].forEach((c,i)=>buf[36+i]=c.charCodeAt(0)); w32(40,n);
+25526|   let p=44; seq.forEach(([f,ms])=>{ const len=Math.round(sr*ms/1000); for(let i=0;i<len;i++){ const env=Math.min(1,i/40,(len-i)/40); buf[p++]=f?Math.round(128+100*env*Math.sin(2*Math.PI*f*i/sr)):128; } });
+25527|   return URL.createObjectURL(new Blob([buf],{type:'audio/wav'}));
+25528| }
+25529| /* ── ЗВОНОК ПОСРЕДИ ОТДЫХА (NAVIGATION.md §2.5, сценарий 3, v592) ──
+25530|    Входящий звонок обрывает аудиосессию: тишина встаёт на паузу, баннер
+25531|    звонка НЕ даёт visibilitychange, и если после него экран погас — страница
+25532|    спит, сигнала конца нет. Свою паузу (стоп, конец, сигнал) отличаем от
+25533|    чужой флагом _ourPause; чужую при живом отдыхе перезапускаем сами — из
+25534|    события pause, когда WebKit вернёт управление, и по focus как страховку.
+25535|    Если play() отвергнут (после жёсткого прерывания iOS хочет жест) —
+25536|    подпись полосы зовёт нажать, тап по полосе и есть этот жест. */
+25537| let _ourPause=false, _restBlocked=false;
+25538| function restAud(){
+25539|   try{
+25540|     if(!_restAud){ _restAud=document.createElement('audio'); _restAud.setAttribute('playsinline',''); _restAud.preload='auto';
+25541|       try{ _restAud.addEventListener('pause',restKeepInterrupted); }catch(e){} }
+25542|     if(!_wavSilent) _wavSilent=mkWav([[0,1000]]);
+25543|     if(!_wavBeep) _wavBeep=mkWav([[880,160],[0,60],[880,160],[0,60],[1180,320]]);
+25544|     return _restAud;
+25545|   }catch(e){ return null; }
+25546| }
+25547| function restKeepOn(){ if(S.restMute) return; const a=restAud(); if(!a) return;
+25548|   try{ _ourPause=false; a.loop=true; a.volume=0.01; if(a.src!==_wavSilent) a.src=_wavSilent;
+25549|     const p=a.play();
+25550|     if(p&&p.then) p.then(()=>restBlocked(false)).catch(()=>{ if(restEndAt&&!restPause) restBlocked(true); });
+25551|   }catch(e){} }
+25552| function restKeepOff(){ const a=_restAud; if(!a) return; try{ _ourPause=true; a.loop=false; a.pause(); }catch(e){} restBlocked(false); }
+25553| function restBeepAud(){ if(S.restMute) return; const a=restAud(); if(!a) return; try{ _ourPause=true; a.loop=false; a.volume=0.35; a.src=_wavBeep; a.play().catch(()=>{}); }catch(e){} }
+25554| /* Пауза не наша (звонок, Siri, другой плеер) при живом отдыхе → вернуть тишину.
+25555|    Один заход на прерывание: если play() отвергли, дальше ждём жеста, а не
+25556|    крутим pause→play→pause по кругу. */
+25557| function restKeepInterrupted(){
+25558|   if(_ourPause||_restBlocked) return;
+25559|   if(!restEndAt||restPause) return;
+25560|   setTimeout(()=>{ if(!_ourPause&&restEndAt&&!restPause) restKeepOn(); },300);
+25561| }
+25562| function restBlocked(on){
+25563|   on=!!on; if(_restBlocked===on) return;
+25564|   _restBlocked=on;
+25565|   try{ const b=$('restBar'); if(b) b.classList.toggle('mute',on); updRest(); }catch(e){}
+25566| }
+25567| function startRest(sec,что){
+25568|   restWhat=что||'';
+25569|   restKeepOn();                    // из того же тапа — иначе под замком сигнала не будет
+25570|   /* Новый отдых отменяет уборку прошлой вспышки и снимает её метку: иначе
+25571|      зелёный фон «Готово» останется поверх работающего таймера. */
+25572|   clearTimeout(restFlashT);
+25573|   { const _b=$('restBar'); if(_b) _b.classList.remove('done'); }
+25574|   { const _c=$('restCap'); if(_c) _c.textContent='отдых'; }
+25575|   sayWarm();                       // разогрев синтеза: сюда всегда приходят из тапа
+25576|   restEndAt=Date.now()+sec*1000;
+25577|   restTotal=sec; restPause=0; _restBeeped=0;
+25578|   restSave();
+25579|   const bar=$('restBar'); if(!bar) return;
+25580|   bar.classList.add('on'); bar.classList.remove('soon','paused');
+25581|   updRest(); restPaint(); barsSync(); wakeOn();
+25582|   restSchedule();
+25583| }
+25584| /* ── v626: ТИК ПРИХОДИТ НА СМЕНУ ЦИФРЫ, А НЕ ЧЕТЫРЕ РАЗА В СЕКУНДУ ──
+25585|    Был интервал на 250 мс — 360 пробуждений за полторы минуты отдыха
+25586|    (замер 19.09: 0,145 мс на тик, 52 мс главного потока за один отдых, и всё
+25587|    это при выключенном экране). Стало 90: следующий тик считается от часов,
+25588|    поэтому цифра не уезжает даже после заморозки вкладки, а три
+25589|    предупредительных тона звучат ровно на своих секундах.
+25590|    Имя ручки прежнее, restIv: она одна на весь таймер, и её одинаково гасят
+25591|    clearTimeout и clearInterval — на этом стоит браузерный прогон, который
+25592|    повторяет за iOS убийство таймеров в фоне. */
+25593| function restSchedule(){
+25594|   clearTimeout(restIv); restIv=null;
+25595|   if(!restEndAt||restPause) return;
+25596|   const ms=restEndAt-Date.now();
+25597|   if(ms<=0){ restIv=setTimeout(tickRest,0); return; }
+25598|   /* до ближайшей смены цифры, плюс 8 мс: прийти надо ПОСЛЕ границы секунды,
+25599|      иначе Math.ceil вернёт то же число и тик сработает дважды на одной. */
+25600|   const d=ms-Math.floor((ms-1)/1000)*1000;
+25601|   restIv=setTimeout(tickRest,Math.max(8,d)+8);
+25602| }
+25603| function tickRest(){
+25604|   restIv=null;
+25605|   if(!restEndAt||restPause) return;
+25606|   const ms=restEndAt-Date.now();
+25607|   const left=Math.ceil(ms/1000);
+25608|   /* Отсчёт последних трёх секунд: встать нужно ДО сигнала, а не после него.
+25609|      Каждая отметка звучит один раз — иначе тик задребезжит. */
+25610|   if(left<=3&&left>0&&_restBeeped!==left){ _restBeeped=left; beep(660,90,0.14); }
+25611|   if(ms<=0){ restDone(); return; }
+25612|   /* Следующий тик назначается ВСЕГДА, чем бы ни кончилась отрисовка кадра:
+25613|      цепочка из setTimeout тем и опасна, что одно исключение внутри убивает
+25614|      отсчёт навсегда и молча — интервал в такой же ситуации пришёл бы снова.
+25615|      Разбор v627: это единственное, чем цепочка была хуже интервала. */
+25616|   try{ updRest(); }catch(e){}
+25617|   restSchedule();
+25618| }
+25619| /* Полоса убывает ОДНОЙ композитной анимацией на весь остаток отдыха.
+25620|    Раньше её transform переписывали на каждом тике — 360 перезапусков
+25621|    полусекундного перехода за отдых. Теперь JS трогает её при старте, паузе
+25622|    и правке времени, а дальше рисует компоновщик: на выключенном экране это
+25623|    ноль работы главного потока. Ширину не трогаем никогда — width заставляет
+25624|    пересчитывать раскладку всей полосы, scaleX не заставляет ничего. */
+25625| function restPaint(){
+25626|   const f=$('restFill'); if(!f||!f.style) return;
+25627|   const total=(restTotal||0)*1000;
+25628|   if(!restEndAt||total<=0){ f.style.transition='none'; f.style.transform='scaleX(1)'; return; }
+25629|   const ms=Math.max(0,restPause||(restEndAt-Date.now()));
+25630|   f.style.transition='none';
+25631|   f.style.transform='scaleX('+Math.max(0,Math.min(1,ms/total))+')';
+25632|   if(restPause) return;                    // на паузе полоса замирает там, где стоит
+25633|   void f.offsetWidth;                      // зафиксировать стартовую точку до перехода
+25634|   f.style.transition='transform '+Math.round(ms)+'ms linear';
+25635|   f.style.transform='scaleX(0)';
+25636| }
+25637| /* Ответ на «+30» — в самой кнопке: пастельная вспышка на 420 мс.
+25638|    Всплывашка поверх тренировки для этого не годится (правило v625). */
+25639| function restBumpFlash(){
+25640|   const b=$('restBump'); if(!b||!b.classList) return;
+25641|   try{
+25642|     b.classList.remove('bump');
+25643|     if(b._bmpT) clearTimeout(b._bmpT);
+25644|     void b.offsetWidth;                    // перезапуск анимации без второго класса
+25645|     b.classList.add('bump');
+25646|     b._bmpT=setTimeout(()=>{ try{ b.classList.remove('bump'); }catch(_e){} },460);
+25647|   }catch(e){}
+25648| }
+25649| /* Отдых кончился: три тона и снятие блокировки экрана. Вибрация оставлена
+25650|    для Android — в Safari её нет вовсе, и на iPhone это была тихая заглушка. */
+25651| function restDone(){
+25652|   restBeepAud();                   // сигнал тем элементом, который держал страницу живой под замком
+25653|   beep(880,160,0.26);
+25654|   setTimeout(()=>beep(880,160,0.26),200);
+25655|   setTimeout(()=>beep(1180,320,0.30),400);
+25656|   /* Вибрацию просим только если человек уже касался экрана в этой вкладке:
+25657|      без этого браузер её молча отклоняет и пишет в консоль ошибку, которая
+25658|      потом всплывает в краш-логе как настоящая. В Safari вибрации нет вовсе,
+25659|      и поэтому ниже обязательно идёт видимая вспышка: на айфоне она — не
+25660|      дополнение к вибрации, а замена ей. */
+25661|   try{ const ua=navigator.userActivation;
+25662|     if(navigator.vibrate&&(!ua||ua.hasBeenActive)) navigator.vibrate([180,90,180]); }catch(e){}
+25663|   restFlash();
+25664|   sayNext();
+25665| }
+25666| /* Вспышка «отдых окончен»: полторы секунды на том же месте, где стоял таймер,
+25667|    и уходит сама. Экран гасить нельзя раньше, чем человек её увидел, поэтому
+25668|    wakeOff зовётся вместе с уборкой, а не сразу. */
+25669| function restFlash(){
+25670|   const b=$('restBar');
+25671|   if(!b){ stopRest(); return; }
+25672|   clearTimeout(restIv); restIv=null; restEndAt=0; restTotal=0; restPause=0;
+25673|   try{ localStorage.removeItem('restEndAt'); localStorage.removeItem('restTotal');
+25674|        localStorage.removeItem('restPause'); }catch(e){}
+25675|   b.classList.remove('soon','paused'); b.classList.add('done');
+25676|   { const t=$('restT'); if(t) t.textContent='Готово';
+25677|     const c=$('restCap'); if(c) c.textContent='отдых окончен'; }
+25678|   clearTimeout(restFlashT);
+25679|   restFlashT=setTimeout(()=>{ try{
+25680|     /* Человек мог начать следующий подход, не дожидаясь, пока вспышка уйдёт.
+25681|        Тогда убирать нечего: на экране уже НОВЫЙ отдых, и стереть его — значит
+25682|        погасить работающий таймер через полторы секунды после старта.
+25683|        Поймано браузерным прогоном сразу после того, как я это написал:
+25684|        «на паузе время утекает: было 1:30, стало 0:00». */
+25685|     if(restEndAt||restPause) return;
+25686|     b.classList.remove('done','big','on');
+25687|     const t=$('restT'); if(t) t.textContent='0:00';
+25688|     const c=$('restCap'); if(c) c.textContent='отдых';
+25689|     wakeOff(); barsSync();
+25690|   }catch(e){} },1500);
+25691| }
+25692| function bumpRest(sec){
+25693|   if(!restEndAt) return;
+25694|   if(restPause){ restPause=Math.max(1,restPause+sec*1000); }
+25695|   else{
+25696|     /* Ниже нуля не уводим: «−30» на последних секундах должно закончить
+25697|        отдых, а не запустить отсчёт в минус. */
+25698|     const left=restEndAt-Date.now();
+25699|     if(left+sec*1000<=0){ restDone(); return; }
+25700|     restEndAt+=sec*1000;
+25701|   }
+25702|   restTotal=Math.max(restTotal||0,Math.ceil(((restPause||(restEndAt-Date.now()))/1000)));
+25703|   restSave(); updRest(); restPaint(); restSchedule();
+25704| }
+25705| function pauseRest(){
+25706|   if(!restEndAt) return;
+25707|   const bar=$('restBar');
+25708|   if(restPause){                                   // снимаем паузу
+25709|     restEndAt=Date.now()+restPause; restPause=0;
+25710|     if(bar) bar.classList.remove('paused');
+25711|   }else{                                           // ставим
+25712|     restPause=Math.max(1,restEndAt-Date.now());
+25713|     if(bar) bar.classList.add('paused');
+25714|   }
+25715|   const b=$('restPause'); if(b) b.textContent=restPause?'Пуск':'Пауза';
+25716|   restSave(); updRest(); restPaint(); restSchedule();
+25717| }
+25718| function updRest(){
+25719|   const el=$('restT'); if(!el) return;
+25720|   const ms=restPause||Math.max(0,restEndAt-Date.now());
+25721|   const left=Math.ceil(ms/1000);
+25722|   el.textContent=Math.floor(left/60)+':'+String(left%60).padStart(2,'0');
+25723|   /* Подпись — свойство самого отдыха, а не разовая надпись: тик идёт четыре
+25724|      раза в секунду и затирал бы всё, что написали при старте. Человек должен
+25725|      видеть, ЧТО он сейчас отдыхает: между подводящими это 45 секунд, перед
+25726|      первым рабочим — полторы-две минуты, и разница ему важна. */
+25727|   const cap=$('restCap'); if(cap) cap.textContent=_restBlocked?'нажми — вернуть сигнал':(restPause?'пауза':(restWhat||'отдых'));
+25728|   /* Полосу на тике не трогаем: с v626 она живёт своей композитной анимацией,
+25729|      её перезапускает restPaint — на старте, на паузе и при правке времени. */
+25730|   const bar=$('restBar');
+25731|   if(bar) bar.classList.toggle('soon',!restPause&&left<=10);
+25732| }
+25733| function stopRest(){ clearTimeout(restIv); restIv=null; restEndAt=0; restTotal=0; restPause=0; restPaint(); try{ restKeepOff(); }catch(e){}
+25734|   try{ localStorage.removeItem('restEndAt'); localStorage.removeItem('restTotal');
+25735|        localStorage.removeItem('restPause'); }catch(e){}
+25736|   wakeOff();
+25737|   const b=$('restBar'); if(b) b.classList.remove('on','soon','paused','big'); barsSync(); }
+25738| /* Возврат в приложение (разблокировка / перезапуск PWA): дорисовать таймер по часам */
+25739| function resumeRest(){
+25740|   if(!restEndAt){ try{ restEndAt=+localStorage.getItem('restEndAt')||0;
+25741|     restTotal=+localStorage.getItem('restTotal')||0;
+25742|     restPause=+localStorage.getItem('restPause')||0; }catch(e){} }
+25743|   if(!restEndAt) return;
+25744|   if(!restPause&&restEndAt-Date.now()<=0){
+25745|     /* Истёк, пока нас не было. Раньше полоса просто исчезала молча — человек
+25746|        возвращался и не знал, отдыхал он полторы минуты или пять. */
+25747|     const b=$('restBar'); if(b) b.classList.remove('on','soon','paused','big');
+25748|     stopRest(); try{ toast('Отдых закончился, пока экран был выключен'); }catch(e){}
+25749|     return;
+25750|   }
+25751|   const bar=$('restBar'); if(bar){ bar.classList.add('on'); bar.classList.toggle('paused',!!restPause); }
+25752|   const pb=$('restPause'); if(pb) pb.textContent=restPause?'Пуск':'Пауза';
+25753|   updRest(); restPaint(); barsSync(); if(!restPause){ wakeOn(); restKeepOn(); }
+25754|   restSchedule();
+25755| }
+25756| document.addEventListener('visibilitychange',()=>{ if(!document.hidden){ resumeRest(); } });
+25757| /* Страховка по фокусу: баннер звонка не даёт visibilitychange, а focus при
+25758|    возврате — даёт. Тишина и блокировка экрана заново. */
+25759| addEventListener('focus',()=>{ try{ if(restEndAt&&!restPause){ restKeepOn(); wakeOn(); } }catch(e){} });
+25760| 
+25761| /* Черновик подхода: введённые вес/повторы переживают выгрузку PWA (полевой
+25762|    отчёт 04.08: экран потух или отвлёкся на тренера — введённое пропало).
+25763|    Сохраняем на каждый ввод, возвращаем при открытии карточки того же
+25764|    упражнения, чистим при успешной записи подхода. */
+25765| function stDraftSave(){
+25766|   try{
+25767|     const w=$('st_w').value, r=$('st_r').value;
+25768|     if(!w&&!r){ localStorage.removeItem('stDraft'); return; }
+25769|     localStorage.setItem('stDraft',JSON.stringify({e:$('st_e').value,w,r,ts:Date.now()}));
+25770|   }catch(e){}
+25771| }
+25772| function stDraftLoad(exName){
+25773|   try{
+25774|     const d=JSON.parse(localStorage.getItem('stDraft')||'null');
+25775|     if(!d||d.e!==exName||Date.now()-d.ts>2*3600e3) return null;
+25776|     return d;
+25777|   }catch(e){ return null; }
+25778| }
+25779| function stDraftClear(){ try{ localStorage.removeItem('stDraft'); }catch(e){} }
+25780| /* Черновики inline-полей карточки дня (полевой кейс 04.08: ввёл 105 вместо
+25781|    подставленных 110, свернул — вернулось 110). Ключ «день:упражнение»;
+25782|    переживают и перерисовку экрана, и выгрузку PWA. */
+25783| function wDraftAll(){ try{ return JSON.parse(localStorage.getItem('wDrafts')||'{}')||{}; }catch(e){ return {}; } }
+25784| function wDraftGet(D,name){ const d=wDraftAll()[D+':'+name]; return (d&&Date.now()-d.ts<2*3600e3)?d:null; }
+25785| function wDraftSet(D,name,w,r){
+25786|   try{
+25787|     const all=wDraftAll();
+25788|     if(w===''&&r==='') delete all[D+':'+name];
+25789|     else all[D+':'+name]={w,r,ts:Date.now()};
+25790|     Object.keys(all).forEach(k=>{ if(Date.now()-all[k].ts>2*3600e3) delete all[k]; });
+25791|     localStorage.setItem('wDrafts',JSON.stringify(all));
+25792|   }catch(e){}
+25793| }
+25794| function wDraftClear(D,name){ try{ const all=wDraftAll(); delete all[D+':'+name]; localStorage.setItem('wDrafts',JSON.stringify(all)); }catch(e){} }
+25795| $('st_w')&&($('st_w').addEventListener('input',stDraftSave));
+25796| $('st_r')&&($('st_r').addEventListener('input',stDraftSave));
+25797| /* Открыть лог подхода с УЖЕ ПОДСТАВЛЕННЫМИ цифрами */
+25798| function openSetSheet(item){
+25799|   stPick=false;
+25800|   { const sf=$('stFields'); if(sf) sf.style.display=''; const sp=$('st_prev'); if(sp) sp.style.display=''; $('bStOk').textContent='Добавить подход'; }
+25801|   exSetSelect(exGroups());
+25802|   if(item) $('st_e').value=item.n;
+25803|   else if(SETS.length) $('st_e').value=SETS[SETS.length-1].e;
+25804|   exSyncBtn(); stPrev(); sheet('sh-st',true);
+25805|   const dr=stDraftLoad($('st_e').value);
+25806|   if(dr){ if(dr.w) $('st_w').value=dr.w; if(dr.r) $('st_r').value=dr.r;
+25807|     toast('Вернул несохранённый ввод — проверь и запиши'); }
+25808|   setTimeout(()=>{const w=$('st_w'); if(w&&!w.value) w.focus()},250);
+25809| }
+25810| 
+25811| /* ── ОТСТАЮЩИЕ И БЛОК ── */
+25812| /* Какой обхват отвечает какой группе — для строки динамики в «Что отстаёт» */
+25813| const MEAS_OF={biceps:'arm',triceps:'arm',quads:'thigh',hams:'thigh',chest:'chest',delts:'shoulders',glutes:'hips'};
+25814| function measDelta(mk){
+25815|   const ms=[...M].sort((a,b)=>a.d<b.d?-1:1); if(!ms.length) return null;
+25816|   const last=ms[ms.length-1]; if(last[mk]==null) return null;
+25817|   const old=ms.filter(x=>{const a=dn(last.d)-dn(x.d);return a>=21&&a<=60&&x[mk]!=null}).pop();
+25818|   return old?{d:last[mk]-old[mk]}:null;
+25819| }
+25820| function rLag(){
+25821|   const box=$('lagBox'), rows=laggards();
+25822|   if(!rows){
+25823|     box.innerHTML=`<div class="wb">Нужны <b>базовые со свободным весом</b> и текущий вес · 2–3 недели записей</div>`;
+25824|     $('revCard').style.display='none'; return;
+25825|   }
+25826|   const B=S.block;
+25827|   const v7=volume(7);
+25828|   box.innerHTML=`<details class="det" style="margin-bottom:12px"><summary style="font-size:var(--fs2);line-height:var(--lh2)">Что здесь меряется</summary><div class="mini" style="margin-top:8px">Здесь меряется <b>сила</b> в базовых со свободным весом — относительно норматива для твоего веса тела, 1.00 = ровно норма. Обхваты в счёт силы не входят: их месячная динамика показана строкой ниже, а рост объёма судит «Разбор блока» на 42-й день.</div></details>
+25829|      <div class="mini" style="margin:0 0 10px;color:var(--t3)">Светлая зона — норма (100–125%)</div>`
+25830|    +(function(){
+25831|       /* Двенадцать групп подряд — 1510 px и приговор на входе в свою
+25832|          программу. На экране остаются те, кто ниже нормы, и приоритетные;
+25833|          остальные — за раскрывашкой одной строкой. Ничего не выброшено. */
+25834|       /* Приоритетная группа, которая НЕ ниже нормы, — не отстающая: показывать
+25835|          её под заголовком «Что отстаёт» значит врать заголовком (замер 12.09:
+25836|          у владельца отстающих нет, а на экране стояли Бицепс 118 % и Спина
+25837|          119 %). Отстают только те, кто ниже нормы; приоритет блока называется
+25838|          отдельной строкой. */
+25839|       const _bad=rows.filter(r=>r.s<1);
+25840|       const _pri=rows.filter(r=>B&&B.focus&&B.focus.includes(r.m));
+25841|       const _ok=rows.filter(r=>_bad.indexOf(r)<0);
+25842|       const _row=r=>{
+25843|       /* Тот же язык, что у анализов: положение на шкале с зоной нормы вместо
+25844|          заливки от нуля и подписи словами. Раньше шесть строк подряд говорили
+25845|          одну и ту же подпись про отставание — повторённая у всех, она не
+25846|          значит ничего, а вместе читались как приговор на входе в свою программу.
+25847|          И «0.53» без единиц требовало словаря, спрятанного в раскрывашке;
+25848|          процент от норматива понятен сразу (19.08). */
+25849|       const on=B&&B.focus&&B.focus.includes(r.m);
+25850|       const pc=x=>Math.max(2,Math.min(98,x/1.6*100));
+25851|       const win=r.s>=1.25;
+25852|       // связка с реальностью: обхват за месяц + объём, если группа отстаёт
+25853|       const mk=MEAS_OF[r.m], md=mk?measDelta(mk):null;
+25854|       const notes=[];
+25855|       if(md&&Math.abs(md.d)>=0.3) notes.push('обхват за месяц '+(md.d>0?'+':'')+r1(md.d)+' см');
+25856|       const lm=LM[r.m];
+25857|       if(r.s<1&&v7[r.m]!=null&&v7[r.m]<lm[1])
+25858|         notes.push('объём '+r1(v7[r.m])+' подх/нед, целься в <span style="white-space:nowrap">'+lm[1]+'–'+lm[2]+'</span>');
+25859|       return `<div class="lb${win?' win':''}">
+25860|         <div class="lbh"><div class="n">${MUS[r.m]}${on?' <span class="tag">приоритет</span>':''}</div>
+25861|           <div class="v">${Math.round(r.s*100)}<u>% нормы</u>${win?'<s>сильнее нормы</s>':''}</div></div>
+25862|         <div class="lbb"><i style="left:${pc(1)}%;right:${100-pc(1.25)}%"></i><b style="left:${pc(r.s)}%"></b></div>
+25863|         ${notes.length?`<div class="lbf"><span class="r">${notes.join(' · ')}</span></div>`:''}</div>`;
+25864|       };
+25865|       const _priTxt=_pri.length?' Приоритет блока: '+_pri.map(r=>MUS[r.m]).join(', ')+'.':'';
+25866|       return (_bad.length?_bad.map(_row).join('')
+25867|               :'<div class="ob">Отстающих групп нет — все в норме или выше.'+_priTxt+'</div>')
+25868|         +(_ok.length?`<details class="det" style="margin-top:12px"><summary>Ещё ${_ok.length} ${plural(_ok.length,'группа','группы','групп')} в норме</summary>
+25869|            <div style="margin-top:8px">${_ok.map(_row).join('')}</div></details>`:'');
+25870|     })()
+25871|    +(function(){try{
+25872|       const sn=sanityScan();
+25873|       if(!sn.length) return '<div class="ob sb sb-ok" style="margin-top:12px"><svg class="ic sb-i"><use href="#i-check"/></svg><div>Самопроверка программы: замечаний нет.</div></div>';
+25874|       /* v605: смарт-карточка-аккордеон — заголовок с оранжевым знаком, замечания
+25875|          строками списка, кнопка починки во всю ширину. Сборка — склейкой строк. */
+25876|       let h='<details class="det sb sb-warn" id="sanDet" style="margin-top:12px"><summary><svg class="ic sb-i"><use href="#i-warn"/></svg><span class="sb-t">Самопроверка нашла '+sn.length+' '+plural(sn.length,'замечание','замечания','замечаний')+'</span></summary><div class="sb-list">';
+25877|       sn.forEach(x=>{ h+='<div class="sb-row">'+esc(x.msg)+'</div>'; });
+25878|       h+='</div><button class="btn sb-fix" id="bSanFix">Исправить, что можно</button></details>';
+25879|       return h;
+25880|     }catch(e){return ''}})()
+25881|    +(!B&&rows[0]&&rows[0].s<1?`<div class="note" style="margin-top:12px">Отстающей группе объём добавляет <b>блок специализации</b> — кнопка «Настроить блок»: 6 недель приоритета (объём к верху диапазона), остальные группы — в поддержке. Иначе «отстаёт» так и останется констатацией.</div>`:'')
+25882|    /* Это не тревога, а «данных нет»: тонированная плашка на пол-экрана делала
+25883|       из справки аварию, а лекция про стеки тренажёров нужна один раз, не
+25884|       каждое открытие вкладки (19.08). */
+25885|    +(()=>{const b=blindSpots(); return b.length?`<div class="ob" style="margin-top:12px">
+25886|       <b>Судить не по чему:</b> ${b.map(x=>MUS[x.m]).join(', ')}
+25887|       <details class="det" style="margin-top:8px"><summary class="mini">чем закрыть</summary><div class="mini" style="margin-top:8px">${b.map(x=>`<b>${MUS[x.m].toLowerCase()}</b> — ${x.hint}`).join('; ')}.<br><br>Нормативы считаются только по свободным весам: «110 кг» на блоке одного производителя и другого — разные килограммы.</div></details></div>`:''})()
+25888|    /* Группы без норматива (икры, пресс) в списке силы не появятся никогда —
+25889|       значит и «отстаёт» про них не скажут. Судить о них можно только объёмом,
+25890|       и это честнее молчания: человек, который не делает икры вообще, должен
+25891|       увидеть ноль (аудит 21.08). */
+25892|    +(()=>{
+25893|       const sc=strengthScores()||{};
+25894|       const rest=Object.keys(MUS).filter(m=>sc[m]==null&&LM[m]);
+25895|       if(!rest.length) return '';
+25896|       const lines=rest.map(m=>{
+25897|         const val=v7[m]||0, lo=LM[m][1];
+25898|         const st=val<mevFor(m)?'<b style="color:var(--wn)">ниже минимума</b>':(val<lo?'ниже рабочего диапазона':'в диапазоне');
+25899|         return `<b>${MUS[m]}</b> — ${r1(val)} подх/нед, целься в <span style="white-space:nowrap">${LM[m][1]}–${LM[m][2]}</span>: ${st}`;
+25900|       });
+25901|       return `<div class="ib" style="margin-top:12px;white-space:normal"><b>Норматива силы нет — судим по объёму:</b><br>${lines.join('<br>')}
+25902|         <div class="note">Плитка тренажёра для голени и «планка 60 секунд» ничего не говорят о норме для твоего веса тела, поэтому в шкалу выше эти группы не попадают. Но пропасть из вида они не должны: в блок специализации их можно поставить так же, как остальные.</div></div>`;
+25903|     })()
+25904|    +`<div class="note"><b>Честная оговорка.</b> Нормативы силы сильно зависят от рычагов: с короткими руками жмёшь больше при тех же мышцах, с длинным бедром — приседаешь меньше. Так что это <b>подсказка, а не приговор</b>. Второй голос — обхваты: если бицепс не растёт в сантиметрах при растущей силе, значит растёт нервная адаптация, а не мышца.</div>`
+25905|    +(B?`<div class="ob" style="margin-top:12px"><b>Идёт блок:</b> ${B.focus.map(m=>MUS[m]).join(' + ')} · ${dn(td())-dn(B.start)} дн. из 42</div>`:'');
+25906|   const _sb=$('bSanFix');
+25907|   /* Кнопка говорила «Проверил и поправил» даже когда не исправила ничего, а
+25908|      список замечаний оставался на месте — человек читал это как «нажал, а
+25909|      окно не реагирует» (полевой отчёт 19.08). Теперь отвечает по факту. */
+25910|   if(_sb) _sb.onclick=async()=>{
+25911|     const l=await sanityFix(true);
+25912|     const f=l.fixed||0, left=sanityScan().length;
+25913|     toast(!l.length?'Замечаний нет'
+25914|       :f&&!left?('Поправил '+f+' — замечаний не осталось')
+25915|       :f?('Поправил '+f+', осталось '+left+' — их нужно решить вручную')
+25916|       :'Эти замечания сами не чинятся — их нужно решить вручную');
+25917|     rLag();
+25918|   };
+25919|   rRev();
+25920| }
+25921| function rRev(){
+25922|   const R=blockReview(), c=$('revCard');
+25923|   if(!R){c.style.display='none';return}
+25924|   c.style.display='block';
+25925|   if(!R.ready){
+25926|     $('revBox').innerHTML=`<div class="ib">Блок идёт <b>${R.days} дн.</b> Разбор будет на 42-й день — раньше судить бессмысленно: обхваты меняются на 0.5–1 см за 6–8 недель, а погрешность сантиметровой ленты ±0.5 см. За две недели ты увидишь только шум.</div>`;
+25927|     return;
+25928|   }
+25929|   const B=S.block;
+25930|   const grew=R.rows.filter(r=>r.grew), flat=R.rows.filter(r=>r.flat);
+25931|   $('revBox').innerHTML=`<div class="mini" style="margin-bottom:12px">Блок ${B.focus.map(m=>MUS[m]).join(' + ')} · ${R.days} дней</div>`
+25932|    +R.rows.map(r=>`<div class="stat"><span class="l">${MUS[r.m]}</span><span class="v" style="color:${r.grew?'var(--ac)':r.flat?'var(--t3)':'var(--t2)'}">
+25933|       ${r.dStr!=null?(r.dStr>0?'+':'')+r0(r.dStr)+'% сила':'—'}${r.dCm!=null?' · '+(r.dCm>0?'+':'')+r1(r.dCm)+' см':''}
+25934|       ${r.grew?' ✓':''}</span></div>`).join('')
+25935|    +(grew.length?`<div class="ob" style="margin-top:12px"><b>Выросло: ${grew.map(r=>MUS[r.m]).join(', ')}.</b>
+25936|       Блок отработал. Переводи эти группы в поддержку и бери следующий приоритет — держать их в приоритете дальше смысла мало, отдача падает.</div>`:'')
+25937|    +(flat.length?`<div class="wb" style="margin-top:12px"><b>Не выросло: ${flat.map(r=>MUS[r.m]).join(', ')}.</b>
+25938|       Прежде чем добавлять объём, проверь три вещи в этом порядке:<br>
+25939|       1. <b>Ты был в профиците?</b> На дефиците отстающая группа почти не растёт — это не программа виновата.<br>
+25940|       2. <b>Ты доводил до RIR 1–2?</b> Или заканчивал, когда стало неприятно?<br>
+25941|       3. <b>Ты ел белок?</b> Посмотри во вкладке «Еда», сколько недель ты недобирал.<br><br>
+25942|       Если по всем трём «да» — тогда да, добавляй объём. Но в 80% случаев дело в первых трёх, а не в подходах.</div>`:'')
+25943|    +`<button class="btn sec" style="margin-top:12px" id="bEndBlock">Завершить блок</button>`;
+25944|   $('bEndBlock').onclick=async()=>{
+25945|     const done=new Set(B.focus);
+25946|     const next=(laggards()||[]).filter(r=>!done.has(r.m)).slice(0,2).map(r=>r.m);
+25947|     S.block=null; await put('settings',S,'main');
+25948|     rTrain();
+25949|     toast(next.length?'Блок закрыт. Следующие кандидаты: '+next.map(m=>MUS[m]).join(', '):'Блок закрыт');
+25950|   };
+25951| }
+25952| /* Нормативы силы есть не у всех групп: у икр и пресса их нет и быть не может
+25953|    (плитка тренажёра для голени и «планка 60 сек» ничего не говорят о норме
+25954|    для веса тела). Раньше список приоритетов строился ТОЛЬКО из измеренных
+25955|    групп — и человек, у которого отстают икры, физически не мог поставить их в
+25956|    блок специализации: чипа просто не было (аудит 21.08). Измеренные идут
+25957|    первыми и по возрастанию, остальные — следом, без цифры. */
+25958| function focusOrder(){
+25959|   const rows=laggards();
+25960|   const scored=rows?rows.map(r=>r.m):[];
+25961|   return [...scored,...Object.keys(MUS).filter(m=>!scored.includes(m))];
+25962| }
+25963| /* На сколько подходов блок реально поднимет приоритетные группы. Считается на
+25964|    копии программы: до согласия человека саму программу не трогаем. */
+25965| function focusGain(P,focus){
+25966|   const out={};
+25967|   if(!P||!focus||!focus.length) return out;
+25968|   const before=progVolume(P);
+25969|   let after=before;
+25970|   try{ const probe=JSON.parse(JSON.stringify(P)); applyFocus(probe,focus); after=progVolume(probe); }catch(_){}
+25971|   focus.forEach(m=>out[m]=Math.round(((after[m]||0)-(before[m]||0))*10)/10);
+25972|   return out;
+25973| }
+25974| $('bFocus').onclick=()=>{
+25975|   const rows=laggards();
+25976|   const cur=new Set((S.block&&S.block.focus)||[]);
+25977|   const order=focusOrder();
+25978|   $('fcPick').innerHTML=order.map(m=>{
+25979|     const r=rows&&rows.find(x=>x.m===m);
+25980|     return `<div class="chip ${cur.has(m)?'on':''}" data-fc="${m}">${MUS[m]}${r?' '+r2(r.s):''}</div>`;
+25981|   }).join('');
+25982|   $('fcPick').querySelectorAll('[data-fc]').forEach(c=>c.onclick=()=>{
+25983|     const on=$('fcPick').querySelectorAll('.chip.on').length;
+25984|     if(!c.classList.contains('on')&&on>=2) return toast('Максимум две группы — иначе это не специализация');
+25985|     c.classList.toggle('on');
+25986|   });
+25987|   sheet('sh-focus',true);
+25988| };
+25989| $('bFcOk').onclick=async()=>{
+25990|   const focus=[...$('fcPick').querySelectorAll('.chip.on')].map(c=>c.dataset.fc);
+25991|   if(!focus.length) return toast('Выбери хотя бы одну группу');
+25992|   if(!S.prog) return toast('Сначала собери программу');
+25993|   /* Блок специализации умеет ровно одно: поднять объём приоритетной группы к
+25994|      верху диапазона. Если она УЖЕ там (у спины в верх/низ на 4 дня так и
+25995|      есть — 22 подхода при потолке 22), то шесть недель ничего не изменят, а
+25996|      через шесть недель разбор скажет «роста нет» — и человек решит, что не
+25997|      работает он, хотя не сработал наш блок. Считаем разницу заранее и
+25998|      говорим честно, до запуска (аудит 21.08). */
+25999|   {
+26000|     const gain=focusGain(S.prog,focus), v0=progVolume(S.prog);
+26001|     if(focus.every(m=>(gain[m]||0)<1)){
+26002|       const t=focus.map(m=>MUS[m]+' '+r1(v0[m]||0)+' подх/нед').join(', ');
+26003|       if(!await ask({title:'Запустить блок всё равно?',text:'Объём тут уже на верху диапазона ('+t+') — блок его практически не поднимет. Если группа не растёт при полном объёме, дело не в подходах: техника в базовых, еда, сон, стаж.',ok:'Запустить',cancel:'Не надо'})) return;
+26004|     }
+26005|   }
+26006|   applyFocus(S.prog,focus);
+26007|   S.block={start:td(),focus,base:{str:strengthScores()||{}}};
+26008|   await put('settings',S,'main');
+26009|   sheet('sh-focus',false); rTrain();
+26010|   toast('Блок запущен: '+focus.map(m=>MUS[m]).join(' + '));
+26011| };
+26012| 
+26013| /* ── PROGRAM ── */
+26014| /* ── СОДЕРЖИМОЕ ДНЯ ПРОГРАММЫ (v605) ──
+26015|    Одна мысль — один раз (обход ролей 06.09, редактор): у восьми движений без
+26016|    истории одно пояснение печатается одной строкой над списком. Карточка
+26017|    упражнения: название (тап — лист), «база» контуром, схема, и строка
+26018|    совета — обычная, «Совет тренера» жёлтым (kind:'tip') или боль красным с
+26019|    щитом и левой полосой (kind:'pain'). */
+26020| function progDayHtml(d){
+26021|   const rows=d.ex.map(it=>({it,nt:nextTarget(it.n,it,{plan:1})}));
+26022|   const same=rows.filter(r=>/^(Истории нет|Первый раз)/.test(String(r.nt.msg||'')));
+26023|   const grouped=same.length>=2;
+26024|   let h=grouped?'<div class="pd-note">Истории нет: старт по твоему весу и стажу.</div>':'';
+26025|   rows.forEach(({it,nt})=>{
+26026|     const short=grouped&&/^(Истории нет|Первый раз)/.test(String(nt.msg||''));
+26027|     const line=short?(nt.w>0?'старт ~'+r1(nt.w)+' '+exUnit(it.n):'старт по первому подходу'):String(nt.msg||'');
+26028|     const kind=short?'':(nt.kind||'');
+26029|     h+='<div class="program-ex-card">'
+26030|       +'<div class="pex-h"><span class="pex-n" data-pex="'+esc(it.n)+'">'+esc(it.n)+'</span>'+(it.main?'<span class="tag base">база</span>':'')+'</div>'
+26031|       +'<div class="pex-s">'+it.sets+' × '+repsTxt(it)+(exTimed(it.n)?' сек':'')+' @ RIR '+effRIR()+'</div>'
+26032|       +(it.prehab&&it.fix?'<div class="pex-l">'+esc(it.fix)+'</div>':'')   // v671: слабое звено — зачем стоит
+26033|       +(kind==='pain'?'<div class="pex-pain"><svg class="ic"><use href="#i-shield"/></svg><div>'+line+'</div></div>'
+26034|        :kind==='tip'?'<div class="pex-tip"><div class="pex-tip-h">Совет тренера</div><div>'+line+'</div></div>'
+26035|        :'<div class="pex-l">'+line+'</div>')
+26036|       +'</div>'; });
+26037|   /* v666: движение в программу добавляется здесь, где программа и живёт;
+26038|      «+ Упражнение» на тренировке кладёт в дату. Номер дня — в кнопке. */
+26039|   const _pi=(S.prog&&S.prog.plan)?S.prog.plan.indexOf(d):-1;
+26040|   if(_pi>=0) h+='<button class="lrow pd-add" data-pdadd="'+_pi+'"><span class="li green"><svg class="ic"><use href="#i-plus"/></svg></span><span class="g"><span class="t">+ Движение в этот день</span></span><span class="ch"></span></button>';
+26041|   return h;
+26042| }
+26043| function rProg(){
+26044|   const P=S.prog, box=$('progBox');
+26045|   /* ── ЧЕТЫРЕ ДНЯ ЦЕЛИКОМ БЫЛИ ДЕВЯТЬЮ ЭКРАНАМИ (12.09) ──
+26046|      Замер на 375×667: карточка программы 3969 px, из них 3628 — четыре дня,
+26047|      расписанные полностью и всегда раскрытые. «Что у меня сегодня» человек
+26048|      смотрит во вкладке «Тренировка», сюда он заходит за структурой. Дни
+26049|      сворачиваются в строки; раскрыт ближайший тренировочный — его смотрят
+26050|      чаще всего. */
+26051|   if(!P){box.innerHTML='<div class="empty">Программы нет. Нажми «Собрать» — 5 вопросов, 20 секунд.</div>';
+26052|     $('argCard').style.display='none';return}
+26053|   const v=progVolume(P);
+26054|   const flags=Object.keys(MUS).filter(m=>v[m]>=LM[m][3]);
+26055|   /* ── ПРОСИЛ СЕМЬ, СОБРАЛИ ШЕСТЬ ──
+26056|      Раньше семёрка молча падала в фулбоди на три дня. Молчать нельзя ни при
+26057|      каком раскладе: человек выбрал число и вправе знать, почему получил
+26058|      другое. Ответ тренерский, а не отговорка — расти можно только между
+26059|      тренировками, и седьмой день полезнее отдать ходьбе. */
+26060|   box.innerHTML=(P.cfg.asked>P.cfg.days?`<div class="ib" style="margin-bottom:12px">
+26061|       <b>Ты выбрал ${P.cfg.asked} дней — собрал ${P.cfg.days}</b>
+26062|       <details class="det" style="margin-top:8px"><summary class="mini">почему</summary><div class="mini" style="margin-top:8px">Мышца растёт не на тренировке, а между ними: на седьмой день расти уже негде. Шесть тяжёлых дней плюс день ходьбы дают больше, чем семь тяжёлых. Седьмой день не пустой — цель по шагам на него та же. Хочешь семь — добавь день вручную, мешать не буду.</div></details></div>`:'')
+26063|     +(P.cfg.days===1?`<div class="ib" style="margin-bottom:12px">
+26064|       <b>Один день в неделю — это поддержание, а не рост</b>
+26065|       <details class="det" style="margin-top:8px"><summary class="mini">что тогда решает</summary><div class="mini" style="margin-top:8px">Силу и мышцы удержишь, заметно прибавлять на одной тренировке не выйдет — дело в арифметике объёма. Решают шаги и бытовая активность каждый день, белок каждый приём и сон. Программа собрана из самых крупных движений: изоляции нет намеренно, на неё в одном дне нет места.</div></details></div>`:'')
+26066|     +(P.cfg.fromCoach?`<div class="ob" style="margin-bottom:12px">
+26067|       <b>Программа из плана тренера</b> · веса и объём считаются по ней
+26068|       ${P.unmatched&&P.unmatched.length?`<br><b>Не нашёл в базе:</b> ${P.unmatched.map(esc).join(', ')}
+26069|       <details class="det" style="margin-top:8px"><summary class="mini">что с ними</summary><div class="mini" style="margin-top:8px">Эти упражнения не попадут в подсчёт объёма — добавь их вручную или замени аналогом.</div></details>`:''}</div>`:'')
+26070|     +`<div class="mini" style="margin-bottom:12px">${P.split} · ${P.cfg.days} дн/нед ·
+26071|     ${({gym:'зал',db:'гантели',bw:'свой вес'})[P.cfg.equip]} ·
+26072|     ${({hyper:'гипертрофия',strength:'сила',recomp:'рекомпозиция'})[P.cfg.goal]}
+26073|     ${ACCENT[P.cfg.accent]?'· акцент: '+ACCENT[P.cfg.accent].n.toLowerCase():''}
+26074|     ${P.cfg.inj&&P.cfg.inj.length?'· исключено: '+P.cfg.inj.map(k=>INJ[k].n).join(', '):''}</div>`
+26075|    +(function(){ const _dw=effDow(td());
+26076|       const _near=P.plan.slice().sort((x,y)=>((x.dow-_dw+7)%7)-((y.dow-_dw+7)%7))[0];
+26077|       /* v605: день — крупный аккордеон, упражнения — карточки. Содержимое дня
+26078|          собирается ЛЕНИВО: сразу — только ближайший (он открыт), остальные —
+26079|          при раскрытии (слушатель toggle на progBox, ниже). Склейка строк. */
+26080|       let h='';
+26081|       P.plan.forEach((d,i)=>{ const n=d.ex.length;
+26082|         h+='<details class="det progday"'+(d===_near?' open':'')+' data-pday="'+i+'">'
+26083|           +'<summary><span class="pd-n">'+esc(d.n)+'</span><span class="pd-c">'+n+' '+plural(n,'упражнение','упражнения','упражнений')+' · '+dayMinutes(d)+' мин</span></summary>'
+26084|           +'<div class="pd-body">'+(d===_near?progDayHtml(d):'')+'</div></details>'; });
+26085|       return h; })()
+26086|    +(function(){ try{ const rf=restFact(); if(!rf||!(rf.comp||rf.iso)) return ''; return '<div class="pd-note" style="margin-top:8px">Минуты дней — по твоему отдыху за 4 недели: база '+(rf.comp?r1(rf.comp/60)+' мин':'—')+', подсобка '+(rf.iso?r1(rf.iso/60)+' мин':'—')+' между подходами.</div>'; }catch(e){ return ''; } })()   /* v668 */
+26087|    +`<div class="stat" style="margin-top:4px"><span class="l">Подходов в неделю</span>
+26088|       <span class="v">${P.plan.reduce((a,d)=>a+d.ex.reduce((x,i)=>x+i.sets,0),0)}</span></div>
+26089|      <div class="stat"><span class="l">Тренировок в неделю</span><span class="v">${P.cfg.days}</span></div>`
+26090|    +(flags.length?`<div class="wb" style="margin-top:12px">Плановый объём выше MRV по группам: <b>${flags.map(m=>MUS[m]).join(', ')}</b>. Для большинства это перебор — но проверяется это не таблицей, а тем, восстанавливаешься ли ты.</div>`:'');
+26091|   /* Делегирование на progBox — один раз: box.innerHTML+= ниже пересоздаёт
+26092|      детей, а слушатели на контейнере переживают любую пересборку. Ленивый
+26093|      день наполняется при первом раскрытии; тап по названию — лист упражнения. */
+26094|   if(!box._pdBound){ box._pdBound=1;
+26095|     box.addEventListener('toggle',e=>{ const dt=e.target;
+26096|       if(!dt||!dt.open||!dt.classList||!dt.classList.contains('progday')) return;
+26097|       const b=dt.querySelector('.pd-body'), d=S.prog&&S.prog.plan&&S.prog.plan[+dt.dataset.pday];
+26098|       if(b&&d&&!b.innerHTML) b.innerHTML=progDayHtml(d); },true);
+26099|     box.addEventListener('click',e=>{ const t=e.target&&e.target.closest&&e.target.closest('[data-pex]');
+26100|       if(!t) return; const ex=EX.find(x=>x.n===t.dataset.pex); if(ex) showEx(ex); },true);
+26101|     box.addEventListener('click',e=>{ const t=e.target&&e.target.closest&&e.target.closest('[data-pdadd]');
+26102|       if(!t) return; e.stopPropagation(); addExercise({prog:+t.dataset.pdadd}); },true); }   // v666
+26103|   /* ── ЧЕСТНО ПРО ВРЕМЯ, В ОБЕ СТОРОНЫ ──
+26104|      Просьба владельца 24.08: «под это время и строить базу, но честно сказать,
+26105|      что при слишком малом объёме он недобирает, а при слишком большом —
+26106|      предупредить о последствиях».
+26107|      Молчать тут нельзя ни в одну сторону. Сорок минут трижды в неделю — это
+26108|      работающий график, но он физически не закрывает минимумы роста по всем
+26109|      группам, и человек имеет право узнать это в первый день, а не через
+26110|      полгода. А тому, кто закладывает два часа, надо сказать обратное: мы НЕ
+26111|      станем набивать это время подходами. Потолок держит восстановление, и
+26112|      лишние подходы за ним дают усталость, а не рост. */
+26113|   {
+26114|     const _bud=dayBudget(P);
+26115|     if(_bud){
+26116|       const _len=(P.plan||[]).map(d=>dayMinutes(d));
+26117|       const _max=_len.length?Math.max.apply(null,_len):0;
+26118|       /* v672: сводка «на поддержании» — при любом бюджете, с тем, что закроет (см. progSummaryHtml ниже) */
+26119|       if(_bud>=80&&_max<_bud-10)
+26120|         box.innerHTML+=`<div class="ib" style="margin-top:12px"><b>Заложено ${MINS_RU[_bud]||_bud+' минут'} · день выходит на ${_max}</b>
+26121|           <details class="det" style="margin-top:8px"><summary class="mini">почему не набиваю время</summary><div class="mini" style="margin-top:8px">Потолок держит не часы, а восстановление: за верхней границей объёма подходы дают усталость, а не рост, и первым ломается сон и желание идти в зал. Если время есть — потрать на качество: разминка подольше, отдых по норме, техника в первых подходах.</div></details></div>`;
+26122|     }
+26123|   }
+26124|   /* v672: честная сводка при сборке — что на поддержании и что это закроет; посчитано, не обещано */
+26125|   try{ box.innerHTML+=progSummaryHtml(P); }catch(e){}
+26126|   // если сплит физически не даёт набрать целевой объём — сказать об этом, а не молчать
+26127|   if(P.focus&&P.focus.length){
+26128|     const t=focusTargets(P.focus);
+26129|     const miss=P.focus.filter(m=>v[m]<t[m]-1.5);
+26130|     if(miss.length) box.innerHTML+=`<div class="wb" style="margin-top:12px">
+26131|       <b>Целевой объём недостижим на ${P.cfg.days} днях</b> · ${miss.map(m=>
+26132|         `${MUS[m]}: ${r1(v[m])} из ${t[m]}`).join(' · ')}
+26133|       <details class="det" style="margin-top:8px"><summary class="mini">варианты</summary><div class="mini" style="margin-top:8px">В сплите нет столько слотов под эти группы. Либо добавить день в неделю, либо смириться: ${r1(v[miss[0]])} подходов это тоже рабочий диапазон, просто не верхний. Молча недодавать и делать вид, что план выполнен, я не буду.</div></details></div>`;
+26134|   }
+26135|   const A=autoReg(), ac=$('argCard');
+26136|   if(A){ac.style.display='block';
+26137|     /* Совет «сними неделю разгрузки» без кнопки — это домашнее задание, а не
+26138|        помощь: механизм есть, а включить его человеку было нечем (21.08). */
+26139|     const dlA=dlActive();
+26140|     const dlHtml=dlA
+26141|       ? `<div class="mini" style="margin-top:8px;color:var(--t3)">Разгрузка идёт · ${dlLbl(dlA)} · до ${fd(dlA.until)}</div>`
+26142|       : (A.offer?`<button class="btn sec sm" id="bDlOn" style="margin-top:8px">Взять неделю разгрузки</button>
+26143|           <div class="mini" style="margin-top:8px;color:var(--t3)">${A.signs?'7 дней · объём пополам · веса те же':'7 дней · веса ×0.6 · подходы те же'}</div>`:'');
+26144|     $('argBox').innerHTML=`<div class="${A.cls}"><b>${A.verdict}.</b> ${A.advice}${dlHtml}</div>
+26145|       <div class="stat" style="margin-top:12px"><span class="l">Готовность (7 дн)</span>
+26146|         <span class="v">${A.avgRd!=null?r0(A.avgRd)+'/100':'—'}</span></div>
+26147|       <div class="stat"><span class="l">Веса выросли</span>
+26148|         <span class="v">${A.known?A.up+' из '+A.known:'—'}</span></div>`;
+26149|     const on=$('bDlOn');
+26150|     if(on) on.onclick=async()=>{ on.disabled=true; if(A.signs) await signsDeload(A.signs.map(s=>s.txt).join('; ')); else await deloadOn('all',7,'self'); rProg(); };   // v670: по признакам — как цикл: объём пополам
+26151|   }else ac.style.display='none';
+26152| }
+26153| /* ── ТРИ СОСТОЯНИЯ НА ГРУППУ ──
+26154|    Тап крутит: обычно → больше → не делаю → обычно.
+26155|    Две границы, обе тренерские, а не технические:
+26156|    · «больше» максимум у двух групп — иначе приоритета нет ни у чего;
+26157|    · «не делаю» у крупной группы (ноги, спина, грудь, плечи, ягодицы) —
+26158|      это дыра в программе, и мы говорим об этом словами, а не молчим. */
+26159| function priCycle(k){
+26160|   const f=focusList(), sk=skipList();
+26161|   if(f.includes(k)){ S.focus=f.filter(x=>x!==k); S.skip=sk.concat([k]); }
+26162|   else if(sk.includes(k)){ S.skip=sk.filter(x=>x!==k); }
+26163|   else {
+26164|     if(f.length>=2){ toast('Больше двух акцентов не даю: если приоритет у всего — его нет ни у чего'); return; }
+26165|     S.focus=f.concat([k]);
+26166|   }
+26167|   rPri();
+26168| }
+26169| function rPri(){
+26170|   const box=$('pg_pri'); if(!box) return;
+26171|   const f=focusList(), sk=skipList();
+26172|   box.innerHTML=Object.entries(ACCENT).map(([k,v])=>{
+26173|     const on=f.includes(k), off=sk.includes(k);
+26174|     return `<button class="chip ${on?'on':''}" data-pri="${k}"${off?' style="opacity:.45;text-decoration:line-through"':''}>`
+26175|       +(on?'▲ ':'')+esc(v.n)+'</button>';
+26176|   }).join('');
+26177|   box.querySelectorAll('[data-pri]').forEach(b=>b.onclick=()=>priCycle(b.dataset.pri));
+26178|   const st=$('pg_priS'); if(!st) return;
+26179|   const крупные=sk.filter(k=>!SKIP_FREE.has(k));
+26180|   st.innerHTML=(f.length?'<b>Больше:</b> '+f.map(k=>ACCENT[k].n).join(', ')+'. ':'')
+26181|     +(sk.length?'<b>Не делаю:</b> '+sk.map(k=>ACCENT[k].n).join(', ')+'. ':'')
+26182|     +(!f.length&&!sk.length?'Тап по группе: обычно → больше → не делаю.':'')
+26183|     +(крупные.length?'<br><span style="color:var(--wn)">'+крупные.map(k=>ACCENT[k].n).join(', ')
+26184|       +' — крупная группа. Убрать её можно, но это дыра в программе, а не пожелание: объём уйдёт в акцент, и перекос будет виден в разборе.</span>':'');
+26185| }
+26186| function pgDows(){
+26187|   const need=num($('pg_d'));
+26188|   const sel=new Set((S.prog&&S.prog.cfg.dows)||DOWDEF[need]||[]);
+26189|   $('pgDowN').textContent=`— выбери ${need}`;
+26190|   $('pg_dow').innerHTML=[1,2,3,4,5,6,7].map(i=>
+26191|     `<div class="chip ${sel.has(i)?'on':''}" data-dow="${i}">${DOW[i]}</div>`).join('');
+26192|   $('pg_dow').querySelectorAll('[data-dow]').forEach(c=>c.onclick=()=>{
+26193|     const on=$('pg_dow').querySelectorAll('.chip.on').length;
+26194|     if(!c.classList.contains('on')&&on>=need) return toast(`Только ${need} дн. — сними лишний`);
+26195|     c.classList.toggle('on');
+26196|   });
+26197| }
+26198| $('pg_d').onchange=pgDows;
+26199| $('bGenProg').onclick=()=>{
+26200|   const P=S.prog;
+26201|   if(P){$('pg_d').value=P.cfg.days;$('pg_e').value=P.cfg.equip;
+26202|     $('pg_x').value=P.cfg.exp;$('pg_g').value=P.cfg.goal}
+26203|   if($('pg_ef'))$('pg_ef').value=userEffort();
+26204|   /* Акцент: показываем сохранённый; если человек его ещё не выбирал —
+26205|      подсказываем «ягодицы и низ» женщине. Это ПОДСКАЗКА в открытом поле,
+26206|      а не решение за неё: строка видна, список рядом, менять один тап.
+26207|      Тихо собирать женщине другую программу, не сказав об этом, нельзя. */
+26208|   /* Переезд со старого одиночного акцента: у кого он был — становится
+26209|      первым «больше», ничего не теряется и переспрашивать не нужно. */
+26210|   if(!Array.isArray(S.focus)){
+26211|     const был=(S.accent!==undefined&&S.accent!==null)?S.accent:((P&&P.cfg&&P.cfg.accent)||'');
+26212|     S.focus=ACCENT[был]?[был]:[];
+26213|   }
+26214|   if(!Array.isArray(S.skip)) S.skip=[];
+26215|   rPri();
+26216|   pgDows();
+26217|   const cur=new Set((P&&P.cfg.inj)||[]);
+26218|   injMount($('pg_inj'),cur);                       // v628: фигура вместо ряда слов
+26219|   sheet('sh-prog',true);
+26220| };
+26221| /* ── Каталог готовых программ ──
+26222|    Карточка отвечает словами на три вопроса, которые человек задаёт себе перед
+26223|    выбором: кому это, что я буду делать, что будет через месяц. Без них список
+26224|    названий — это ещё одна анкета, только длиннее (19.08). */
+26225| let catFil='all';
+26226| function rCatalog(){
+26227|   const box=$('catList'); if(!box) return;
+26228|   const cur=(S.prog&&S.prog.cfg&&S.prog.cfg.preset)||null;
+26229|   const FIL=[['all','Все'],['2','2 дня'],['3','3 дня'],['4','4 дня'],['5','5 дней'],['home','Дома']];
+26230|   const fb=$('catFil');
+26231|   if(fb){
+26232|     fb.innerHTML=FIL.map(([k,n])=>`<div class="chip ${catFil===k?'on':''}" data-catf="${k}">${n}</div>`).join('');
+26233|     fb.querySelectorAll('[data-catf]').forEach(c=>c.onclick=()=>{ catFil=c.dataset.catf; rCatalog(); try{segMask()}catch(e){} });
+26234|   }
+26235|   const list=PRESETS.filter(p=>catFil==='all'?true:(catFil==='home'?p.equip!=='gym':String(p.days)===catFil));
+26236|   if(!list.length){ box.innerHTML='<div class="empty">Под этот фильтр программ нет. Сними фильтр или собери свою — кнопка «Собрать сам».</div>'; return; }
+26237|   box.innerHTML=list.map(p=>`<div class="lb" style="padding:14px 0">
+26238|     <div class="lbh"><div class="n" style="font-size:var(--fs3);line-height:var(--lh3);font-weight:var(--fwb)">${esc(p.n)}${cur===p.id?' <span class="tag ac">идёт сейчас</span>':''}</div></div>
+26239|     <div class="mini" style="color:var(--t3);margin:2px 0 8px">${esc(p.sub)}</div>
+26240|     <div style="font-size:var(--fs2);line-height:var(--lh2);color:var(--t2);line-height:var(--lhb)"><b style="color:var(--tx)">${esc(p.who)}.</b> ${esc(p.what)}</div>
+26241|     <div class="mini" style="color:var(--t3);margin-top:8px">${esc(p.when)}</div>
+26242|     ${p.warn?`<div class="wb" style="margin-top:8px;white-space:normal;font-size:var(--fs2);line-height:var(--lh2)">⚠️ ${esc(p.warn)}</div>`:''}
+26243|     <button class="btn ${cur===p.id?'sec':''} sm" data-preset="${p.id}" style="margin-top:12px">${cur===p.id?'Собрать заново':'Взять эту'}</button>
+26244|   </div>`).join('');
+26245|   box.querySelectorAll('[data-preset]').forEach(b=>b.onclick=()=>applyPreset(b.dataset.preset));
+26246| }
+26247| async function applyPreset(id){
+26248|   const p=presetById(id); if(!p) return;
+26249|   const cfg=presetCfg(p);
+26250|   S.effort=p.eff||'growth';                      // усилие системное — до сборки плана
+26251|   const P=genProgram({...cfg,effort:S.effort});
+26252|   if(!P.plan.some(d=>d.ex.length)) return toast('С твоими ограничениями упражнений для этой программы не осталось');
+26253|   progSnap('каталог','Взята программа «'+p.n+'» ('+p.sub+')');
+26254|   {
+26255|     const L=progLost(S.prog,P,'Ты взял готовую программу «'+p.n+'» — у неё свой набор движений.');
+26256|     if(L) S.progLost=L; else delete S.progLost;
+26257|   }
+26258|   S.prog=P; await put('settings',S,'main');
+26259|   try{ trkDaily('program_set'); }catch(e){}
+26260|   sheet('sh-cat',false); rTrain(); rProgHist(); toast('Программа «'+p.n+'» собрана');
+26261| }
+26262| if($('bCatProg')) $('bCatProg').onclick=()=>{ rCatalog(); sheet('sh-cat',true); };
+26263| $('bPgOk').onclick=async()=>{
+26264|   const inj=injPick($('pg_inj'));
+26265|   const dows=[...$('pg_dow').querySelectorAll('.chip.on')].map(c=>+c.dataset.dow).sort((a,b)=>a-b);
+26266|   const need=num($('pg_d'));
+26267|   if(dows.length!==need) return toast(`Выбери ровно ${need} дн. недели`);
+26268|   S.effort=($('pg_ef')&&$('pg_ef').value)||'growth';           // усилие — системно, до сборки плана
+26269|   S.accent=focusList()[0]||'';                                  // совместимость со старым полем
+26270|   const cfg={days:need,equip:$('pg_e').value,exp:$('pg_x').value,goal:$('pg_g').value,effort:S.effort,inj,dows,
+26271|     accent:S.accent, focus:focusList(), mins:+(($('pg_m')||{}).value)||65};
+26272|   const P=genProgram(cfg);
+26273|   if(!P.plan.some(d=>d.ex.length)) return toast('С такими ограничениями упражнений не осталось');
+26274|   progSnap('анкета','Программа пересобрана: '+need+' дн/нед, '+({gym:'зал',db:'гантели',bw:'свой вес'}[cfg.equip]||cfg.equip)+', '+cfg.goal);
+26275|   /* Причину называем ту, которую человек САМ изменил: «ты поставил три дня
+26276|      вместо четырёх» он понимает, «изменились параметры» — нет. Скептик
+26277|      возражал против очевидного (сменил снаряд — ушла штанга), поэтому смену
+26278|      снаряда как причину не называем: она и так на виду. */
+26279|   {
+26280|     const o=S.prog, w=[];
+26281|     if(o&&o.cfg){
+26282|       if(+o.cfg.days!==+cfg.days) w.push('Ты поставил '+cfg.days+' '+plural(cfg.days,'день','дня','дней')+' вместо '+o.cfg.days+' — в неделю помещается меньше.');
+26283|       if(+o.cfg.mins!==+cfg.mins&&+cfg.mins<+o.cfg.mins) w.push('Ты сократил тренировку до '+cfg.mins+' мин — часть работы не влезла.');
+26284|       if(o.cfg.goal!==cfg.goal) w.push('Ты сменил цель — под неё другая схема подходов и другой набор.');
+26285|     }
+26286|     const L=progLost(o,P,w.join(' '));
+26287|     if(L) S.progLost=L; else delete S.progLost;
+26288|   }
+26289|   S.prog=P; await put('settings',S,'main');
+26290|   trkDaily('program_set');
+26291|   sheet('sh-prog',false); rTrain(); rProgHist(); toast('Программа собрана');
+26292| };
+26293| 
+26294| /* ══════════════ ЧИТАТЬ ══════════════
+26295|    Короткие статьи по механике тренировок и питания. Один тезис — одна статья,
+26296|    без мотивации. Это те же тексты, что публикуются в канале (promo/posts.md):
+26297|    написаны один раз, работают в двух местах. */
+26298| const READS=[
+26299|  {t:'Почему приложения врут про калории',
+26300|   b:`Любое приложение при регистрации спрашивает рост, вес и «уровень активности» — и выдаёт «норму калорий». Это формула Миффлина 1990 года, и её типичная ошибка для конкретного человека — ±300 ккал в день. 300 ккал — разница между «худею» и «стою на месте».
+26301| 
+26302| Единственный способ узнать СВОЙ расход — записывать еду и смотреть, что делает вес. Съедал в среднем 2400 ккал две недели, вес упал на полкило — расход около 2650. Это арифметика энергобаланса: 1 кг жира ≈ 7700 ккал.
+26303| 
+26304| Здесь так и устроено: формула живёт только первые дни, пока нет данных. Дальше расход пересчитывается по факту — каждый день.`},
+26305|  {t:'Бег на дорожке — не разминка',
+26306|   b:`Длинное низкоинтенсивное кардио перед силовой не снижает риск травмы — ты просто приходишь к рабочим подходам с потраченным гликогеном и притушенной нервной системой (interference effect — одна из самых изученных тем спортивной науки).
+26307| 
+26308| Что реально готовит к железу:
+26309| 1. 2–3 минуты общего разогрева — поднять температуру, не устать.
+26310| 2. Динамическая мобилизация именно тех суставов, которые будут работать.
+26311| 3. Подводящие подходы: 50% рабочего веса на 8, потом 75% на 4. Это и есть главная разминка — движение репетируется с нагрузкой.
+26312| 
+26313| Кардио — после силовой или в отдельный день. Разминка в тренировке собирается по этим правилам автоматически.`},
+26314|  {t:'Процент жира «по фото» — что это на самом деле',
+26315|   b:`Свет сверху добавляет рельефа — минус 3% визуально. Пампинг после зала — ещё минус 2%. Вода после солёного ужина — плюс 2%. Один человек в один день на двух фото «весит» по жиру с разницей в 5%.
+26316| 
+26317| Поэтому честный ответ по фото — диапазон («примерно 18–23%»), и здесь он показывается именно так, вместе со списком того, что мешает оценке на конкретном снимке.
+26318| 
+26319| Надёжнее — сантиметровая лента: талия, шея, бёдра. Формула ВМС США по обхватам воспроизводима и не зависит от света. И главное — смотри на тренд, а не на число.`},
+26320|  {t:'Цена за грамм: как читать этикетку',
+26321|   b:`Банка протеина за 2000 ₽ и за 3500 ₽ — какая выгоднее? Не узнаешь, пока не поделишь.
+26322| 
+26323| Смотри белок на 100 г. В честном концентрате — 70–80 г. Где 15 г — ты покупаешь мальтодекстрин по цене мяса.
+26324| 
+26325| Арифметика: банка 900 г, белка 70 на 100 г → 630 г белка. 2000 ₽ / 630 = 3,2 ₽ за грамм. Эту цифру и сравнивай. Вкусы, «матрицы», «формулы» — шум.
+26326| 
+26327| Креатин: моногидрат — 99–100% действующего вещества; всё «улучшенное» дороже за грамм и без доказанных преимуществ.
+26328| 
+26329| Калькулятор встроен в карточку каждой добавки: Здоровье → Препараты → «?».`},
+26330|  {t:'Три тренировки. Всё решается за две недели',
+26331|   b:`Факт из данных фитнес-приложений: кто сделал меньше трёх тренировок за первые две недели — бросает в 3–4 раза чаще. Дальше работает привычка.
+26332| 
+26333| Практически:
+26334| 1. Первые две недели цель — не прогресс, а явка. Прийти три раза.
+26335| 2. Первые тренировки — лёгкие и короткие. Уйди с ощущением «мог бы ещё».
+26336| 3. Не планируй 5 дней в неделю. Запланируй 2–3 и выполни. Сорванный амбициозный план — главный генератор «я не создан для зала».`},
+26337|  {t:'Дневник, который не бесит: 30 секунд в день',
+26338|   b:`Главная причина бросить дневник — он превращается в работу.
+26339| 
+26340| Что сокращает запись до 30 секунд:
+26341| 1. Еда повторяется: 15–20 продуктов покрывают 80% рациона. Запись — тап по вчерашнему, а не поиск.
+26342| 2. Голос быстрее клавиатуры: «двести грамм гречки, банка тунца и огурец» — 4 секунды.
+26343| 3. Последовательность важнее точности. Стабильно занижаешь порции на 20% — тренд веса всё равно покажет правду, и расчёт расхода сойдётся. А «то точно, то никак» — мусор.
+26344| 
+26345| Не стремись к идеальному дневнику. Стремись к одинаковому.`}
+26346| ];
+26347| function rReads(){
+26348|   const box=$('readList'); if(!box||box.dataset.done) return;
+26349|   box.dataset.done=1;
+26350|   box.innerHTML=READS.map((r,i)=>`<button class="lrow" data-read="${i}"><span class="g"><span class="t">${esc(r.t)}</span></span><span class="ch"></span></button>`).join('');
+26351|   box.querySelectorAll('[data-read]').forEach(el=>el.onclick=()=>{
+26352|     const r=READS[+el.dataset.read]; if(!r) return;
+26353|     $('aiT').textContent='Читать';
+26354|     $('aiBody').innerHTML='<h2 style="margin-bottom:12px">'+esc(r.t)+'</h2>'
+26355|       +r.b.split('\n\n').map(par=>'<div class="wc-sub" style="white-space:pre-line;color:var(--t2);margin-bottom:12px">'+esc(par)+'</div>').join('');
+26356|     sheet('sh-ai',true);
+26357|     trk('read',+el.dataset.read);
+26358|   });
+26359| }
+26360| 
+26361| /* ══════════════ ЖУРНАЛ ПРОГРАММЫ ══════════════
+26362|    Программа стабильна by design: структура не меняется от недели к неделе,
+26363|    растут только веса (двойная прогрессия). Но каждое реальное изменение —
+26364|    пересборка, импорт плана, точечная ИИ-замена — должно оставлять след:
+26365|    что было, что стало, когда и почему. Иначе через месяц невозможно
+26366|    ответить на вопрос «а что мне предлагали на прошлой неделе?».
+26367| 
+26368|    progSnap зовётся ПЕРЕД изменением: снимок хранит то, что было. */
+26369| function progSnap(src,txt){
+26370|   try{
+26371|     S.progLog=[...(S.progLog||[]).slice(-29),{d:td(),src,txt:String(txt||'').slice(0,140)}];
+26372|     if(S.prog) S.progHist=[...(S.progHist||[]).slice(-4),
+26373|       {d:td(),src,prog:JSON.parse(JSON.stringify(S.prog))}];
+26374|   }catch(e){}
+26375| }
+26376| /* Чем версия из истории отличается от ТЕКУЩЕЙ программы: при возврате человек
+26377|    должен видеть, что изменится, а не угадывать среди одинаковых строк
+26378|    (полевая находка 27.07: «база из 4 возвратов — не знаю, куда жать»). */
+26379| function progDiff(old,cur){
+26380|   if(!old||!old.plan) return [];
+26381|   if(!cur||!cur.plan) return ['текущей программы нет — версия просто восстановится'];
+26382|   const out=[];
+26383|   const days=[...new Set([...old.plan.map(d=>d.dow),...cur.plan.map(d=>d.dow)])].sort((a,b)=>a-b);
+26384|   days.forEach(dw=>{
+26385|     const o=old.plan.find(d=>d.dow===dw), c=cur.plan.find(d=>d.dow===dw);
+26386|     if(o&&!c){ out.push(DOW[dw]+': день появится ('+o.ex.length+' упр.)'); return; }
+26387|     if(!o&&c){ out.push(DOW[dw]+': день исчезнет'); return; }
+26388|     const on=o.ex.map(i=>i.n), cn=c.ex.map(i=>i.n);
+26389|     const add=on.filter(n=>!cn.includes(n));     // вернутся при возврате
+26390|     const del=cn.filter(n=>!on.includes(n));     // уйдут при возврате
+26391|     if(add.length===1&&del.length===1) out.push(DOW[dw]+': '+del[0]+' → '+add[0]);
+26392|     else{
+26393|       if(add.length) out.push(DOW[dw]+': вернётся '+add.join(', '));
+26394|       if(del.length) out.push(DOW[dw]+': уйдёт '+del.join(', '));
+26395|     }
+26396|     let sch=0;
+26397|     o.ex.forEach(oi=>{ const ci=c.ex.find(x=>x.n===oi.n);
+26398|       if(ci&&(ci.sets!==oi.sets||ci.lo!==oi.lo||ci.hi!==oi.hi||(+ci.rest||0)!==(+oi.rest||0))) sch++; });
+26399|     if(sch) out.push(DOW[dw]+': схема или отдых изменится у '+sch+' упр.');
+26400|   });
+26401|   return out;
+26402| }
+26403| function rProgHist(){
+26404|   const box=$('progHistBox'); if(!box) return;
+26405|   const log=[...(S.progLog||[])].reverse(), hist=[...(S.progHist||[])].reverse();
+26406|   const cnt=$('progHistCnt'); if(cnt) cnt.textContent=log.length?log.length+' зап.':'';
+26407|   if(!log.length){
+26408|     box.innerHTML='<div class="empty">Изменений пока не записано.<br>Пересборка программы, импорт плана тренера и правки ИИ будут появляться здесь — с датой и причиной.</div>';
+26409|     return;
+26410|   }
+26411|   box.innerHTML=log.map(e=>`<div class="item"><div class="g">
+26412|       <div class="t">${esc(e.txt||'')}</div>
+26413|       <div class="s">${fd(e.d)} · ${esc(e.src||'')}</div></div></div>`).join('')
+26414|     +(hist.length?`<div class="hd" style="margin-top:12px"><h2>Вернуть версию</h2></div>`
+26415|       +hist.map((h,i)=>{
+26416|         const df=progDiff(h.prog,S.prog), same=!df.length;
+26417|         return `<div class="item" style="align-items:flex-start"><div class="g">
+26418|         <div class="t">до изменения «${esc(h.src)}» от ${fd(h.d)}</div>
+26419|         <div class="s" style="white-space:normal">${same
+26420|           ?'совпадает с текущей программой — возвращать нечего'
+26421|           :'<b>что изменится:</b> '+df.slice(0,4).map(esc).join(' · ')+(df.length>4?' · и ещё '+(df.length-4):'')}</div></div>
+26422|         ${same?'<button class="btn sec sm" disabled style="flex:0 0 auto;opacity:.4">Вернуть</button>'
+26423|           :`<button class="btn sec sm" data-progre="${hist.length-1-i}" style="flex:0 0 auto">Вернуть</button>`}</div>`;}).join('')
+26424|       +'<div class="note keep">Возврат не трогает записанные подходы — только структуру программы. Текущая версия тоже сохранится в истории.</div>':'');
+26425|   box.querySelectorAll('[data-progre]').forEach(b=>b.onclick=async()=>{
+26426|     const h=(S.progHist||[])[+b.dataset.progre]; if(!h||!h.prog) return;
+26427|     progSnap('восстановление','Возврат программы от '+fd(h.d));
+26428|     S.prog=JSON.parse(JSON.stringify(h.prog));
+26429|     await put('settings',S,'main'); rTrain(); rProgHist(); toast('Программа возвращена');
+26430|   });
+26431| }
+26432| 
+26433| /* ══════════════ ИИ-ТРЕНЕР · СТАРТОВЫЙ ПАКЕТ ══════════════
+26434|    Одна анкета → программа + калории/БЖУ + меню под бюджет + шаги/вода + добавки.
+26435|    Работает целиком локально, без ИИ-ключа. Фото сознательно НЕ вход:
+26436|    программу определяют цель/стаж/дни/инвентарь, которых в пикселях нет. */
+26437| const SUPP_RECS={
+26438|  base:[
+26439|   {n:'Креатин моногидрат',d:'3–5 г каждый день, время не важно',w:'Самая изученная добавка: +5–10% к силе и объёму работы. Эффект накопительный — через 3–4 недели.'},
+26440|   {n:'Витамин D3',d:'1000–2000 МЕ с жирной едой',w:'У большинства дефицит. В идеале сдать 25(OH)D и дозировать по анализу.'},
+26441|   {n:'Омега-3 (EPA+DHA)',d:'1–2 г в день',w:'Только если жирной рыбы меньше 2 порций в неделю. Ешь скумбрию или лосося — не нужна.'}],
+26442|  cut:[
+26443|   {n:'Кофеин',d:'~3 мг/кг за 30–45 мин до тренировки',w:'Держит работоспособность на дефиците. После 16:00 не пить: испортит сон, а сон на сушке важнее кофеина.'}],
+26444|  bulk:[
+26445|   {n:'Сывороточный протеин',d:'по недобору белка',w:'Это еда, а не магия: нужен только когда белок не добирается обычной едой. Сначала посмотри дневник.'}],
+26446|  sleep:[
+26447|   {n:'Магний (цитрат или бисглицинат)',d:'200–400 мг за час до сна',w:'Если сон меньше 7 часов или трудно засыпать. Оксид не брать — почти не усваивается.'}]
+26448| };
+26449| function packSupps(goal){
+26450|   const out=[...SUPP_RECS.base];
+26451|   if(goal==='cut') out.push(...SUPP_RECS.cut);
+26452|   if(goal==='bulk') out.push(...SUPP_RECS.bulk);
+26453|   /* Окно — две недели, как везде, где приложение судит о сне. Раньше здесь
+26454|      стояло «последние 7 записей» без окна: человек, который вёл сон весной и
+26455|      бросил, получал магний в пакете добавок по данным полугодовой давности
+26456|      (аудит 22.08). */
+26457|   const s7=SLP.filter(x=>x.h!=null&&dn(td())-dn(x.d)<=13);
+26458|   if(s7.length>=3 && s7.reduce((a,x)=>a+x.h,0)/s7.length<7) out.push(...SUPP_RECS.sleep);
+26459|   return out;
+26460| }
+26461| function packSteps(work,walk){
+26462|   const base=work==='feet'?10000:work==='free'?9000:6000;   // сидячая работа — честная база ниже
+26463|   return Math.min(12000,base+(walk?walk.length:0)*1500);
+26464| }
+26465| $('bPack').onclick=()=>{
+26466|   $('pk_sex').value=S.sex||'m'; $('pk_age').value=S.age||30; $('pk_h').value=S.h||175;
+26467|   if($('pk_acc')) $('pk_acc').value=(S.accent!==undefined&&S.accent!==null)?S.accent:(S.sex==='f'?'glutes':'');
+26468|   /* Пол в анкете меняется прямо здесь — акцент-подсказка обязана следовать
+26469|      за ним, пока человек не выбрал акцент сам. Иначе женщина, поставившая
+26470|      «жен» на первом же поле, всё равно увидит «без акцента». */
+26471|   if($('pk_sex')) $('pk_sex').onchange=()=>{ const f=$('pk_acc');
+26472|     if(f&&!S.accent) f.value=($('pk_sex').value==='f')?'glutes':''; };
+26473|   const w=curW(); if(w) $('pk_w').value=r1(w);
+26474|   const wh=$('pkWHint');
+26475|   if(wh){ const T=trend();
+26476|     if(w&&T.length>=2){ const two=T.filter(x=>dn(td())-dn(x.d)<=14), dw=two.length>=2?two[two.length-1].tr-two[0].tr:null;
+26477|       wh.textContent='подтянут из дневника ('+fd(T[T.length-1].d)+', тренд'+(dw!=null?(', за 2 нед '+(dw>0?'+':'')+r1(dw)+' кг'):'')+') — можно поправить';
+26478|     } else wh.textContent=w?'подтянут из дневника — можно поправить':''; }
+26479|   if(S.prog){ $('pk_d').value=S.prog.cfg.days; $('pk_e').value=S.prog.cfg.equip; $('pk_x').value=S.prog.cfg.exp;
+26480|     if($('pk_m')&&S.prog.cfg.mins) $('pk_m').value=S.prog.cfg.mins; }
+26481|   if(S.budget) $('pk_b').value=S.budget;
+26482|   if(S.eatOut) $('pk_eat').value=S.eatOut;
+26483|   if(S.workType) $('pk_work').value=S.workType;
+26484|   const ws=new Set(S.walkSlots||['ev']);
+26485|   $('pk_walk').innerHTML=[['mo','Утром'],['ln','В обед'],['ev','Вечером']].map(([k,v])=>
+26486|     `<div class="chip ${ws.has(k)?'on':''}" data-wk="${k}">${v}</div>`).join('');
+26487|   $('pk_walk').querySelectorAll('[data-wk]').forEach(c=>c.onclick=()=>c.classList.toggle('on'));
+26488|   const inj=new Set((S.prog&&S.prog.cfg.inj)||[]);
+26489|   injMount($('pk_inj'),inj);                       // v628: фигура вместо ряда слов
+26490|   $('pkKeepW').style.display=S.prog?'block':'none';
+26491|   $('pk_keep').checked=!!S.prog;
+26492|   $('pkAnkFood').value=S.foodBan||''; $('pk_about').value=S.about||'';
+26493|   /* Сразу показываем, ЧТО из написанного мы поняли. Раньше ограничение
+26494|      принималось молча, и человек узнавал о непонятом слове, только увидев
+26495|      запрещённый продукт в своём меню — после чего не верил уже ничему
+26496|      (аудит 20.08). */
+26497|   const foodEcho=()=>{
+26498|     const box=$('pkFoodEcho'), was=S.foodBan;
+26499|     S.foodBan=$('pkAnkFood').value.trim()||null;
+26500|     const gs=banGroups(), un=banUnknown();
+26501|     const left=PROD.filter(foodBanOK).length, prot=PROD.filter(o=>foodBanOK(o)&&o.cat==='prot').length;
+26502|     S.foodBan=was;
+26503|     if(!$('pkAnkFood').value.trim()){ box.style.display='none'; return; }
+26504|     const parts=[];
+26505|     if(gs.length) parts.push('Убираю '+gs.map(g=>g.say).join(', ')+'.');
+26506|     parts.push('Останется '+left+' продукт'+plu(left,'','а','ов')+' для подбора, из них белковых '+prot+'.');
+26507|     if(prot<3) parts.push('<b>Это мало</b> — подбор будет однообразным, добавь свои продукты в базу.');
+26508|     if(un.length) parts.push('<b>Не понял: '+un.join(', ')+'</b> — напиши продукт или группу (мясо, рыба, молочное, орехи, яйца, глютен) либо «вегетарианец»/«веган».');
+26509|     box.innerHTML=parts.join(' '); box.style.display='block';
+26510|   };
+26511|   $('pkAnkFood').oninput=foodEcho; foodEcho();
+26512|   if(S.homeKit) $('pk_kit').value=S.homeKit;
+26513|   $('pk_pull').checked=S.homePull!==false;
+26514|   /* Галочка «есть турник» нужна и тому, кто тренируется только своим телом:
+26515|      без неё программа наполняется подтягиваниями и брусьями, которых у
+26516|      человека дома нет. Раньше она лежала внутри блока про гантели и при
+26517|      выборе «только своё тело» просто исчезала — правило было, а снять
+26518|      галочку человек не мог (аудит 20.08). Селект гантелей при этом
+26519|      показываем только гантельному варианту. */
+26520|   const kitVis=()=>{ const e=$('pk_e').value;
+26521|     $('pkKitW').style.display=(e==='db'||e==='bw')?'block':'none';
+26522|     $('pkKitSel').style.display=e==='db'?'block':'none';
+26523|     const lb=$('pkKitW').querySelector('label');
+26524|     if(lb) lb.textContent=e==='db'?'Что есть дома':'Что есть дома (только вес тела)';
+26525|   };
+26526|   $('pk_e').onchange=kitVis; kitVis();
+26527|   $('pkOut').innerHTML=''; $('pkQ').style.display='block';
+26528|   sheet('sh-pack',true);
+26529| };
+26530| $('bPkGo').onclick=async()=>{
+26531|   const age=num($('pk_age')), h=num($('pk_h')), w=pf($('pk_w').value);
+26532|   if(!(age>=14&&age<=90)) return toast('Проверь возраст');
+26533|   if(!(h>=120&&h<=230)) return toast('Проверь рост');
+26534|   if(!(w>=30&&w<=300)) return toast('Проверь вес');
+26535|   S.sex=$('pk_sex').value; S.age=age; S.h=h;
+26536|   const goal=$('pk_goal').value;
+26537|   S.rate=goal==='cut'?-0.5:goal==='bulk'?0.25:0;
+26538|   const lastW=W.length?W[W.length-1]:null;
+26539|   if(!lastW||lastW.d!==td()||Math.abs(lastW.kg-w)>0.01){ await put('weight',{d:td(),kg:w}); W=await all('weight'); }
+26540|   S.budget=$('pk_b').value; S.eatOut=$('pk_eat').value; S.workType=$('pk_work').value;
+26541|   S.walkSlots=[...$('pk_walk').querySelectorAll('.chip.on')].map(c=>c.dataset.wk);
+26542|   S.foodBan=$('pkAnkFood').value.trim()||null;
+26543|   S.about=$('pk_about').value.trim()||null;
+26544|   S.homeKit=$('pk_kit').value; S.homePull=$('pk_pull').checked;
+26545|   const inj=injPick($('pk_inj'));
+26546|   const days=num($('pk_d')), equip=$('pk_e').value;
+26547|   /* Дома без турника — все висовые упражнения вон из плана. Раньше правило
+26548|      работало только для гантельного варианта: человек, выбравший «только своё
+26549|      тело» и снявший галочку «есть турник», всё равно получал программу из
+26550|      подтягиваний и брусьев — сказал, а его не услышали (аудит 20.08).
+26551|      Брусья в списке по той же причине: дома они есть у единиц. */
+26552|   const noBar=(equip==='db'||equip==='bw')&&!S.homePull;
+26553|   const ban=noBar?HANGEX.slice():[];   // список общий с генератором, второй копии не держим
+26554|   const keepProg=!!(S.prog&&$('pk_keep').checked);
+26555|   if(!keepProg){
+26556|     S.accent=(($('pk_acc')||{}).value)||'';
+26557|     const cfg={days,equip,exp:$('pk_x').value,goal:goal==='recomp'?'recomp':'hyper',inj,ban,dows:DOWDEF[days],
+26558|       accent:S.accent, mins:+(($('pk_m')||{}).value)||65};
+26559|     const P=genProgram(cfg);
+26560|     if(!P.plan.some(d=>d.ex.length)) return toast('С такими ограничениями упражнений не осталось');
+26561|     progSnap('пакет','Программа пересобрана стартовым пакетом: '+days+' дн/нед');
+26562|     S.prog=P;
+26563|   }
+26564|   S.stepGoal=packSteps(S.workType,S.walkSlots);
+26565|   /* Пакет больше НЕ замораживает цель по воде: она считается от текущего веса
+26566|      при каждом показе. Раньше здесь ставилась цифра, и после десяти сброшенных
+26567|      килограммов человек продолжал видеть норму от старого веса. */
+26568|   delete S.waterManual;
+26569|   {const was=S.target;
+26570|    if(S.tdee!=null&&!(S.kcalManual>0)) S.target=S.tdee+S.rate*KPK/7; else seed();
+26571|    if(was&&S.target&&Math.abs(was-S.target)>=25)
+26572|      progSnap('пакет-калории','Цель по калориям: '+r0(was)+' → '+r0(S.target)+' (пересборка пакета)');}
+26573|   S.pack={d:td(),goal};
+26574|   await put('settings',S,'main');
+26575|   trkDaily('program_set');
+26576|   renderPackResult(goal,S.prog,keepProg);
+26577|   rCoach(); rTrain(); rFood(); rSteps&&rSteps();
+26578| };
+26579| function renderPackResult(goal,P,kept){
+26580|   const t=tg(), supps=packSupps(goal);
+26581|   const GN={cut:'похудение',recomp:'рекомпозиция',bulk:'набор массы'};
+26582|   const WT={mo:'утром до работы',ln:'в обеденный перерыв',ev:'вечером'};
+26583|   $('pkQ').style.display='none';
+26584|   $('pkOut').innerHTML=`
+26585|     <div class="ob" style="margin-bottom:12px"><b>Стартовый пакет собран и сохранён.</b> Всё уже разложено по вкладкам — ниже краткая карта.</div>
+26586|     <div class="card t" style="margin-bottom:12px"><div class="hd"><h2>Питание</h2><span class="mini">вкладка «Еда»</span></div>
+26587|       ${t?`<div class="stat"><span class="l">Калории</span><span class="v">${t.k} ккал</span></div>
+26588|       <div class="stat"><span class="l">Белок / Жиры / Углеводы</span><span class="v">${t.p} / ${t.f} / ${t.c} г</span></div>`:''}
+26589|       <div class="stat"><span class="l">Темп</span><span class="v">${S.rate>0?'+':''}${S.rate} кг/нед</span></div>
+26590|       <div class="note" style="margin-bottom:0">${uiMode()==='simple'
+26591|         ?`Меню на день умеет собираться само — кнопка «Покупки» на «Еде» появится, когда включишь полный режим (внизу любого экрана — «Показать всё»). Пока просто записывай, что ешь: этого достаточно.`
+26592|         :`Меню на день: «Еда» → «Покупки» → «Остаток дня» — разложит по приёмам из ${S.budget==='eco'?'экономной корзины':S.budget==='mid'?'средней корзины':'полной базы'} с порциями под твой вес.`}
+26593|       ${S.eatOut==='out'?'Обед у тебя вне дома: ориентир — мясо или рыба + гарнир, соус отдельно, вечером сверь с дневником. ':''}Первые 2 недели цифра грубая (формула); дальше пересчитается по твоему реальному весу — просто взвешивайся и записывай еду.</div>
+26594|     </div>
+26595|     <div class="card t" style="margin-bottom:12px"><div class="hd"><h2>Тренировки</h2><span class="mini">${kept?'текущая программа сохранена':'вкладка «Зал»'}</span></div>
+26596|       ${P.plan.map(d=>`<div class="stat"><span class="l">${DOW[d.dow]}</span><span class="v">${esc(d.n||d.name||'')} · ${d.ex.length} упр.</span></div>`).join('')}
+26597|       <div class="note" style="margin-bottom:0">${kept
+26598|         ?'Твоя программа и журнал не тронуты — прогрессия продолжается с тех же весов. Захочешь пересобрать — сними галочку в анкете.'
+26599|         :'Дни недели можно поменять там же, в «Собрать программу». Веса первой недели подбирай так, чтобы в конце подхода оставалось 2–3 повтора в запасе — дальше прогрессию поведёт приложение.'}</div>
+26600|     </div>
+26601|     <div class="card t" style="margin-bottom:12px"><div class="hd"><h2>Режим</h2></div>
+26602|       <div class="stat"><span class="l">Шаги</span><span class="v">${S.stepGoal} / день</span></div>
+26603|       <div class="stat"><span class="l">Вода</span><span class="v">${(waterGoalOf()/1000).toFixed(1)} л / день</span></div>
+26604|       <div class="note" style="margin-bottom:0">${S.walkSlots&&S.walkSlots.length?'Ходьба: '+S.walkSlots.map(k=>WT[k]||k).join(', ')+'. ':''}${S.workType==='desk'?'При сидячей работе главный резерв — обед и дорога: выйти на остановку раньше — это +1500–2000 шагов без усилий. ':''}Сон 7–9 часов: без него не работает ни дефицит, ни набор.</div>
+26605|     </div>
+26606|     <div class="card t" style="margin-bottom:12px"><div class="hd"><h2>Добавки</h2></div>
+26607|       ${supps.map(s=>`<div class="item"><div class="g"><div class="t">${s.n}</div><div class="s">${s.d}</div><div class="s" style="opacity:.75">${s.w}</div></div></div>`).join('')}
+26608|       <div class="note" style="margin-bottom:0">Это весь список. Жиросжигатели, BCAA и «тестобустеры» не работают — поэтому их здесь нет.
+26609|       ${uiMode()==='simple'?'Отмечать приём можно во вкладке «Здоровье» — она появится в полном режиме («Показать всё» внизу экрана). Пока просто держи список под рукой.':'Приём удобно отмечать во вкладке «Здоровье» → «Добавки».'} Не является медицинской рекомендацией.</div>
+26610|     </div>
+26611|     ${aiReady()?`<div class="card t" style="margin-bottom:12px"><div class="hd"><h2>Уточнить с ИИ-тренером</h2><span class="mini">2 вопроса</span></div>
+26612|       <div id="aiTun"><div class="note" style="margin-bottom:12px">Модель посмотрит сводку (профиль, цель, программа, сон/шаги/еда за 2 недели — без анализов),
+26613|       задаст два уточняющих вопроса и предложит правки к калориям и программе. Применяешь только ты, кнопками.</div>
+26614|       <button class="btn sec" id="bAiTune" style="width:100%">Спросить ИИ-тренера</button></div></div>`:''}
+26615|     <button class="btn" id="bPkClose">Понятно, погнали</button>
+26616|     <div class="note">Цель «${GN[goal]}» сохранена. Пересобрать пакет можно в любой момент — данные не потеряются.</div>`;
+26617|   const bc=$('bPkClose'); if(bc) bc.onclick=()=>sheet('sh-pack',false);
+26618|   const bt=$('bAiTune'); if(bt) bt.onclick=aiTuneStart;
+26619| }
+26620| /* ── ИИ-уточнение пакета: сводка → 2 вопроса → правки с кнопками «применить» ── */
+26621| /* Достаём JSON из ответа модели: снимаем markdown-обёртку (```json ... ```) и текст
+26622|    вокруг, берём внешний объект. Частая причина «Не смог разобрать» — не кривой текст
+26623|    запроса, а ОБРЫВ ответа по лимиту токенов (большой JSON не поместился): тогда
+26624|    закрывающей скобки нет и JSON.parse падает. Разводим эти случаи и даём понятную
+26625|    ошибку с куском ответа, чтобы было видно, что реально вернула модель. */
+26626| function parseJsonLoose(txt){
+26627|   const raw=(txt||'').trim();
+26628|   const s=raw.replace(/```json/gi,'```').replace(/```/g,'').trim();
+26629|   const m=s.match(/\{[\s\S]*\}/);
+26630|   if(!m) throw new Error(raw?'ИИ вернул не JSON: «'+raw.slice(0,120).replace(/\s+/g,' ')+'…»':'ИИ вернул пустой ответ — попробуй ещё раз');
+26631|   try{ return JSON.parse(m[0]); }
+26632|   catch(e){ throw new Error('Ответ ИИ оборвался или пришёл битым — попробуй ещё раз (это не из-за твоего текста).'); }
+26633| }
+26634| async function aiAskJson(prompt,maxTok,task){
+26635|   try{ return parseJsonLoose(await aiText(prompt,maxTok,task)); }
+26636|   catch(e){
+26637|     // пустой/оборванный ответ случается — второй заход обычно попадает
+26638|     if(/пустой ответ|не JSON/i.test(e.message||'')) return parseJsonLoose(await aiText(prompt,maxTok,task));
+26639|     throw e;
+26640|   }
+26641| }
+26642| function packSummary(){
+26643|   const t=dn(td()), tgt=tg(), T=trend();
+26644|   const days14=[...new Set(LOG.filter(l=>t-dn(l.d)<=13&&t-dn(l.d)>=1).map(l=>l.d))];
+26645|   const avgK=days14.length?r0(days14.reduce((a,d)=>a+LOG.filter(l=>l.d===d).reduce((x,l)=>x+l.k,0),0)/days14.length):null;
+26646|   const avgP=days14.length?r0(days14.reduce((a,d)=>a+LOG.filter(l=>l.d===d).reduce((x,l)=>x+l.p,0),0)/days14.length):null;
+26647|   const sl=SLP.filter(x=>t-dn(x.d)<=13&&x.h!=null), avgSl=sl.length?r1(sl.reduce((a,x)=>a+x.h,0)/sl.length):null;
+26648|   const st=STEPS.filter(x=>t-dn(x.d)<=13&&x.n>0), avgSt=st.length?r0(st.reduce((a,x)=>a+x.n,0)/st.length):null;
+26649|   const tr=[...new Set(SETS.filter(s=>t-dn(s.d)<=13).map(s=>s.d))].length;
+26650|   const P=S.prog;
+26651|   return ['Пол '+(S.sex==='f'?'жен':'муж')+', '+S.age+' лет, рост '+S.h+', вес '+(curW()?r1(curW()):'?')+' кг, тренд за 2 нед: '
+26652|       +(T.length>=2?r1(T[T.length-1].tr-T[0].tr)+' кг':'мало данных'),
+26653|     'Цель: '+(S.pack?S.pack.goal:'?')+', темп '+S.rate+' кг/нед, целевые '+(tgt?tgt.k+' ккал (Б'+tgt.p+' Ж'+tgt.f+' У'+tgt.c+')':'?'),
+26654|     'Программа: '+(P?P.cfg.days+' дн/нед, '+eqRu(P.cfg.equip)+', стаж '+expRu(P.cfg.exp)+', травмы: '+((P.cfg.inj||[]).join(', ')||'нет'):'нет'),
+26655|     P?('План: '+P.plan.map(d=>DOW[d.dow]+' — '+d.ex.map(i=>i.n).join(', ')).join(' | ')):'',
+26656|     'Быт: бюджет еды '+(S.budget||'?')+', ест днём '+(S.eatOut==='out'?'вне дома':'дома')+', график '+(S.workType||'?')
+26657|       +', ходьба: '+((S.walkSlots||[]).join(',')||'—')+', цель шагов '+(S.stepGoal||'—'),
+26658|     'Факт за 2 нед: еда записана '+days14.length+' дн'+(avgK?' (в среднем '+avgK+' ккал, Б '+avgP+')':'')
+26659|       +', сон '+(avgSl||'—')+' ч, шаги '+(avgSt||'—')+'/дн, тренировок '+tr,
+26660|     S.bodyEst?('Оценка жира по фото от '+fd(S.bodyEst.d)+': '+S.bodyEst.lo+'–'+S.bodyEst.hi+'% (уверенность '+S.bodyEst.conf+')'):'',
+26661|     (function(){ const NMx={waist:'талия',shoulders:'плечи',chest:'грудь',hips:'бёдра',arm:'бицепс',thigh:'бедро',neck:'шея'};
+26662|       const ms=[...M].sort((a,b)=>a.d<b.d?-1:1); if(!ms.length) return '';
+26663|       const last=ms[ms.length-1];
+26664|       const parts=Object.keys(NMx).filter(k=>last[k]!=null).map(k=>NMx[k]+' '+last[k]);
+26665|       const old=ms.filter(x=>{const a=dn(last.d)-dn(x.d);return a>=21&&a<=60}).pop();
+26666|       const dyn=old?Object.keys(NMx).filter(k=>last[k]!=null&&old[k]!=null&&Math.abs(last[k]-old[k])>=0.3)
+26667|         .map(k=>NMx[k]+' '+((last[k]-old[k])>0?'+':'')+r1(last[k]-old[k])):[];
+26668|       return 'Замеры ('+fd(last.d)+'): '+parts.join(', ')+(dyn.length?('; за месяц: '+dyn.join(', ')):''); })(),
+26669|     S.foodBan?('Не ест: '+S.foodBan):'',
+26670|     S.about?('О себе: '+S.about):''
+26671|   ].filter(Boolean).join('\n');
+26672| }
+26673| async function aiTuneStart(){
+26674|   const box=$('aiTun'); box.innerHTML='<div class="ib"><span class="load"></span>Думаю над вопросами…</div>';
+26675|   try{
+26676|     const r=await aiAskJson('Ты тренер-нутрициолог. Сводка клиента:\n'+packSummary()
+26677|       +'\n\nЗадай РОВНО 2 коротких уточняющих вопроса, ответы на которые сильнее всего изменят программу или питание. Не спрашивай то, что уже есть в сводке. По-русски. СТРОГО JSON без markdown: {"questions":["вопрос 1","вопрос 2"]}',600);
+26678|     const qs=(r.questions||[]).slice(0,2);
+26679|     if(!qs.length) throw new Error('Модель ответила не по форме (бывает). Нажми ещё раз — обычно срабатывает со второго.');
+26680|     box.innerHTML=qs.map((q,i)=>`<div class="field"><label>${esc(q)}</label><input id="aiQ_${i}" placeholder="ответ своими словами"></div>`).join('')
+26681|       +'<button class="btn" id="bAiGo2" style="width:100%">Получить правки</button>';
+26682|     $('bAiGo2').onclick=()=>aiTuneFinish(qs);
+26683|   }catch(e){ box.innerHTML='<div class="eb">'+esc(e.message)+'</div>'; }
+26684| }
+26685| async function aiTuneFinish(qs){
+26686|   const ans=qs.map((q,i)=>({q,a:$('aiQ_'+i).value.trim()||'—'}));
+26687|   const box=$('aiTun'); box.innerHTML='<div class="ib"><span class="load"></span>Готовлю правки…</div>';
+26688|   try{
+26689|     const r=await aiAskJson('Ты тренер-нутрициолог. Сводка клиента:\n'+packSummary()
+26690|       +'\n\nУточнения:\n'+ans.map(x=>'- '+x.q+' → '+x.a).join('\n')
+26691|       +'\n\nСПИСОК ДОСТУПНЫХ УПРАЖНЕНИЙ (замену брать ТОЛЬКО отсюда, слово в слово): '+EX.filter(exHasVid).map(e=>e.n).join(' | ')
+26692|       +'\n\nПредложи правки. СТРОГО JSON без markdown:'
+26693|       +'{"summary":"2-3 предложения по-русски: главный вывод","adjustments":[{"type":"kcal","delta":число_от_-300_до_300,"why":"почему"}|{"type":"swap","from":"имя ИЗ ПЛАНА","to":"имя ИЗ СПИСКА","why":"почему"}|{"type":"note","text":"совет"}]}'
+26694|       +'\nПравила: максимум 4 adjustments; swap — только при реальной причине (травма, ограничение, оборудование); kcal — только если факт/ответы этого требуют; не выдумывай.',900);
+26695|     const adj=(r.adjustments||[]).slice(0,4);
+26696|     box.innerHTML='<div class="ob" style="margin-bottom:12px">'+esc(r.summary||'')+'</div>'
+26697|       +adj.map((a,i)=>{
+26698|         if(a.type==='kcal'&&Math.abs(+a.delta)>0){const d=Math.max(-300,Math.min(300,r0(+a.delta)));
+26699|           return `<div class="item"><div class="g"><div class="t">Калории: ${d>0?'+':''}${d} ккал/день</div><div class="s">${esc(a.why||'')}</div></div><button class="btn sm" data-aik="${d}" style="flex:0 0 auto">Применить</button></div>`;}
+26700|         if(a.type==='swap'&&a.from&&a.to&&EX.some(e=>e.n===a.to&&exHasVid(e)))
+26701|           return `<div class="item"><div class="g"><div class="t">${esc(a.from)} → ${esc(a.to)}</div><div class="s">${esc(a.why||'')}</div></div><button class="btn sm" data-ais="${i}" style="flex:0 0 auto">Применить</button></div>`;
+26702|         return `<div class="item"><div class="g"><div class="t">Совет</div><div class="s">${esc(a.text||a.why||'')}</div></div></div>`;
+26703|       }).join('')
+26704|       +'<div class="note" style="margin-top:8px">Это рекомендации, не приказ. «Применить» меняет пакет сразу.</div>';
+26705|     box.querySelectorAll('[data-aik]').forEach(b=>b.onclick=async()=>{
+26706|       if(!(await applyKcalAdj(+b.dataset.aik,'ИИ-калории'))) return;
+26707|       b.textContent='Готово'; b.disabled=true;
+26708|     });
+26709|     box.querySelectorAll('[data-ais]').forEach(b=>b.onclick=async()=>{
+26710|       const a=adj[+b.dataset.ais]; let done=false;
+26711|       progSnap('ИИ-замена',a.from+' → '+a.to+(a.why?' — '+String(a.why).slice(0,60):''));
+26712|       (S.prog&&S.prog.plan||[]).forEach(day=>{ day.ex.forEach(it=>{
+26713|         if(!done&&it.n===a.from&&!day.ex.some(x=>x.n===a.to)){ it.n=a.to; done=true; } }); });
+26714|       if(!done){ S.progLog.pop(); S.progHist.pop(); return toast('Не нашёл «'+a.from+'» в плане'); }
+26715|       await put('settings',S,'main'); b.textContent='Готово'; b.disabled=true; rTrain(); toast('Заменено');
+26716|     });
+26717|   }catch(e){ box.innerHTML='<div class="eb">'+esc(e.message)+'</div>'; }
+26718| }
+26719| 
+26720| /* ══════════════ ИИ-АНАЛИЗ: система сама собирает статистику ══════════════
+26721|    Как у лучших (Fitbod/WHOOP/MacroFactor): данные тянутся из журналов сами,
+26722|    пользователь отмечает только жалобы. Модель получает РАССЧИТАННЫЕ числа
+26723|    (тренды, средние, паттерны), а не сырые записи, — меньше токенов, меньше галлюцинаций. */
+26724| function dataDigest(){
+26725|   const t=dn(td()), L=[];
+26726|   // Модель НЕ знает текущую дату: без этой строки «с 07.08 не будет зала»
+26727|   // читается как «уже сейчас» — и зальный жим меняется на брусья сегодня
+26728|   // (полевой кейс v156).
+26729|   {const gd=new Date(td()+'T12:00:00').getDay();
+26730|    L.push('СЕГОДНЯ: '+td()+' ('+DOW[gd===0?7:gd]+'). Все даты в жалобах и вопросах клиента отсчитывай от этой.');}
+26731|   { const dlA=dlActive();
+26732|     if(dlA) L.push('АКТИВНАЯ РАЗГРУЗКА: '+dlLbl(dlA)+' до '+dlA.until+(dlA.src==='ai'?'':' (включена самим человеком)')+' — НЕ назначай новую разгрузку поверх.'); }
+26733|   // ПАМЯТЬ ТРЕНЕРА: последние изменения программы (кем и когда назначены).
+26734|   // Модель без этого не знает собственных прошлых рекомендаций.
+26735|   {const log=(S.progLog||[]).slice(-8);
+26736|    if(log.length) L.push('ИСТОРИЯ НАЗНАЧЕНИЙ (не повторяй уже сделанное, учитывай недавние разгрузки и восстановительные периоды):\n'
+26737|      +log.map(e=>'  '+e.d+' ['+e.src+'] '+e.txt).join('\n'));}
+26738|   if(S.plan&&S.planFrom){
+26739|     const wk=Math.floor((t-dn(S.planFrom))/7)+1;
+26740|     L.push('ПЛАН ТРЕНЕРА (человека) активен с '+S.planFrom+', идёт неделя '+wk+'. Уважай структуру плана: если в нём заложены восстановительные недели — не дублируй их своими разгрузками.');
+26741|   }
+26742|   const days=n=>{const a=[];for(let i=1;i<=n;i++)a.push(ds(t-i));return a};   // вчерашний и назад
+26743|   const wd=d=>{const x=dowOf(d);return x>=6};                                  // сб/вс
+26744|   // вес
+26745|   const T=trend();
+26746|   if(T.length>=2){
+26747|     const at=n=>{const c=T.filter(x=>t-dn(x.d)<=n);return c.length>=2?c[c.length-1].tr-c[0].tr:null};
+26748|     const d7=at(7), d28=at(28);
+26749|     L.push('ВЕС: тренд '+r1(T[T.length-1].tr)+' кг; за 7 дн '+(d7!=null?(d7>0?'+':'')+r1(d7):'—')
+26750|       +', за 28 дн '+(d28!=null?(d28>0?'+':'')+r1(d28):'—')+' кг; целевой темп '+(S.rate>0?'+':'')+S.rate+' кг/нед');
+26751|   } else L.push('ВЕС: данных мало');
+26752|   // питание за 28 дн
+26753|   const tgt=tg(), D28=days(28);
+26754|   const fed=D28.filter(d=>LOG.some(l=>l.d===d));
+26755|   if(fed.length>=4){
+26756|     const sum=d=>LOG.filter(l=>l.d===d).reduce((a,l)=>({k:a.k+l.k,p:a.p+l.p,f:a.f+l.f,c:a.c+l.c}),{k:0,p:0,f:0,c:0});
+26757|     const avg=list=>{const s=list.map(sum);return {k:r0(s.reduce((a,x)=>a+x.k,0)/list.length),p:r0(s.reduce((a,x)=>a+x.p,0)/list.length),f:r0(s.reduce((a,x)=>a+x.f,0)/list.length),c:r0(s.reduce((a,x)=>a+x.c,0)/list.length)}};
+26758|     const wk=fed.filter(d=>!wd(d)), we=fed.filter(wd);
+26759|     const a1=wk.length?avg(wk):null, a2=we.length?avg(we):null;
+26760|     L.push('ПИТАНИЕ (записано '+fed.length+'/28 дн): цель '+(tgt?tgt.k+' ккал Б'+tgt.p+' Ж'+tgt.f+' У'+tgt.c:'—')
+26761|       +(a1?('; будни в среднем '+a1.k+' ккал Б'+a1.p+' Ж'+a1.f+' У'+a1.c):'')
+26762|       +(a2?('; выходные '+a2.k+' ккал Б'+a2.p+' Ж'+a2.f+' У'+a2.c):''));
+26763|     // вечерняя доля и переборы
+26764|     if(tgt){
+26765|       const evSh=fed.map(d=>{const m=LOG.filter(l=>l.d===d);const tot=m.reduce((a,l)=>a+l.k,0);
+26766|         const ev=m.filter(l=>l.sl==='dn'||l.sl==='sn').reduce((a,l)=>a+l.k,0);return tot>0?ev/tot:0});
+26767|       const evAvg=r0(evSh.reduce((a,b)=>a+b,0)/evSh.length*100);
+26768|       const over=fed.filter(d=>sum(d).k>tgt.k*1.12);
+26769|       let overTop='';
+26770|       if(over.length){
+26771|         const cnt={};
+26772|         over.forEach(d=>LOG.filter(l=>l.d===d).sort((a,b)=>b.k-a.k).slice(0,3).forEach(l=>cnt[l.n]=(cnt[l.n]||0)+1));
+26773|         overTop='; чаще всего в эти дни: '+Object.entries(cnt).sort((a,b)=>b[1]-a[1]).slice(0,4).map(e=>e[0]).join(', ');
+26774|       }
+26775|       L.push('ПАТТЕРНЫ ЕДЫ: ужин+перекус дают '+evAvg+'% дневных калорий; дней с перебором >12%: '+over.length+' из '+fed.length+overTop);
+26776|     }
+26777|     const cal={}; D28.forEach(d=>LOG.filter(l=>l.d===d).forEach(l=>cal[l.n]=(cal[l.n]||0)+l.k));
+26778|     L.push('ТОП-5 источников калорий: '+Object.entries(cal).sort((a,b)=>b[1]-a[1]).slice(0,5).map(e=>e[0]+' ('+r0(e[1])+')').join(', '));
+26779|   } else L.push('ПИТАНИЕ: записей мало ('+fed.length+'/28 дн)');
+26780|   // тренировки
+26781|   const sess28=[...new Set(SETS.filter(s=>t-dn(s.d)<=28&&t-dn(s.d)>=1).map(s=>s.d))];
+26782|   const v=volume(7), lag=[], big=[];
+26783|   Object.keys(MUS).forEach(m=>{const lm=LM[m]; if(!lm) return;
+26784|     const mev=mevFor(m);
+26785|     if(v[m]<mev&&mev>0) lag.push(MUS[m]+' '+r1(v[m])+'/'+mev);
+26786|     if(v[m]>lm[3]) big.push(MUS[m]+' '+r1(v[m])+'>'+lm[3]);});
+26787|   const ld=loads();
+26788|   const prog=[], flat=[];
+26789|   [...new Set(SETS.filter(s=>t-dn(s.d)<=28&&s.w>0&&s.r>=1&&s.r<=12).map(s=>s.e))].forEach(e=>{
+26790|     const old=SETS.filter(s=>s.e===e&&t-dn(s.d)>14&&t-dn(s.d)<=28&&s.w>0&&s.r>=1&&s.r<=12).map(s=>e1rm(s.w,s.r));
+26791|     const rec=SETS.filter(s=>s.e===e&&t-dn(s.d)<=14&&s.w>0&&s.r>=1&&s.r<=12).map(s=>e1rm(s.w,s.r));
+26792|     if(old.length&&rec.length){const d=Math.max(...rec)-Math.max(...old);
+26793|       (d>Math.max(...old)*0.01?prog:flat).push(e);}});
+26794|   L.push('ТРЕНИРОВКИ: '+sess28.length+' за 28 дн (план '+(S.prog?S.prog.cfg.days+'/нед':'—')+')'
+26795|     +(lag.length?('; недобор объёма/нед: '+lag.join(', ')):'')
+26796|     +(big.length?('; перебор: '+big.join(', ')):'')
+26797|     +(ld.acwr!=null?('; скачок нагрузки (7д/28д): '+r1(ld.acwr)):''));
+26798|   if(prog.length||flat.length) L.push('ПРОГРЕСС ВЕСОВ за месяц: растут — '+(prog.slice(0,5).join(', ')||'нет')+'; стоят — '+(flat.slice(0,5).join(', ')||'нет'));
+26799|   // сон / шаги / вода
+26800|   const sl=SLP.filter(x=>t-dn(x.d)<=28&&x.h!=null);
+26801|   if(sl.length>=4){const av=r1(sl.reduce((a,x)=>a+x.h,0)/sl.length);
+26802|     L.push('СОН: в среднем '+av+' ч ('+sl.length+' ночей, короче 7 ч: '+sl.filter(x=>x.h<7).length+')');}
+26803|   const st=STEPS.filter(x=>t-dn(x.d)<=28&&x.n>0);
+26804|   if(st.length>=4){
+26805|     const stw=st.filter(x=>!wd(x.d)), ste=st.filter(x=>wd(x.d));
+26806|     L.push('ШАГИ: будни '+(stw.length?r0(stw.reduce((a,x)=>a+x.n,0)/stw.length):'—')
+26807|       +', выходные '+(ste.length?r0(ste.reduce((a,x)=>a+x.n,0)/ste.length):'—')+' (цель '+(S.stepGoal||'—')+')');}
+26808|   const wat=days(14).map(d=>fluidToday(d)).filter(x=>x>0);
+26809|   if(wat.length>=4) L.push('ЖИДКОСТЬ: в среднем '+r0(wat.reduce((a,b)=>a+b,0)/wat.length)+' мл (цель '+waterGoalOf()+')');
+26810|   // замеры / жир / профиль
+26811|   const ms=[...M].sort((a,b)=>a.d<b.d?-1:1);
+26812|   if(ms.length){const NMx={waist:'талия',shoulders:'плечи',chest:'грудь',hips:'бёдра',arm:'бицепс',thigh:'бедро',neck:'шея'};
+26813|     const last=ms[ms.length-1];
+26814|     const old=ms.filter(x=>{const a=dn(last.d)-dn(x.d);return a>=21&&a<=60}).pop();
+26815|     L.push('ЗАМЕРЫ ('+fd(last.d)+'): '+Object.keys(NMx).filter(k=>last[k]!=null).map(k=>NMx[k]+' '+r1(last[k])).join(', ')
+26816|       +(old?('; за месяц: '+Object.keys(NMx).filter(k=>last[k]!=null&&old[k]!=null&&Math.abs(last[k]-old[k])>=0.3)
+26817|         .map(k=>NMx[k]+' '+((last[k]-old[k])>0?'+':'')+r1(last[k]-old[k])).join(', ')):''));}
+26818|   if(S.bodyEst) L.push('ЖИР ПО ФОТО ('+fd(S.bodyEst.d)+'): '+S.bodyEst.lo+'–'+S.bodyEst.hi+'%');
+26819|   L.push('ПРОФИЛЬ: '+(S.sex==='f'?'жен':'муж')+' '+S.age+' лет, '+S.h+' см'
+26820|     +(S.prog?('; программа: '+S.prog.plan.map(d=>DOW[d.dow]+'—'+d.ex.map(i=>i.n).join('/')).join(' | ')):''));
+26821|   if(S.foodBan) L.push('НЕ ЕСТ: '+S.foodBan);
+26822|   try{ const _ml=mealsSync(); L.push('Приёмов в день: '+_ml.length+' ('+_ml.map(m=>m[1]+(m[2]==='small'?' (малый)':'')).join(', ')+') — число личное, из калорий и объёма; не советуй «ешь чаще/реже».'); }catch(e){}
+26823|   { const _pn=Object.keys((S.pref&&S.pref.no)||{}); if(_pn.length) L.push('НЕ ЛЮБИТ (не предлагать): '+_pn.slice(0,12).join(', ')+'.'); }
+26824|   if(S.about) L.push('О СЕБЕ: '+S.about);
+26825|   return L.join('\n');
+26826| }
+26827| const ANA_CHIPS=[['sh','Болит плечо'],['kn','Болит колено'],['bk','Болит поясница'],['el','Болит локоть'],
+26828|  ['tired','Постоянная усталость'],['sleep','Плохо сплю'],['binge','Срывы по еде'],['ok','Всё нормально']];
+26829| const ANA_MUS={sh:'delts',kn:'quads',bk:'back',el:'triceps'};
+26830| $('bAna')&&($('bAna').onclick=()=>{
+26831|   if(!aiReady()){toast(AI_GATE_MSG);return openSet('Key')}
+26832|   $('anaChips').innerHTML=ANA_CHIPS.map(([k,v])=>`<div class="chip" data-ana="${k}">${v}</div>`).join('');
+26833|   $('anaChips').querySelectorAll('[data-ana]').forEach(c=>c.onclick=()=>c.classList.toggle('on'));
+26834|   $('anaTxt').value='';
+26835|   if(S.lastAna&&S.lastAna.r){ $('anaQ').style.display='none'; renderAnalysis(S.lastAna.r); }
+26836|   else{ $('anaOut').innerHTML=''; $('anaQ').style.display='block'; }
+26837|   sheet('sh-ana',true);
+26838| });
+26839| $('anaEx')&&($('anaEx').onclick=e=>{e.preventDefault();
+26840|   $('anaTxt').value='Цель: рекомпозиция — жир вниз, мышцы вверх, общий вес снижать медленно (до 0,3 кг/нед). Две недели было восстановление — считаю его законченным, готов возвращаться к рабочим весам. С [дата] по [дата] зала не будет: на эти дни дай план дома или на турнике. Добавки: креатин 5 г, омега-3. Вопросы: хватает ли белка и как вернуть рабочие веса без отката?';
+26841|   $('anaTxt').rows=6; $('anaTxt').focus();});
+26842| $('bAnaGo')&&($('bAnaGo').onclick=async()=>{
+26843|   const flags=[...$('anaChips').querySelectorAll('.chip.on')].map(c=>ANA_CHIPS.find(x=>x[0]===c.dataset.ana)[1]);
+26844|   const txt=$('anaTxt').value.trim();
+26845|   $('anaQ').style.display='none';
+26846|   $('anaOut').innerHTML='<div class="ib"><span class="load"></span>Собираю статистику и анализирую…</div>';
+26847|   try{
+26848|     const r=await aiAskJson('Ты опытный тренер-нутрициолог. Разбери статистику клиента за 4 недели и дай анализ как на очной консультации.\n\n'
+26849|       +dataDigest()
+26850|       +'\n\nЖАЛОБЫ СЕЙЧАС: '+(flags.join('; ')||'нет')+(txt?('; '+txt):'')
+26851|       +'\n\nСПИСОК ДОСТУПНЫХ УПРАЖНЕНИЙ (для замен, слово в слово): '+EX.filter(exHasVid).map(e=>e.n).join(' | ')
+26852|       +'\n\nСТРОГО JSON без markdown:'
+26853|       +'{"insights":[{"t":"короткий заголовок","d":"1-3 предложения с ЦИФРАМИ из статистики","sev":"good"|"info"|"warn"}],'
+26854|       +'"plan2w":[{"w":1,"focus":"главная задача недели, 3-6 слов","d":"2-4 предложения: как тренироваться и питаться эту неделю, с числами"},{"w":2,"focus":"","d":""}],'
+26855|       +'"adjustments":[{"type":"kcal","delta":-300..300,"why":""}|{"type":"swap","from":"из программы","to":"из списка","why":""}|'
+26856|       +'{"type":"deload","muscle":"chest|back|delts|biceps|triceps|quads|hams|glutes|calves|abs","days":7,"why":""}|{"type":"note","text":""}]}'
+26857|       +'\nПравила: 4-7 insights, обязательно отметь и то, что РАБОТАЕТ (sev good); каждое утверждение опирайся на цифры выше; '
+26858|       +'plan2w ОБЯЗАТЕЛЕН: конкретный план на ближайшие 2 недели с учётом АКТИВНОЙ РАЗГРУЗКИ и ИСТОРИИ НАЗНАЧЕНИЙ из сводки (если идёт разгрузка — неделя 1 строится вокруг неё: что делать лёгким, когда и как возвращаться к рабочим весам); '
+26859|       +'при жалобе на боль — deload соответствующей группы и/или swap на щадящие; максимум 5 adjustments; не выдумывай данных, которых нет. '
+26860|       +'ДАТЫ: если клиент называет период без зала в БУДУЩЕМ — до начала периода программу не трогай и зальные упражнения на домашние не меняй; замены дома/на турнике планируй только на сами даты отсутствия и явно укажи их в plan2w. '
+26861|       +'ПРЕЕМСТВЕННОСТЬ ОБЯЗАТЕЛЬНА: клиент устаёт, когда каждый разбор перекраивает программу и калории заново. Смотри ИСТОРИЮ НАЗНАЧЕНИЙ и прошлые решения: предлагай изменение ТОЛЬКО там, где цифры показывают проблему, а что работает — прямо называй работающим и не трогай. Правки калорий меньше 100 ккал не предлагай вовсе.',12000,'analysis');
+26862|     S.lastAna={d:td(),r};                       // отчёт сохраняется — он не одноразовый
+26863|     try{ await put('settings',S,'main'); }catch(_){}
+26864|     renderAnalysis(r);
+26865|   }catch(e){ $('anaOut').innerHTML='<div class="eb">'+esc(e.message)+'</div><button class="btn sec" style="margin-top:12px" onclick="$(\'anaQ\').style.display=\'block\';$(\'anaOut\').innerHTML=\'\'">Назад</button>'; }
+26866| });
+26867| function renderAnalysis(r){
+26868|   const SEVC={good:'var(--ac)',info:'var(--t2)',warn:'var(--wn)'};
+26869|   const adj=(r.adjustments||[]).slice(0,5);
+26870|   const applicable=a=>a.type==='kcal'?Math.abs(+a.delta)>0
+26871|     :a.type==='swap'?!!(a.from&&a.to&&EX.some(e=>e.n===a.to&&exHasVid(e)))
+26872|     :a.type==='deload'?!!MUS[a.muscle]:false;
+26873|   async function apply1(a){
+26874|     if(a.applied||!applicable(a)) return true;
+26875|     if(a.type==='kcal'){
+26876|       const d=Math.max(-300,Math.min(300,r0(+a.delta)));
+26877|       if(!(await applyKcalAdj(d,'ИИ-разбор'))) return false;
+26878|     }else if(a.type==='swap'){
+26879|       // Снимок ДО правки — иначе «Вернуть» в Истории программы вернёт уже
+26880|       // изменённую версию, и откат замены невозможен
+26881|       progSnap('ИИ-разбор','Замена: '+a.from+' → '+a.to);
+26882|       let done=false;
+26883|       (S.prog&&S.prog.plan||[]).forEach(day=>day.ex.forEach(it=>{
+26884|         if(!done&&it.n===a.from&&!day.ex.some(x=>x.n===a.to)){it.n=a.to;done=true;}}));
+26885|       if(!done){ S.progLog.pop(); S.progHist.pop(); toast('Не нашёл «'+a.from+'» в плане'); return false; }
+26886|       rTrain(); toast('Заменено');
+26887|     }else if(a.type==='deload'){
+26888|       await deloadOn(a.muscle,+a.days||7,'ai',a.why);
+26889|     }
+26890|     a.applied=1;                                  // отметка живёт в сохранённом отчёте — второй раз не применится
+26891|     try{ await put('settings',S,'main'); }catch(_){}
+26892|     return true;
+26893|   }
+26894|   const btn=(a,i)=>a.applied
+26895|     ?'<button class="btn sm" disabled style="flex:0 0 auto;opacity:.5">Готово</button>'
+26896|     :`<button class="btn sm" data-aap="${i}" style="flex:0 0 auto">Применить</button>`;
+26897|   const todo=adj.filter(a=>applicable(a)&&!a.applied).length;
+26898|   $('anaOut').innerHTML=
+26899|     (S.lastAna&&S.lastAna.r===r?`<div class="mini" style="margin-bottom:12px">Разбор от ${fd(S.lastAna.d)} · хранится здесь до следующего разбора</div>`:'')
+26900|     +(r.insights||[]).slice(0,7).map(i=>`<div class="card t" style="margin-bottom:8px;border-left:3px solid ${SEVC[i.sev]||SEVC.info}">
+26901|       <div style="font-weight:var(--fwm);margin-bottom:4px">${esc(i.t||'')}</div>
+26902|       <div class="s" style="white-space:normal">${esc(i.d||'')}</div></div>`).join('')
+26903|     +((r.plan2w&&r.plan2w.length)?'<div class="hd" style="margin:16px 0 8px"><h2>План на 2 недели</h2></div>'
+26904|       +r.plan2w.slice(0,2).map(w=>`<div class="card t" style="margin-bottom:8px;border-left:3px solid var(--ac2)">
+26905|         <div style="font-weight:var(--fwm);margin-bottom:4px">Неделя ${w.w||''}: ${esc(w.focus||'')}</div>
+26906|         <div class="s" style="white-space:normal">${esc(w.d||'')}</div></div>`).join(''):'')
+26907|     +(adj.length?'<div class="hd" style="margin:16px 0 8px"><h2>Что поменять</h2>'
+26908|       +(todo>1?'<button class="btn sm" id="bAnaAll">Применить всё</button>':'')+'</div>':'')
+26909|     +adj.map((a,i)=>{
+26910|       if(a.type==='kcal'&&Math.abs(+a.delta)>0){const d=Math.max(-300,Math.min(300,r0(+a.delta)));
+26911|         return `<div class="item"><div class="g"><div class="t">Калории: ${d>0?'+':''}${d}/день</div><div class="s">${esc(a.why||'')}</div></div>${btn(a,i)}</div>`;}
+26912|       if(a.type==='swap'&&applicable(a))
+26913|         return `<div class="item"><div class="g"><div class="t">${esc(a.from)} → ${esc(a.to)}</div><div class="s">${esc(a.why||'')}</div></div>${btn(a,i)}</div>`;
+26914|       if(a.type==='deload'&&MUS[a.muscle])
+26915|         return `<div class="item"><div class="g"><div class="t">Разгрузка: ${MUS[a.muscle]} на ${a.days||7} дн</div><div class="s">${esc(a.why||'')} Веса на эту группу ×0.6, боль = стоп.</div></div>${btn(a,i)}</div>`;
+26916|       return `<div class="item"><div class="g"><div class="t">Совет</div><div class="s">${esc(a.text||a.why||'')}</div></div></div>`;
+26917|     }).join('')
+26918|     +'<div class="note" style="margin-top:12px">Применяется только по кнопке: калории уходят в питание, замены и разгрузка — в «Зал».</div>'
+26919|     +'<button class="btn sec" style="margin-top:8px;width:100%" id="bAnaAgain">Новый анализ</button>';
+26920|   $('anaOut').querySelectorAll('[data-aap]').forEach(b=>b.onclick=async()=>{
+26921|     if(await apply1(adj[+b.dataset.aap])) renderAnalysis(r); });
+26922|   const all=$('bAnaAll'); if(all) all.onclick=async()=>{
+26923|     for(const a of adj) await apply1(a);
+26924|     renderAnalysis(r); };
+26925|   const ag=$('bAnaAgain'); if(ag) ag.onclick=()=>{$('anaQ').style.display='block';$('anaOut').innerHTML='';};
+26926| }
+26927| function gymNudge(){
+26928|   const el=$('gymBox'); if(!el) return;
+26929|   if(!S.gym){el.style.display='none';return}
+26930|   /* S.gym — дата окончания абонемента. Мусор в ней (старый бэкап, правка
+26931|      файла, синк со старой версии) давал «заканчивается через NaN дн.» прямо
+26932|      на экране Зала. Тот же класс, что закрыт в v357 для сторов, — но поля
+26933|      настроек тогда не проверяли (найдено на скриншоте 23.08). */
+26934|   const left=dn(S.gym)-dn(td());
+26935|   if(!isFinite(left)){el.style.display='none';return}
+26936|   if(left>14||left<-30){el.style.display='none';return}
+26937|   const wk=SESS.filter(s=>dn(s.d)>=dn(td())-27).length, perWk=r1(wk/4);
+26938|   el.style.display='block';
+26939|   el.innerHTML=`<div class="card"><div class="${left<0?'eb':'wb'}">
+26940|     <b>Абонемент ${left<0?'закончился '+(-left)+' дн. назад':left===0?'заканчивается сегодня':'заканчивается через '+left+' дн.'}</b><br><br>
+26941|     За последний месяц ты ходил <b>${perWk} раз в неделю</b>${S.prog?` при плане ${S.prog.cfg.days}`:''}.
+26942|     ${perWk<1.5?'Это мало. Прежде чем продлевать, честно ответь: дело в зале (далеко, неудобно, нет железа) или в тебе? Второе новым абонементом не лечится.':
+26943|       perWk>=3?'Ходишь стабильно — зал работает. Продлевай, если ничего не бесит.':
+26944|       'Ходишь через раз. Подумай, что мешает: расписание, дорога, инвентарь?'}
+26945|     <br><br><span style="opacity:.75">Приложение не рекламирует залы и не получает за это денег. Это просто повод подумать.</span>
+26946|   </div></div>`;
+26947| }
+26948| 
+26949| /* body actions */
+26950| /* Один путь записи веса на два поля: «Еда» и «Тело». Дублировать логику
+26951|    нельзя — разъедется на первой же правке. */
+26952| /* Done-пружина кнопки записи (micro-interactions.md §4, apple-springs.md §1.3):
+26953|    bounce 260 мс по cubic-bezier(.34,1.56,.64,1) + короткая вибрация после жеста. */
+26954| function donePop(id){
+26955|   try{ const b=$(id); if(!b||!b.classList) return;
+26956|     b.classList.remove('done-pop'); void b.offsetWidth; b.classList.add('done-pop');
+26957|     setTimeout(()=>{ try{ b.classList.remove('done-pop'); }catch(e){} },400);
+26958|     const ua=navigator.userActivation; if(navigator.vibrate&&(!ua||ua.hasBeenActive)) navigator.vibrate(10);
+26959|   }catch(e){}
+26960| }
+26961| async function saveWeight(inputId){
+26962|   const el=$(inputId); if(!el) return;
+26963|   const kg=num(el);
+26964|   if(!kg||kg<25||kg>350){ fieldErr(el,'Вес тела: от 25 до 350 кг'); return; }
+26965|   await put('weight',{d:vDate||td(),kg}); W=await all('weight');
+26966|   if(S.tdee==null&&S.target==null) seed();
+26967|   const r=await recalc(false); await put('settings',S,'main');
+26968|   el.value='';
+26969|   rFood();rBody();rCoach();
+26970|   donePop(inputId==='wIn2'?'bW2':'bW');
+26971|   toast(r.ok&&!r.skip?'Таргет обновлён':'Записано');
+26972| }
+26973| $('bW').onclick=()=>saveWeight('wIn');
+26974| $('bW2')&&($('bW2').onclick=()=>saveWeight('wIn2'));
+26975| $('bM').onclick=async()=>{
+26976|   const K=['waist','shoulders','chest','hips','arm','thigh','neck'], m={d:($('mPick').value||td())}; let any=0;
+26977|   K.forEach(k=>{const v=num($('m_'+k)); if(v>0){m[k]=v;any=1}});
+26978|   if(!any) return toast('Заполни хотя бы одно поле');
+26979|   // Скачок вроде «плечи +12 см за неделю» — почти всегда ошибка ленты или опечатка. Переспрашиваем.
+26980|   const TH={waist:4,shoulders:5,chest:5,hips:4,arm:2.5,thigh:3,neck:2};
+26981|   const NMv={waist:'Талия',shoulders:'Плечи',chest:'Грудь',hips:'Бёдра',arm:'Бицепс',thigh:'Бедро',neck:'Шея'};
+26982|   const hist=[...M].filter(x=>x.d<m.d).sort((a,b)=>a.d<b.d?1:-1);
+26983|   for(const k of K){ if(m[k]==null) continue;
+26984|     const p=hist.find(x=>x[k]!=null); if(!p) continue;
+26985|     const df=m[k]-p[k];
+26986|     if(Math.abs(df)>TH[k] && !(await ask({title:NMv[k]+': '+(df>0?'+':'')+r1(df)+' см с прошлого замера',text:'С '+fd(p.d)+' тело так не меняется — обычно это лента легла иначе или опечатка.',ok:'Всё равно сохранить',cancel:'Исправлю'}))) return;
+26987|   }
+26988|   const exM=M.find(x=>x.d===m.d)||{};               // талия утром + бицепс вечером — не теряем утро
+26989|   await put('meas',{...exM,...m});M=await all('meas');
+26990|   K.forEach(k=>$('m_'+k).value='');
+26991|   const mf=$('mForm'); if(mf) mf.open=false;   // закрываем форму — пусть видно обновлённую сводку
+26992|   rBody();donePop('bM');toast('Замер сохранён');
+26993| };
+26994| $('bSt').onclick=async()=>{
+26995|   const n=parseInt($('stIn').value);
+26996|   if(!(n>=0)||n>100000) return toast('Проверь число');
+26997|   await put('steps',{d:($('stPick').value||td()),n});STEPS=await all('steps');
+26998|   rBody();toast('Записано');
+26999| };
+27000| $('mPick')&&($('mPick').onchange=()=>{const d=$('mPick').value,m=M.find(x=>x.d===d)||{};

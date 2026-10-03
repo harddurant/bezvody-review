@@ -1,0 +1,62 @@
+# ── Секреты (никогда в git) ──
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+*.p12
+*.pfx
+id_rsa
+id_ed25519
+credentials*.json
+service-account*.json
+secrets*.json
+token.json
+.dev.vars
+
+# ── Память и сжатие контекста (claude-mem, headroom) ──
+# claude-mem пишет ВСЁ, что читает и делает агент, включая прочитанное из .env.
+# Хранилище лежит в домашнем каталоге, но если кто-то запустит с другим
+# CLAUDE_MEM_DATA_DIR — оно не должно уехать в git ни при каких условиях.
+.claude-mem/
+.claude-mem*
+claude-mem.db
+chroma/
+.headroom/
+headroom.log
+
+# ── Личные данные (бэкапы дневника/здоровья — НИКОГДА в git) ──
+_src.json
+tracker-*.json
+*.json.bak
+
+# ── Состояние AI-агентов / редакторов ──
+# Навыки (skills) — ассет проекта, а не состояние: держим в репозитории,
+# чтобы правила дизайна были одинаковы у всех и в любой сессии.
+# (исключаем содержимое .claude/, кроме skills — git не умеет «вернуть»
+#  файл, если исключена сама папка, поэтому шаблон именно `.claude/*`)
+.claude/*
+!.claude/skills/
+.cursor/
+.codex/
+.gemini/
+.mcp.json
+claude_desktop_config.json
+*.log
+
+# ── Сборка / зависимости ──
+dist/
+node_modules/
+.venv/
+__pycache__/
+
+# ── Медиа упражнений (MoveKit) — хостится в Supabase Storage, НЕ в git ──
+# 447 МБ MP4 + постеры не должны попадать в репозиторий (лимиты, вес клонов).
+# Игнорируем по типу файла; metadata-json остаётся коммитируемым (нужен для маппинга).
+*.mp4
+*.webp
+*.zip
+
+# ── ОС ──
+.DS_Store
+Thumbs.db

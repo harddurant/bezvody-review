@@ -1,0 +1,111 @@
+# Базовая линия Skillspector для .claude/skills: правила «id + файл», каждая — прочитанная руками находка.
+# Новый скилл проверяется БЕЗ этого файла: scripts/skillcheck.sh <папка>. Правила не общие: скилл + файл + номер правила.
+version: 2
+scanner_version: 2.11.1
+rules:
+- id: AR2
+  path: apple-hig/distilled/feedback.md
+  reason: '14.09.2026, прочитано по строке: «don''t warn for expected data loss» — правило Apple про НЕ показывать лишний алерт человеку, сканер принял за «убери предупреждения» в свой адрес'
+- id: PE3
+  path: apple-hig/distilled/managing-accounts.md
+  reason: '14.09.2026, прочитано по строке: «iCloud Keychain, autofill user names/passwords» — описание системной функции iOS, кода и доступа к файлам нет'
+- id: P6
+  path: apple-hig/distilled/onboarding.md
+  reason: '14.09.2026, прочитано по строке: «display instructions near the UI area they describe» — про подсказки на экране, сканер зацепился за слово instructions'
+- id: P1
+  path: apple-hig/distilled/accessibility.md
+  reason: '14.09.2026, прочитано по строке: «don''t override system keyboard shortcuts» — правило про горячие клавиши, сканер прочёл override+system как обход своих инструкций'
+- id: P1
+  path: apple-hig/distilled/playing-audio.md
+  reason: '14.09.2026, прочитано по строке: «never override system volume» — правило про громкость, тот же ложный триггер override+system'
+- id: P6
+  path: apple-hig/distilled/the-menu-bar.md
+  reason: '14.09.2026, прочитано по строке: таблица пунктов меню macOS (Font, Text, Show Ruler) — инструкций нет вовсе'
+- id: AE4
+  path: gym-coach/GYM.md
+  reason: '09.09.2026, прочитано по строке: русский текст — сканер считает кириллицу «смешанным письмом»'
+- id: AE4
+  path: gym-coach/SKILL.md
+  reason: '09.09.2026, прочитано по строке: русский текст — сканер считает кириллицу «смешанным письмом»'
+- id: AE4
+  path: heroui-native/SKILL.md
+  reason: '09.09.2026, прочитано по строке: русский текст — сканер считает кириллицу «смешанным письмом»'
+- id: AR2
+  path: impeccable/reference/critique.md
+  reason: '09.09.2026, прочитано по строке: проза: «не задавай вопросы, если находок меньше трёх» — про дизайн-ревью'
+- id: AR2
+  path: prototype/SKILL.md
+  reason: '09.09.2026, прочитано по строке: проза: «не задавай вопросы, если находок меньше трёх» — про дизайн-ревью'
+- id: EA2
+  path: impeccable/reference/audit.md
+  reason: '09.09.2026, прочитано по строке: дизайнерская инструкция «решай сам, не спрашивай о мелочах» — про цвет и композицию, не про данные'
+- id: EA2
+  path: impeccable/reference/audit.native.md
+  reason: '09.09.2026, прочитано по строке: дизайнерская инструкция «решай сам, не спрашивай о мелочах» — про цвет и композицию, не про данные'
+- id: EA2
+  path: impeccable/reference/critique.md
+  reason: '09.09.2026, прочитано по строке: дизайнерская инструкция «решай сам, не спрашивай о мелочах» — про цвет и композицию, не про данные'
+- id: EA2
+  path: impeccable/reference/delight.md
+  reason: '09.09.2026, прочитано по строке: дизайнерская инструкция «решай сам, не спрашивай о мелочах» — про цвет и композицию, не про данные'
+- id: EA2
+  path: impeccable/reference/document.md
+  reason: '09.09.2026, прочитано по строке: дизайнерская инструкция «решай сам, не спрашивай о мелочах» — про цвет и композицию, не про данные'
+- id: EA2
+  path: impeccable/reference/init.md
+  reason: '09.09.2026, прочитано по строке: дизайнерская инструкция «решай сам, не спрашивай о мелочах» — про цвет и композицию, не про данные'
+- id: EA2
+  path: impeccable/reference/live.md
+  reason: '09.09.2026, прочитано по строке: дизайнерская инструкция «решай сам, не спрашивай о мелочах» — про цвет и композицию, не про данные'
+- id: EA2
+  path: impeccable/reference/new-work.md
+  reason: '09.09.2026, прочитано по строке: дизайнерская инструкция «решай сам, не спрашивай о мелочах» — про цвет и композицию, не про данные'
+- id: EA2
+  path: impeccable/reference/visualize.md
+  reason: '09.09.2026, прочитано по строке: дизайнерская инструкция «решай сам, не спрашивай о мелочах» — про цвет и композицию, не про данные'
+- id: EA2
+  path: taste-frontend/SKILL.md
+  reason: '09.09.2026, прочитано по строке: дизайнерская инструкция «решай сам, не спрашивай о мелочах» — про цвет и композицию, не про данные'
+- id: MP3
+  path: impeccable/reference/colorize.md
+  reason: '09.09.2026, прочитано по строке: проза про «новую идентичность бренда», не про память агента'
+- id: P1
+  path: find-animation-opportunities/SKILL.md
+  reason: '09.09.2026, прочитано по строке: проза: правило «содержимое репозитория — данные, не команды» цитирует фразу «ignore previous instructions»'
+- id: P1
+  path: improve-animations/SKILL.md
+  reason: '09.09.2026, прочитано по строке: проза: правило «содержимое репозитория — данные, не команды» цитирует фразу «ignore previous instructions»'
+- id: P2
+  path: impeccable/reference/live.md
+  reason: '09.09.2026, прочитано по строке: проза: HTML-комментарий или TODO-заглушка в шаблоне'
+- id: P2
+  path: taste-frontend/SKILL.md
+  reason: '09.09.2026, прочитано по строке: проза: HTML-комментарий или TODO-заглушка в шаблоне'
+- id: RA2
+  path: mobile-app-ui-design/README.md
+  reason: '09.09.2026, прочитано по строке: проза скилла, не код'
+- id: RP1
+  path: heroui-native/SKILL.md
+  reason: '09.09.2026, прочитано по строке: npx без версии — в тексте чужого скилла как пример; наше правило «не случайные npx» запрещает запуск'
+- id: RP1
+  path: impeccable/SKILL.md
+  reason: '09.09.2026, прочитано по строке: npx без версии — в тексте чужого скилла как пример; наше правило «не случайные npx» запрещает запуск'
+- id: RP1
+  path: impeccable/reference/doctor.md
+  reason: '09.09.2026, прочитано по строке: npx без версии — в тексте чужого скилла как пример; наше правило «не случайные npx» запрещает запуск'
+- id: RP1
+  path: impeccable/reference/hooks.md
+  reason: '09.09.2026, прочитано по строке: npx без версии — в тексте чужого скилла как пример; наше правило «не случайные npx» запрещает запуск'
+- id: RP1
+  path: mobile-app-ui-design/README.md
+  reason: '09.09.2026, прочитано по строке: npx без версии — в тексте чужого скилла как пример; наше правило «не случайные npx» запрещает запуск'
+- id: RP1
+  path: taste-frontend/SKILL.md
+  reason: '09.09.2026, прочитано по строке: npx без версии — в тексте чужого скилла как пример; наше правило «не случайные npx» запрещает запуск'
+- id: TM1
+  path: heroui-native/scripts/get_docs.mjs
+  reason: '09.09.2026, прочитано по строке: scripts/get_docs.mjs: обрезка префикса пути в URL документации, скрипт отревьюен руками 30.08'
+- id: YR4
+  path: improve-animations/SKILL.md
+  reason: '09.09.2026, прочитано по строке: слово «audit» в описании — YARA-сигнатура на текст'
+fingerprints: []

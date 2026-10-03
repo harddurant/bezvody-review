@@ -1,0 +1,2001 @@
+// ИЗВЛЕЧЕНИЕ ДЛЯ ЧТЕНИЯ: tests/smoke.js, строки 1–2000 из 14412. Номера строк совпадают с оригиналом. Код не менялся.
+    1| // Render smoke test — гейт перед деплоем.
+    2| // Прогоняет все render-функции против фейкового DOM. Падает с кодом 1 при любом краше.
+    3| const fs=require("fs");const path=require("path");const {webcrypto}=require("crypto");
+    4| const ROOT=path.resolve(__dirname,"..");
+    5| const html=fs.readFileSync(path.join(ROOT,"index.html"),"utf8");
+    6| // главный скрипт — ПОСЛЕДНИЙ <script>: перед ним стоит ранний страж загрузки
+    7| let js=html.slice(html.lastIndexOf("<script>")+8,html.lastIndexOf("</script>"));
+    8| js=js.replace(/\(async\(\)=>\{[\s\S]*\}\)\(\);\s*$/,"").replace("const td=","let td=");
+    9| const data={};["settings","foods","log","weight","meas","sets","sess","ready","steps","labs","subs","sleep","combos"].forEach(k=>data[k]=[]);
+   10| data.sleep=[{d:"2026-07-14",bed:"23:00",wake:null,h:null}];
+   11| data.sess=[{d:"2026-07-14",start:"18:00",end:null,min:null,rpe:null,id:1}];
+   12| const ctx=new Proxy({},{get:()=>()=>ctx});const elCache={};
+   13| function fakeEl(id){return elCache[id]||(elCache[id]={_id:id,style:{setProperty(k,v){this[k]=v},getPropertyValue(k){return this[k]==null?"":String(this[k])},removeProperty(k){delete this[k]}},classList:{add(){},remove(){},toggle(){},contains(){return false}},set innerHTML(v){this._h=v},get innerHTML(){return this._h||""},querySelector(){return fakeEl(id+"_q")},querySelectorAll(){return []},addEventListener(){},textContent:"",value:"",onclick:null,oninput:null,onchange:null,dataset:{},insertAdjacentHTML(){},focus(){},select(){},setAttribute(){},getAttribute(){return null},getContext(){return ctx},width:0,height:0,clientWidth:300,appendChild(){},remove(){}});}
+   14| globalThis.window={indexedDB:{},addEventListener(){},matchMedia:()=>({matches:false,addEventListener(){}}),scrollTo(){},open(){return null}};
+   15| globalThis.document={querySelector:()=>fakeEl("m"),querySelectorAll:()=>[],getElementById:fakeEl,createElement:()=>fakeEl("_c"+Math.random()),addEventListener(){},body:{},head:{appendChild(){}},documentElement:{dataset:{},classList:{add(){},remove(){},toggle(){},contains(){return false}}}};
+   16| globalThis.navigator={vibrate(){},mediaDevices:{}};globalThis.localStorage={getItem(){return null},setItem(){},removeItem(){}};
+   17| globalThis.crypto=webcrypto;globalThis.location={origin:"x",protocol:"https:",hostname:"bezvodyfit.ru"};
+   18| /* Стенд представляется БОЕВЫМ доменом: с v473 телеметрия уходит только оттуда
+   19|    (см. isProd в index.html). Иначе правила про отправку событий проверяли бы
+   20|    выключенную ветку и были бы зелёными всегда. Обратную сторону — что с
+   21|    превью и стенда не уходит ничего — стережёт отдельное правило ниже. */
+   22| /* Настоящий таймер — для правил, которым нужна задержка (звонок v592); остальным стенд отдаёт заглушки. */
+   23| globalThis.__realTimeout=globalThis.setTimeout;
+   24| globalThis.setInterval=()=>0;globalThis.clearInterval=()=>{};globalThis.setTimeout=()=>0;globalThis.devicePixelRatio=1;
+   25| globalThis.addEventListener=()=>{};globalThis.scrollTo=()=>{};
+   26| globalThis.fetch=async()=>({ok:true,status:200,json:async()=>({}),text:async()=>"{}"});
+   27| globalThis.requestAnimationFrame=()=>0;globalThis.DATA=data;globalThis.confirm=()=>true;globalThis.__renderEager=1;/* v604: правила зовут рендер скрытой вкладки и читают её DOM — рисуем сразу; ленивость проверяет своё правило */globalThis.__HTML=html;
+   28| // файлы вне index.html для статических проверок (в песочнице нет require)
+   29| globalThis.__OFFER=(()=>{try{return fs.readFileSync(path.join(__dirname,"..","promo","offer.html"),"utf8")}catch(e){return ""}})();
+   30| globalThis.__AIJS=(()=>{try{return fs.readFileSync(path.join(__dirname,"..","api","ai.js"),"utf8")}catch(e){return ""}})();
+   31| globalThis.__BR=(()=>{try{return fs.readFileSync(path.join(__dirname,"browser.js"),"utf8")}catch(e){return ""}})();   // v620: правило выреза живёт там, здесь стережём, что оно не пропало
+   32| globalThis.__CAP=(()=>{try{return fs.readFileSync(path.join(__dirname,"..","capacitor.config.json"),"utf8")}catch(e){return ""}})();   // v622: манифест нативной сборки
+   33| globalThis.__BUILD=(()=>{try{return fs.readFileSync(path.join(__dirname,"build.js"),"utf8")}catch(e){return ""}})();
+   34| globalThis.__NEXT=(()=>{try{return fs.readFileSync(path.join(__dirname,"..","NEXT.md"),"utf8")}catch(e){return ""}})();   // v622: оговорки, которые обязаны быть записаны там, где владелец их прочитает
+   35| globalThis.__PRIVACY=(()=>{try{return fs.readFileSync(path.join(__dirname,"..","promo","privacy.html"),"utf8")}catch(e){return ""}})();
+   36| globalThis.__SWJS=(()=>{try{return fs.readFileSync(path.join(__dirname,"..","sw.js"),"utf8")}catch(e){return ""}})();
+   37| globalThis.__MANIFEST=(()=>{try{return fs.readFileSync(path.join(__dirname,"..","manifest.json"),"utf8")}catch(e){return ""}})();
+   38| globalThis.__PUSHJS=(()=>{try{return fs.readFileSync(path.join(__dirname,"..","api","push-send.js"),"utf8")}catch(e){return ""}})();
+   39| // vercel.json читаем БЕЗ пробелов: билд-контейнер Vercel минифицирует файл,
+   40| // и проверки вида «"maxDuration": 60» (с пробелом) там ложно падали —
+   41| // прод застревал на старой версии при зелёном локальном гейте (04.08).
+   42| globalThis.__VERCEL=(()=>{try{return fs.readFileSync(path.join(__dirname,"..","vercel.json"),"utf8").split(" ").join("").split("\t").join("").split("\n").join("")}catch(e){return ""}})();
+   43| const test=`
+   44| ;S=Object.assign(S,DATA.settings);FOODS=DATA.foods;LOG=DATA.log;W=DATA.weight;M=DATA.meas;SETS=(DATA.sets||[]).map(s=>({...s}));
+   45| SESS=DATA.sess;RDY=DATA.ready;STEPS=DATA.steps;LABS=DATA.labs;SUBS=DATA.subs;SLP=DATA.sleep;CMB=DATA.combos;ADH=[{d:td(),done:['w']}];
+   46| globalThis.__r=[];
+   47| ["rFood","rQuick","rWater","rCoach","rTrain","rLever","rBody","rPh","rHealth","rLib","rProg","rPlanToday","rPlanCard","rSleep","rSteps","rEff","rSync","rRev","rLag","rRings","rRecap"].forEach(function(f){
+   48| try{ if(eval("typeof "+f)!=="function") return; }catch(e){ return; }
+   49| try{ eval(f+"()"); }catch(e){ __r.push("КРЭШ "+f+": "+e.message); } });
+   50| try{ backupWarn(); }catch(e){ __r.push("КРЭШ backupWarn: "+e.message); }
+   51| // семейство протеина в частых добавках — один пункт со своим именем,
+   52| // вне дневного счётчика (поле 06.08: «два протеина зачем? не обязательная добавка»)
+   53| try{
+   54|   if(typeof subMemory!=="function") __r.push("КРЭШ subDup: нет subMemory");
+   55|   else{
+   56|     var _sdS=SUBS;
+   57|     SUBS=[{d:"2026-08-01",n:"Протеин (сывороточный/казеин)",c:"sup"},
+   58|           {d:"2026-08-02",n:"Протеин (из дневника)",c:"sup"},
+   59|           {d:"2026-08-02",n:"Креатин моногидрат",c:"sup",v:5,u:"г"}];
+   60|     var _sdM=subMemory(), _sdP=_sdM.filter(function(m){return m.prot});
+   61|     if(_sdP.length!==1) __r.push("КРЭШ subDup: семейство протеина должно жить одним пунктом, а пунктов "+_sdP.length);
+   62|     else{
+   63|       if(/из дневника/.test(_sdP[0].n)) __r.push("КРЭШ subDup: показывать надо своё название, а не «(из дневника)»");
+   64|       if(_sdP[0].cnt!==2) __r.push("КРЭШ subDup: приёмы семейства должны суммироваться (cnt="+_sdP[0].cnt+")");
+   65|     }
+   66|     if(_sdM.some(function(m){return !m.prot&&/протеин/i.test(m.n)})) __r.push("КРЭШ subDup: протеин просочился в обычные пункты");
+   67|     SUBS=_sdS;
+   68|   }
+   69| }catch(e){ __r.push("КРЭШ subDup: "+e.message); }
+   70| // мост «еда → добавка»: порошок/коктейль отмечает протеин, снек — нет
+   71| // (поле 05.08: протеиновый батончик сам отметил приём, которого не было)
+   72| try{
+   73|   if(typeof isProtFood!=="function") __r.push("КРЭШ protMark: нет isProtFood — мост еда→добавка без фильтра снеков");
+   74|   else{
+   75|     [["Сывороточный протеин (скуп 30 г)",true],["Казеин мицеллярный",true],["Whey Gold Standard",true],
+   76|      ["Протеин Bombbar шоколад",true],   // бренд с «bar» в имени — не снек
+   77|      ["Протеиновый батончик Bombbar",false],["Протеиновое печенье",false],["Протеиновая паста",false],
+   78|      ["Творог 5%",false]].forEach(function(t){
+   79|       if(isProtFood(t[0])!==t[1]) __r.push("КРЭШ protMark: isProtFood('"+t[0]+"') должен быть "+t[1]);
+   80|     });
+   81|   }
+   82| }catch(e){ __r.push("КРЭШ protMark: "+e.message); }
+   83| // тренер умеет собрать программу сам (поле 17.08: «сказал требования —
+   84| // пусть там и собирается», а не квест через вкладку Зал)
+   85| try{
+   86|   if(typeof COACH_TOOLS==="undefined") __r.push("КРЭШ coachProg: нет COACH_TOOLS");
+   87|   else{
+   88|     var _cpT=COACH_TOOLS.find(function(t){return t.name==='build_program'});
+   89|     if(!_cpT) __r.push("КРЭШ coachProg: у тренера нет инструмента build_program — «собери программу» уходит в пустоту");
+   90|     else{
+   91|       var _cpS=JSON.stringify(_cpT.input_schema);
+   92|       ["days","dows","equip","exp","goal"].forEach(function(f){
+   93|         if(_cpS.indexOf('"'+f+'"')<0) __r.push("КРЭШ coachProg: в схеме build_program нет поля "+f); });
+   94|     }
+   95|     var _cpI=__HTML.indexOf("name==='build_program'");
+   96|     if(_cpI<0||__HTML.slice(_cpI,_cpI+2200).indexOf("genProgram(")<0)
+   97|       __r.push("КРЭШ coachProg: исполнитель build_program не зовёт genProgram — инструмент-пустышка");
+   98|   }
+   99| }catch(e){ __r.push("КРЭШ coachProg: "+e.message); }
+  100| // кнопка «Обновить» обязана мутнуться СИНХРОННО до перезагрузки — иначе
+  101| // детектор «мёртвый тап» (700 мс) успевает сработать раньше, чем реальная
+  102| // сеть довезёт shell (у sw.js на это 5 сек таймаута), и тап уходит в
+  103| // краш-лог как сломанная кнопка (сигнал с телефона 31.08)
+  104| try{
+  105|   if(typeof showUpdateBar!=="function") __r.push("КРЭШ updGo: нет showUpdateBar");
+  106|   else{
+  107|     var _upReloaded=false;
+  108|     globalThis.location.reload=function(){ _upReloaded=true; };
+  109|     document.body.appendChild=document.body.appendChild||function(){};
+  110|     showUpdateBar();
+  111|     var _upG=document.getElementById('updGo');
+  112|     if(!_upG||typeof _upG.onclick!=="function") __r.push("КРЭШ updGo: нет кнопки updGo или обработчика");
+  113|     else{
+  114|       _upG.onclick();
+  115|       if(_upG.disabled!==true&&!/Обновляю/.test(String(_upG.textContent||'')))
+  116|         __r.push("КРЭШ updGo: тап по «Обновить» не даёт видимой реакции немедленно — мёртвый тап на медленной сети");
+  117|       if(!_upReloaded) __r.push("КРЭШ updGo: обработчик не вызывает location.reload()");
+  118|     }
+  119|   }
+  120| }catch(e){ __r.push("КРЭШ updGo: "+e.message); }
+  121| // тренер видит АКТУАЛЬНУЮ программу, а не только сегодняшний день
+  122| // (поле 18.08: советовал турник из реплики 10-дневной давности)
+  123| try{
+  124|   if(typeof coachCtx!=="function") __r.push("КРЭШ coachCtx: нет функции");
+  125|   else{
+  126|     var _ccS=S.prog;
+  127|     S.prog=genProgram({days:3,equip:'gym',goal:'hyper',exp:'mid',inj:[]});
+  128|     var _cc=coachCtx();
+  129|     if(_cc.indexOf("полноценный зал")<0) __r.push("КРЭШ coachCtx: в контексте тренера нет инвентаря — он будет верить старым репликам чата");
+  130|     if(_cc.indexOf("трен/нед")<0) __r.push("КРЭШ coachCtx: нет частоты тренировок");
+  131|     if(_cc.indexOf("АКТУАЛЬНАЯ")<0) __r.push("КРЭШ coachCtx: нет пометки о приоритете данных над перепиской");
+  132|     S.prog=null;
+  133|     if(coachCtx().indexOf("не собрана")<0) __r.push("КРЭШ coachCtx: отсутствие программы не проговаривается");
+  134|     S.prog=_ccS;
+  135|     if(__HTML.indexOf("ДАННЫЕ НИЖЕ ГЛАВНЕЕ ПЕРЕПИСКИ")<0)
+  136|       __r.push("КРЭШ coachCtx: в системном промпте нет правила «данные важнее переписки»");
+  137|   }
+  138| }catch(e){ __r.push("КРЭШ coachCtx: "+e.message); }
+  139| // ручка «поменьше» (запрос владельца 18.08: «хочу просто меньше икр»):
+  140| // группа держится на минимуме и не раздувается блоком специализации
+  141| try{
+  142|   if(typeof applyLess!=="function") __r.push("КРЭШ less: нет applyLess");
+  143|   else{
+  144|     var _lS=S.less;
+  145|     S.less=['calves'];
+  146|     var _lP=genProgram({days:4,equip:'gym',goal:'hyper',exp:'mid',inj:[]});
+  147|     var _lv=progVolume(_lP);
+  148|     if(_lv.calves>LM.calves[0]) __r.push("КРЭШ less: икры "+_lv.calves+" при минимуме "+LM.calves[0]+" — ручка не сработала в генераторе");
+  149|     applyFocus(_lP,['calves','back']);   // блок НЕ должен пересилить решение человека
+  150|     var _lv2=progVolume(_lP);
+  151|     if(_lv2.calves>LM.calves[0]) __r.push("КРЭШ less: блок раздул икры до "+_lv2.calves+" вопреки «поменьше»");
+  152|     if(__HTML.indexOf("data-less=")<0) __r.push("КРЭШ less: нет кнопки «поменьше» в экране объёма");
+  153|     S.less=_lS;
+  154|   }
+  155| }catch(e){ __r.push("КРЭШ less: "+e.message); }
+  156| // программа объясняет свои решения на месте (принцип 18.08: молчаливый
+  157| // пользователь не спросит «почему урезали бицепс» — он уйдёт)
+  158| try{
+  159|   if(__HTML.indexOf("идёт блок на ")<0)
+  160|     __r.push("КРЭШ объясн: урезанная блоком группа не объясняет себя в экране объёма");
+  161|   if(__HTML.indexOf("в приоритете блока")<0)
+  162|     __r.push("КРЭШ объясн: приоритетная группа не объясняет свой объём");
+  163|   if(__HTML.indexOf("item.by?")<0)
+  164|     __r.push("КРЭШ объясн: упражнение, добавленное блоком, не помечено в карточке");
+  165|   // добавка блока обязана нести метку авторства
+  166|   var _obP=genProgram({days:3,equip:'gym',goal:'hyper',exp:'mid',inj:[]});
+  167|   applyFocus(_obP,['back','biceps']);
+  168|   var _added=[];
+  169|   _obP.plan.forEach(function(d){d.ex.forEach(function(it){ if(it.by) _added.push(it.by) })});
+  170|   if(_added.length&&_added.some(function(m){return !MUS[m]}))
+  171|     __r.push("КРЭШ объясн: метка авторства ссылается на неизвестную мышцу");
+  172| }catch(e){ __r.push("КРЭШ объясн: "+e.message); }
+  173| /* АКЦЕНТ ДЕЛАЕТ ТО, ЧТО ОБЕЩАЕТ. Полевой отчёт 29.08: вторая участница беты собрала
+  174|    программу на два дня и получила ровно ту же, что мужчина, — с армейским
+  175|    жимом и без единого движения на ягодицы. Причина была не в базе (73
+  176|    движения грузят ягодицы) и не в поле, а в том, что у генератора НЕ БЫЛО
+  177|    ВХОДА «что подчеркнуть»: слот glute есть только в четырёх-, пяти- и
+  178|    шестидневных сплитах. Правило меряет ВЫХОД, а не наличие кода: с акцентом
+  179|    зона обязана получить БОЛЬШЕ подходов, чем без него, и хотя бы одно своё
+  180|    прямое движение, а остальная программа обязана остаться программой —
+  181|    ни одна другая группа не имеет права обнулиться. */
+  182| try{
+  183|   if(typeof ACCENT!=="object"||typeof accentDays!=="function"){
+  184|     __r.push("КРЭШ акцент: механизма акцента нет");
+  185|   } else {
+  186|     var _accVol=function(P,key){ var v=0;
+  187|       P.plan.forEach(function(d){ (d.ex||[]).forEach(function(it){
+  188|         var e=EX.find(function(x){return x.n===it.n})||{}, m=e.m||{};
+  189|         v+=(+m[key]||0)*it.sets; }); }); return v; };
+  190|     var _allVol=function(P){ var acc={};
+  191|       P.plan.forEach(function(d){ (d.ex||[]).forEach(function(it){
+  192|         var e=EX.find(function(x){return x.n===it.n})||{}, m=e.m||{};
+  193|         Object.keys(m).forEach(function(k){ acc[k]=(acc[k]||0)+(+m[k]||0)*it.sets; }); }); });
+  194|       return acc; };
+  195|     /* Два дня, новичок, зал — ровно тот случай, с которого пришёл отчёт. */
+  196|     var _cfg0={days:2,equip:'gym',goal:'hyper',exp:'nov',inj:[],dows:[2,5],mins:65};
+  197|     var _pA=genProgram(Object.assign({},_cfg0,{accent:''}));
+  198|     var _pB=genProgram(Object.assign({},_cfg0,{accent:'glutes'}));
+  199|     var _gA=_accVol(_pA,'glutes'), _gB=_accVol(_pB,'glutes');
+  200|     if(!(_gB>_gA))
+  201|       __r.push("КРЭШ акцент: с акцентом «ягодицы» подходов на ягодицы "+_gB+" против "+_gA+" без него — акцент не меняет программу");
+  202|     var _dir=0;
+  203|     _pB.plan.forEach(function(d){ (d.ex||[]).forEach(function(it){
+  204|       if((EM[it.n]||{}).role==='glute') _dir++; }); });
+  205|     if(_dir<1)
+  206|       __r.push("КРЭШ акцент: в программе с акцентом «ягодицы» нет ни одного прямого движения на ягодицы");
+  207|     /* Акцент не имеет права выключить группу целиком: человек пришёл за
+  208|        ягодицами, а не за программой из одних ягодиц. */
+  209|     var _vB=_allVol(_pB), _zero=Object.keys(_allVol(_pA)).filter(function(k){ return !(_vB[k]>0) });
+  210|     if(_zero.length)
+  211|       __r.push("КРЭШ акцент: акцент обнулил группы: "+_zero.join(', '));
+  212|     /* Без акцента программа обязана остаться прежней — иначе мы молча
+  213|        поменяли план всем, кто ничего не выбирал. */
+  214|     var _pC=genProgram(Object.assign({},_cfg0));
+  215|     var _nm=function(P){ return P.plan.map(function(d){ return (d.ex||[]).map(function(x){return x.n}).join('/') }).join('|') };
+  216|     if(_nm(_pC)!==_nm(_pA))
+  217|       __r.push("КРЭШ акцент: программа без выбранного акцента отличается от программы с пустым акцентом");
+  218|   }
+  219| }catch(e){ __r.push("КРЭШ акцент: "+e.message); }
+  220| /* ЦИКЛ. Решение владельца 30.08. Правила меряют ВЫХОД, а не наличие кода,
+  221|    и охраняют три вещи, ради которых всё делалось:
+  222|    1) арифметика цикла считается правильно и не ломается на мусоре;
+  223|    2) в дни задержки воды приложение НЕ говорит «ты набираешь»;
+  224|    3) пропавший цикл на дефиците не остаётся незамеченным;
+  225|    и одну, которой быть НЕ должно: тренировки по фазам цикла. Доказательств
+  226|    нет, и если кто-то однажды это добавит — правило обязано упасть. */
+  227| try{
+  228|   if(typeof cycDay!=="function"||typeof cycWater!=="function"||typeof redsFlag!=="function"){
+  229|     __r.push("КРЭШ цикл: механизма цикла нет");
+  230|   } else {
+  231|     var _S0=JSON.parse(JSON.stringify({sex:S.sex,cyc:S.cyc,rate:S.rate,cycOff:S.cycOff,redsAck:S.redsAck}));
+  232|     S.sex='f'; delete S.cycOff; delete S.redsAck;
+  233|     /* Три цикла по 28 дней. День 1 — первый день менструации. */
+  234|     var _t=dn(td());
+  235|     S.cyc=[ds(_t-4),ds(_t-32),ds(_t-60)];
+  236|     if(cycDay(td())!==5) __r.push("КРЭШ цикл: день цикла "+cycDay(td())+" вместо 5");
+  237|     if(cycLenAvg()!==28) __r.push("КРЭШ цикл: средняя длина "+cycLenAvg()+" вместо 28");
+  238|     if(cycPrevSame(td())!==ds(_t-32+4)) __r.push("КРЭШ цикл: тот же день прошлого цикла посчитан неверно");
+  239|     /* Мусор в отметках не должен ронять расчёт и не должен в него попадать. */
+  240|     S.cyc=[ds(_t-4),"не дата",null,ds(_t+30),ds(_t-32),ds(_t-4)];
+  241|     if(cycDay(td())!==5) __r.push("КРЭШ цикл: мусор в отметках сбил день цикла");
+  242|     if(cycLenAvg()!==28) __r.push("КРЭШ цикл: будущая дата или дубль попали в среднюю длину");
+  243|     /* Вода: менструация (1–5) и вторая половина цикла. Середина — не вода. */
+  244|     S.cyc=[ds(_t-2),ds(_t-30)];
+  245|     if(!cycWater(td())) __r.push("КРЭШ цикл: 3-й день не считается днём задержки воды");
+  246|     S.cyc=[ds(_t-12),ds(_t-40)];
+  247|     if(cycWater(td())) __r.push("КРЭШ цикл: 13-й день ошибочно считается днём воды");
+  248|     S.cyc=[ds(_t-24),ds(_t-52)];
+  249|     if(!cycWater(td())) __r.push("КРЭШ цикл: 25-й день не считается днём задержки воды");
+  250|     /* Красный флаг: цикла нет 45+ дней И человек на дефиците. */
+  251|     S.cyc=[ds(_t-50)]; S.rate=-0.5; delete S.redsAck;
+  252|     if(!redsFlag()) __r.push("КРЭШ цикл: пропавший цикл на дефиците не поднял красный флаг");
+  253|     S.rate=0;
+  254|     if(redsFlag()) __r.push("КРЭШ цикл: красный флаг сработал без дефицита");
+  255|     S.rate=-0.5; S.redsAck=td();
+  256|     if(redsFlag()) __r.push("КРЭШ цикл: убранный флаг вернулся в тот же день");
+  257|     delete S.redsAck;
+  258|     S.cyc=[ds(_t-20)];
+  259|     if(redsFlag()) __r.push("КРЭШ цикл: флаг сработал на 20-м дне");
+  260|     /* Мужчине цикла нет вовсе. */
+  261|     S.sex='m'; S.cyc=[ds(_t-50)];
+  262|     if(cycOn()) __r.push("КРЭШ цикл: механизм включён для мужчины");
+  263|     if(redsFlag()) __r.push("КРЭШ цикл: красный флаг сработал у мужчины");
+  264|     S.sex='f'; S.cycOff=1;
+  265|     if(cycOn()) __r.push("КРЭШ цикл: выключенный тумблер не выключает механизм");
+  266|     S.sex=_S0.sex; S.cyc=_S0.cyc; S.rate=_S0.rate; S.cycOff=_S0.cycOff; S.redsAck=_S0.redsAck;
+  267|   }
+  268|   /* ТРЕНИРОВОК ПО ФАЗАМ ЦИКЛА БЫТЬ НЕ ДОЛЖНО. Это не забытая фича, а
+  269|      сознательный отказ: обзор Strength & Conditioning Journal 2025 —
+  270|      доказательств пользы нет. Если кто-то однажды свяжет фазу цикла с
+  271|      объёмом, весом или программой, правило обязано это назвать. */
+  272|   /* ПЕРЕПИСАНО в тот же день. Первая версия искала связь фазы с объёмом
+  273|      РЕГУЛЯРКОЙ по исходнику — и свою мутацию не поймала: стоило разнести
+  274|      обращение к фазе и использование по двум операторам, как совпадение
+  275|      пропадало. Правило, не поймавшее свою мутацию, — не правило.
+  276|      Меряем ВЫХОД: одна и та же женщина, один и тот же день, три разные фазы
+  277|      цикла — программа и объём обязаны совпасть до подхода. Если кто-то
+  278|      когда-нибудь свяжет фазу с нагрузкой, это упадёт, как ни пиши код. */
+  279|   (function(){
+  280|     var _s=S.sex,_c=S.cyc,_t=dn(td());
+  281|     try{
+  282|       S.sex='f';
+  283|       var снимок=function(день){
+  284|         S.cyc=[ds(_t-(день-1)),ds(_t-(день-1)-28)];
+  285|         var P=genProgram({days:3,equip:'gym',goal:'hyper',exp:'mid',inj:[],dows:[1,3,5],mins:65});
+  286|         return P.plan.map(function(d){
+  287|           return (d.ex||[]).map(function(x){ return x.n+':'+x.sets+'x'+x.lo+'-'+x.hi }).join('|');
+  288|         }).join('#');
+  289|       };
+  290|       var м=снимок(3), л=снимок(15), п=снимок(25);
+  291|       if(м!==л||л!==п)
+  292|         __r.push("КРЭШ цикл: программа зависит от фазы цикла — доказательств пользы этого нет (S&CJ 2025)");
+  293|     }catch(e){ __r.push("КРЭШ цикл: проверка независимости от фазы упала: "+e.message); }
+  294|     S.sex=_s; S.cyc=_c;
+  295|   })();
+  296|   if(__HTML.indexOf("Тренировки по фазам приложение НЕ переставляет")<0)
+  297|     __r.push("КРЭШ цикл: из карточки пропало объяснение, почему мы не двигаем тренировки по фазам");
+  298| }catch(e){ __r.push("КРЭШ цикл: "+e.message); }
+  299| /* ХЛЕБНЫЕ КРОШКИ НЕ НЕСУТ НИ ОДНОГО ЗНАЧЕНИЯ. Заведены 30.08 по просьбе
+  300|    владельца («чтобы он видел, где у нас возникли проблемы»). Вся их польза
+  301|    держится на одном обещании, записанном в «Приватности»: уходят ИМЕНА
+  302|    экранов и кнопок, но никогда содержимое. Подпись кнопки в списке еды —
+  303|    это название продукта человека; попади она в отчёт, мы бы отправляли
+  304|    дневник питания под видом диагностики.
+  305|    Правило меряет ВЫХОД: даём элементу текст и проверяем, что имя его не
+  306|    содержит. И держим страж на самих запретных источниках. */
+  307| try{
+  308|   if(typeof crumbName!=="function"||typeof crumbTrail!=="function"||typeof uxSignal!=="function"){
+  309|     __r.push("КРЭШ крошки: механизма крошек нет");
+  310|   } else {
+  311|     var _mk=function(o){ var e={tagName:o.tag||'BUTTON', id:o.id||'', className:o.cls||'',
+  312|       dataset:o.ds||{}, textContent:o.txt||'', innerText:o.txt||'', value:o.val||''}; return e; };
+  313|     var _секрет='Творог 5% Простоквашино';
+  314|     var _n1=crumbName(_mk({txt:_секрет}));
+  315|     if(String(_n1).indexOf('Творог')>=0||String(_n1).indexOf('%')>=0)
+  316|       __r.push("КРЭШ крошки: в имя элемента попал его текст — это данные человека");
+  317|     var _n2=crumbName(_mk({val:_секрет,tag:'INPUT'}));
+  318|     if(String(_n2).indexOf('Творог')>=0)
+  319|       __r.push("КРЭШ крошки: в имя элемента попало значение поля");
+  320|     /* Номер записи в id — это тоже данные: по нему видно, сколько их у человека. */
+  321|     var _n3=crumbName(_mk({id:'qe1487'}));
+  322|     /* [0-9] без обратного слэша намеренно: этот блок живёт в шаблонной
+  323|        строке, и \d в ней схлопывается в букву d — правило проверяло бы
+  324|        наличие буквы «d», а не цифры. Третий раз за сессию одна и та же
+  325|        ловушка; поэтому здесь её нет вовсе. */
+  326|     if(String(_n3).search(/[0-9]/)>=0)
+  327|       __r.push("КРЭШ крошки: в имени остался номер записи: "+_n3);
+  328|     /* Статический страж на источники: даже если имя сегодня чистое, завтра
+  329|        кто-то допишет textContent «для наглядности». */
+  330|     var _ci=__HTML.indexOf("function crumbName");
+  331|     var _cj=__HTML.indexOf("function crumbScreen");
+  332|     var _body=(_ci>=0&&_cj>_ci)?__HTML.slice(_ci,_cj):"";
+  333|     if(!_body) __r.push("КРЭШ крошки: не нашёл тело crumbName — страж ничего не сторожит");
+  334|     else ["textContent","innerText","innerHTML",".value"].forEach(function(k){
+  335|       if(_body.indexOf(k)>=0) __r.push("КРЭШ крошки: crumbName читает "+k+" — туда попадают данные человека");
+  336|     });
+  337|     /* Выключенная аналитика значит выключенные крошки — иначе обещание в
+  338|        «Приватности» неправда. */
+  339|     /* Сначала КЛАДЁМ крошку, потом выключаем аналитику. Первая версия
+  340|        проверяла пустой буфер — и была зелёной при любой поломке: мерить
+  341|        было нечего. Правило, которому нечего мерить, не правило. */
+  342|     var _nt=S.noTrack; S.noTrack=0;
+  343|     crumb('тап','тестовая-кнопка');
+  344|     if(crumbTrail()==='') __r.push("КРЭШ крошки: путь не собирается даже при включённой аналитике — проверка холостая");
+  345|     S.noTrack=1;
+  346|     if(crumbTrail()!=='') __r.push("КРЭШ крошки: при выключенной аналитике путь всё равно отдаётся");
+  347|     /* Замок двойной: не только НЕ ОТДАЁМ при выключенной аналитике, но и не
+  348|        копим. Один замок охранять мало — стоит второму отвалиться, и данные
+  349|        будут лежать в памяти вкладки без спроса. */
+  350|     crumb('тап','запрещённая-крошка');
+  351|     S.noTrack=0;
+  352|     if(crumbTrail().indexOf('запрещённая-крошка')>=0)
+  353|       __r.push("КРЭШ крошки: при выключенной аналитике крошки всё равно копятся в памяти");
+  354|     S.noTrack=_nt;
+  355|   }
+  356|   if(__HTML.indexOf("Записи всех нажатий подряд НЕТ")<0)
+  357|     __r.push("КРЭШ крошки: из «Приватности» пропало обещание не писать все нажатия");
+  358|   /* Одинарные кавычки внутри: этот блок живёт в шаблонной строке, и \" в
+  359|      ней схлопывается — ровно та ловушка, что уже жгла нас на дефисе в
+  360|      правиле глифов и на \n в правиле фазы цикла. */
+  361|   if(__HTML.indexOf('id="bGripe"')<0)
+  362|     __r.push("КРЭШ крошки: пропала кнопка «тут что-то не так»");
+  363| }catch(e){ __r.push("КРЭШ крошки: "+e.message); }
+  364| /* ЧЕТЫРЕ ПОЧИНКИ ИЗ НАСТОЯЩЕГО КРАШ-ЛОГА С ТЕЛЕФОНА ВЛАДЕЛЬЦА (30.08).
+  365|    Каждое правило названо записью, из которой оно выросло: через полгода
+  366|    «почему тут ретрай» должно отвечаться само. */
+  367| try{
+  368|   /* 1. «Attempt to get records from database without an in-progress
+  369|      transaction», v461, вид boot — то есть человек открыл приложение и не
+  370|      увидел своих данных. Safari закрывает соединение сам. */
+  371|   if(typeof dbTry!=="function")
+  372|     __r.push("КРЭШ база: нет переоткрытия соединения — падение на загрузке вернётся");
+  373|   else {
+  374|     var _n=0;
+  375|     var _bad=function(){ _n++; if(_n===1){ var e=new Error("Attempt to get records from database without an in-progress transaction"); throw e; } return "ок"; };
+  376|     /* Переоткрыть в фейковом DOM нельзя — indexedDB.open там нет. Значит
+  377|        наверх обязана уйти ИСХОДНАЯ ошибка, а не «не смог открыть базу»:
+  378|        подменённая причина стоит дороже самой поломки. */
+  379|     dbTry(_bad).then(function(){ __r.push("КРЭШ база: dbTry молча проглотил отказ"); },
+  380|       function(e){ if(String(e&&e.message||"").indexOf("in-progress transaction")<0)
+  381|         __r.push("КРЭШ база: наверх ушла подменённая ошибка: "+(e&&e.message)); });
+  382|     if(_n!==1) __r.push("КРЭШ база: dbTry не вызвал функцию ни разу");
+  383|   }
+  384|   if(typeof bgput!=="function")
+  385|     __r.push("КРЭШ база: нет тихой записи — отказ служебной записи снова полетит в лог как падение");
+  386|   else { try{ bgput("нетакогостора",{},"k"); }catch(e){
+  387|     __r.push("КРЭШ база: тихая запись бросила исключение: "+e.message); } }
+  388| 
+  389|   /* 2. «Script sw.js load failed», v453 и v456. try/catch не ловит отказ
+  390|      промиса: update() отклоняется без сети, и это шло в лог как падение. */
+  391|   /* Ищем ИМЕННО гашение промиса, а не слово «catch» рядом: первая версия
+  392|      этого правила смотрела на 140 символов вокруг и находила соседний
+  393|      try/catch — то есть была зелёной с уже убранной починкой. */
+  394|   if(__HTML.indexOf("__swReg.update()")<0)
+  395|     __r.push("КРЭШ sw: не нашёл вызов update — проверка холостая");
+  396|   else if(__HTML.indexOf("pr.catch(")<0)
+  397|     __r.push("КРЭШ sw: отказ __swReg.update() снова не гасится — полетит в краш-лог как падение");
+  398| 
+  399|   /* 3. Три записи «Script error.» без единой подробности: чужой скрипт без
+  400|      crossOrigin браузер прячет целиком. */
+  401|   /* Ищем ПРИСВОЕНИЕ, а не слово: первая версия находила «crossOrigin» в моём
+  402|      же комментарии рядом и молчала при убранной строке кода. Правило,
+  403|      которое ловит собственное объяснение вместо кода, — не правило. */
+  404|   if(__HTML.indexOf("@zxing/library")<0)
+  405|     __r.push("КРЭШ сканер: не нашёл загрузку сканера — проверка холостая");
+  406|   else if(__HTML.indexOf("s.crossOrigin=")<0)
+  407|     __r.push("КРЭШ сканер: у чужого скрипта нет crossOrigin — его ошибки снова будут безликими");
+  408| 
+  409|   /* 4. «ai_empty stop=max_tokens types=thinking max=400» дважды: у задачи с
+  410|      размышлением бюджета не хватало даже на мысль, человек получал пусто. */
+  411|   var _ai=__AIJS||"";
+  412|   if(!_ai) __r.push("КРЭШ ии: не прочитан api/ai.js — проверка холостая");
+  413|   else {
+  414|     if(_ai.indexOf("THINK_TASKS[task] ? 4000 : 1")<0)
+  415|       __r.push("КРЭШ ии: пропал пол max_tokens для задач с размышлением — вернётся пустой ответ");
+  416|     if(__HTML.indexOf("aiText(prompt,Math.min(4000,maxTok*3),task,1)")<0)
+  417|       __r.push("КРЭШ ии: пропала повторная попытка с большим бюджетом");
+  418|   }
+  419| }catch(e){ __r.push("КРЭШ починки из лога: "+e.message); }
+  420| // замена статики на динамику: секунды планки не должны стать повторами
+  421| // (поле 18.08: «Скручивания 2×30–60» — так не бывает)
+  422| try{
+  423|   if(typeof exStatic!=="function") __r.push("КРЭШ swapStat: нет exStatic");
+  424|   if(__HTML.indexOf("if(exClass(fromName,_wasMain)!==exClass(toName,it.main)){")<0)   // v664: тип — класс движения, статика в него входит
+  425|     __r.push("КРЭШ swapStat: applySwap не пересобирает схему при смене типа движения — секунды переедут в повторы");
+  426|   if(exStatic("Планка")!==true||exStatic("Скручивания")!==false)
+  427|     __r.push("КРЭШ swapStat: exStatic путает статику и динамику");
+  428| }catch(e){ __r.push("КРЭШ swapStat: "+e.message); }
+  429| // РАЗНЫЕ УПРАЖНЕНИЯ — РАЗНЫЕ ВЕСА (поле 18.08, пятый повтор боли:
+  430| // «сгибание ног лёжа» получало 88 кг от «сгибания ног сидя»)
+  431| try{
+  432|   if(typeof matchExercise!=="function") __r.push("КРЭШ exMatch: нет matchExercise");
+  433|   else{
+  434|     [["Сгибание ног лёжа","Сгибание ног сидя"],
+  435|      ["Жим лёжа узким хватом","Жим лёжа широким хватом"],
+  436|      ["Тяга штанги в наклоне","Тяга гантели в наклоне"],
+  437|      ["Жим гантелей сидя","Жим гантелей лёжа"]].forEach(function(p){
+  438|       var got=matchExercise(p[0]);
+  439|       if(got===p[1]) __r.push("КРЭШ exMatch: «"+p[0]+"» сматчено в «"+p[1]+"» — веса и история перетекут между разными упражнениями");
+  440|     });
+  441|     if(typeof exMarkConflict!=="function") __r.push("КРЭШ exMatch: нет exMarkConflict");
+  442|     else if(!exMarkConflict("сгибание ног лежа","сгибание ног сидя"))
+  443|       __r.push("КРЭШ exMatch: лёжа и сидя не считаются разными позициями");
+  444|     else if(exMarkConflict("жим лежа","жим лежа со штангой")===true&&false) void 0;
+  445|   }
+  446|   // план тренера не навязывает вес, которого нет в истории пользователя
+  447|   if(__HTML.indexOf("wk=null;   // чужая или незаслуженная цифра")<0)
+  448|     __r.push("КРЭШ exMatch: planToProgram берёт веса плана без сверки с историей упражнения");
+  449| }catch(e){ __r.push("КРЭШ exMatch: "+e.message); }
+  450| // приоритет группы (поле 18.08: «7 подходов одного упражнения — не нормально»):
+  451| // потолок 5 подходов на упражнение в день, недобор объёма — ВТОРЫМ упражнением
+  452| try{
+  453|   if(typeof applyFocus!=="function") __r.push("КРЭШ focus: нет applyFocus");
+  454|   else{
+  455|     var _fP=genProgram({days:3,equip:'gym',goal:'hyper',exp:'mid',inj:[]});
+  456|     // наследство прошлых блоков: раздутое до 7 упражнение обязано срезаться
+  457|     // (поле 18.08: после v246 семёрка пережила пере-применение блока)
+  458|     if(_fP.plan[0]&&_fP.plan[0].ex[0]) _fP.plan[0].ex[0].sets=7;
+  459|     applyFocus(_fP,['back','biceps']);
+  460|     _fP.plan.forEach(function(d){d.ex.forEach(function(it){
+  461|       if(it.sets>5) __r.push("КРЭШ focus: "+it.n+" — "+it.sets+" подходов за день (потолок 5, дальше мусорный объём)");
+  462|     })});
+  463|     var _fv=progVolume(_fP);
+  464|     if(_fv.back<LM.back[2]-3) __r.push("КРЭШ focus: приоритетная спина недобирает ("+_fv.back+" из ~"+LM.back[2]+"/нед) — добор вторым упражнением не сработал");
+  465|     if(_fv.back>LM.back[3]) __r.push("КРЭШ focus: спина за MRV ("+_fv.back+">"+LM.back[3]+") — trimToMRV не отработал");
+  466|   }
+  467| }catch(e){ __r.push("КРЭШ focus: "+e.message); }
+  468| // анти-колхоз (поле 18.08): «Активность вне зала» — не ежедневное действие,
+  469| // живёт свёрнутой раскрывашкой, а не стеной формы на пол-экрана
+  470| try{
+  471|   if(__HTML.indexOf('id="actDet"')<0) __r.push("КРЭШ актВне: активность вне зала не в раскрывашке — стена формы вернулась");
+  472|   if(/id="actDet"[^>]* open/.test(__HTML)) __r.push("КРЭШ актВне: раскрывашка активности открыта по умолчанию");
+  473| }catch(e){ __r.push("КРЭШ актВне: "+e.message); }
+  474| // асинхронная доставка ИИ (поле 17.08, «мобильная сеть должна работать»):
+  475| // сервер докладывает ответ в ai_jobs, клиент добирает его по квитанции —
+  476| // обрыв длинного соединения оператором перестаёт убивать запрос
+  477| try{
+  478|   if(__AIJS.indexOf("ai_job_put")<0||__AIJS.indexOf("b.job")<0)
+  479|     __r.push("КРЭШ aiJob: сервер не докладывает ответ в ящик ai_jobs — обрыв мобильной сети снова смертелен");
+  480|   if(__AIJS.indexOf("jobPut(0")<0)
+  481|     __r.push("КРЭШ aiJob: сервер не пишет квитанцию «готовлю» — клиент не отличит обрыв доставки от долгой генерации");
+  482|   if(__HTML.indexOf("function aiJobWait")<0||__HTML.indexOf("ai_job_get")<0)
+  483|     __r.push("КРЭШ aiJob: у клиента нет добора ответа по квитанции");
+  484|   if(__HTML.split("{...payload,job}").length-1<2)
+  485|     __r.push("КРЭШ aiJob: квитанция не прикреплена к обоим маршрутам (туннель и прокси)");
+  486| }catch(e){ __r.push("КРЭШ aiJob: "+e.message); }
+  487| // целостность базы упражнений: дырки в массиве, битые ссылки, кривые sub-теги
+  488| try{
+  489|   EX.forEach(function(e,i){ if(!e||!e.n||!e.m) __r.push("КРЭШ EX["+i+"]: пустой/битый элемент (дырка в массиве?)"); });
+  490|   Object.keys(EM).forEach(function(n){ if(!EM[n].legacy&&!EX.some(function(e){return e&&e.n===n})) __r.push("КРЭШ EM: ссылка на несуществующее упражнение "+n); });
+  491|   if(typeof ANIM_ALIAS!=="undefined") Object.entries(ANIM_ALIAS).forEach(function(kv){
+  492|     if(!ANIM[kv[1]]) __r.push("КРЭШ ANIM_ALIAS: "+kv[0]+" -> нет рига "+kv[1]);
+  493|     if(!EX.some(function(e){return e&&e.n===kv[0]})) __r.push("КРЭШ ANIM_ALIAS: нет упражнения "+kv[0]); });
+  494|   if(typeof SUBN!=="undefined") EX.forEach(function(e){ (e&&e.sub||[]).forEach(function(t){ if(!SUBN[t]) __r.push("КРЭШ sub: неизвестный тег "+t+" у "+e.n); }); });
+  495|   EX.forEach(function(e){ if(e) Object.keys(e.m).forEach(function(m){ if(!MUS[m]) __r.push("КРЭШ EX "+e.n+": неизвестная мышца "+m); }); });
+  496| }catch(e){ __r.push("КРЭШ integrity: "+e.message); }
+  497| // решатель еды: порции на приём в рамках здравого смысла
+  498| try{
+  499|   if(typeof mealPlanRest==="function"){
+  500|     var plan=mealPlanRest({k:1800,p:120,f:50,c:200},PROD,[]);
+  501|     plan.forEach(function(m){ m.rows.forEach(function(r){
+  502|       if(/сух|макарон/i.test(r.o.n)&&r.g>110) __r.push("КРЭШ порции: "+r.o.n+" "+r.g+" г на один приём");
+  503|       if(r.g>500) __r.push("КРЭШ порции: "+r.o.n+" "+r.g+" г");
+  504|     });});
+  505|   }
+  506| }catch(e){ __r.push("КРЭШ mealPlanRest: "+e.message); }
+  507| // генератор программ: все конфигурации без крашей и дублей
+  508| try{
+  509|   [2,3,4,5,6].forEach(function(days){ ['gym','db','bw'].forEach(function(equip){
+  510|     var P=genProgram({days:days,equip:equip,goal:'hyper',exp:'mid',inj:[]});
+  511|     P.plan.forEach(function(d){ var ns=d.ex.map(function(i){return i.n});
+  512|       if(ns.length!==new Set(ns).size) __r.push("КРЭШ genProgram "+days+"/"+equip+": дубль в дне"); });
+  513|     var dws=P.plan.map(function(d){return d.dow});
+  514|     if(dws.length!==new Set(dws).size) __r.push("КРЭШ genProgram "+days+"/"+equip+": коллизия dow");
+  515|   });});
+  516| }catch(e){ __r.push("КРЭШ genProgram: "+e.message); }
+  517| // тождество продукта: имя+бренд. Разные бренды НЕ схлопываются (регресс: потеря макросов и tombstone на всех устройствах)
+  518| try{
+  519|   if(typeof foodKey==="function"){
+  520|     if(foodKey({n:"Молоко",br:"Простоквашино"})===foodKey({n:"Молоко",br:"Домик в деревне"})) __r.push("КРЭШ foodKey: разные бренды схлопнулись в один продукт");
+  521|     if(foodKey({n:"Творог",br:null})===foodKey({n:"Творог",br:"Савушкин"})) __r.push("КРЭШ foodKey: безбрендовый схлопнулся с брендовым");
+  522|     if(foodKey({n:" Молоко ",br:"ПРОСТОКВАШИНО"})!==foodKey({n:"молоко",br:"простоквашино"})) __r.push("КРЭШ foodKey: регистр/пробелы меняют ключ (ложные дубли)");
+  523|     if(foodKey({n:"Яблоко"})!==foodKey({n:"Яблоко",br:""})) __r.push("КРЭШ foodKey: отсутствие бренда и пустой бренд должны давать один ключ");
+  524|   } else __r.push("КРЭШ foodKey: функция не найдена");
+  525| }catch(e){ __r.push("КРЭШ foodKey: "+e.message); }
+  526| // предупреждение о замене упражнения: показывается только при altName, называет исходный тренажёр
+  527| try{
+  528|   if(typeof altWarn==="function"){
+  529|     var _wa=altWarn({altName:"сгибание ног лёжа",start:8,rir:2});
+  530|     if(!/Замена/.test(_wa)||_wa.indexOf("сгибание ног лёжа")<0) __r.push("КРЭШ altWarn: нет предупреждения/имени тренажёра при замене");
+  531|     /* Суть пометки — «цифру не копируем» и «проверь первым подходом». Раньше
+  532|        тут требовалось дословное «не переносится», но с v324 вес как раз
+  533|        пересчитывается от прежнего движения, и старая формулировка спорила с
+  534|        числом, стоящим рядом. Проверяем смысл, а не слова (21.08). */
+  535|     if(!/RIR/.test(_wa)) __r.push("КРЭШ altWarn: не сказано, как проверить вес первым подходом");
+  536|     var _wa2=altWarn({altName:"Жим лёжа",rir:2});
+  537|     if(/переносится напрямую/.test(_wa2)) __r.push("КРЭШ altWarn: осталась старая формулировка, спорящая с пересчитанным весом");
+  538|     if(_wa.indexOf("8")<0) __r.push("КРЭШ altWarn: оценка ИИ есть, но не показана человеку");
+  539|     if(altWarn({n:"жим"})!=="") __r.push("КРЭШ altWarn: показал предупреждение без замены");
+  540|     if(altWarn(null)!=="") __r.push("КРЭШ altWarn: упал/выдал текст на null");
+  541|   } else __r.push("КРЭШ altWarn: функция не найдена");
+  542| }catch(e){ __r.push("КРЭШ altWarn: "+e.message); }
+  543| // парсинг JSON от ИИ: снимает markdown-обёртку, вытаскивает объект, внятно падает на обрыве
+  544| // (регресс «анализ месяца»: большой ответ обрывался по лимиту токенов → немой «не разобрал»)
+  545| try{
+  546|   if(typeof parseJsonLoose==="function"){
+  547|     var _bt=String.fromCharCode(96,96,96);   // three backticks: literal here breaks the backtick test-template
+  548|     var _p1=parseJsonLoose(_bt+'json {"a":1,"b":"t"} '+_bt);
+  549|     if(!_p1||_p1.a!==1||_p1.b!=="t") __r.push("КРЭШ parseJsonLoose: не распарсил JSON в markdown-обёртке");
+  550|     var _p2=parseJsonLoose('Вот ответ: {"x":2} готово');
+  551|     if(!_p2||_p2.x!==2) __r.push("КРЭШ parseJsonLoose: не вытащил JSON из текста вокруг");
+  552|     var _thr=function(s){ try{ parseJsonLoose(s); return null; }catch(e){ return e.message||"err"; } };
+  553|     if(_thr('совсем не json')===null) __r.push("КРЭШ parseJsonLoose: не бросил на не-JSON");
+  554|     if(_thr('')===null) __r.push("КРЭШ parseJsonLoose: не бросил на пустой ответ");
+  555|     if(_thr('{"insights":[{"t":"x"}')===null) __r.push("КРЭШ parseJsonLoose: не бросил на оборванный JSON");
+  556|   } else __r.push("КРЭШ parseJsonLoose: функция не найдена");
+  557| }catch(e){ __r.push("КРЭШ parseJsonLoose: "+e.message); }
+  558| // маппинг упражнений → видео MoveKit: slug'и валидны, ключевые упражнения на месте
+  559| try{
+  560|   if(typeof MKV==="object"&&MKV){
+  561|     if(MKV["Жим лёжа"]!=="barbell-bench-press") __r.push("КРЭШ MKV: «Жим лёжа» не смаплен на barbell-bench-press");
+  562|     if(MKV["Приседания со штангой"]!=="barbell-squat") __r.push("КРЭШ MKV: присед не смаплен");
+  563|     if(MKV["Становая тяга"]!=="barbell-deadlift") __r.push("КРЭШ MKV: становая не смаплена");
+  564|     var _mkbad=Object.keys(MKV).filter(function(k){ return !/^[a-z0-9-]+$/.test(MKV[k]); });
+  565|     if(_mkbad.length) __r.push("КРЭШ MKV: битый slug у «"+_mkbad[0]+"»");
+  566|     if(Object.keys(MKV).length<80) __r.push("КРЭШ MKV: подозрительно мало маппингов ("+Object.keys(MKV).length+")");
+  567|     if(typeof exVideoHTML==="function"){
+  568|       // exVideoHTML теперь принимает slug (видео тянется по slug: e.mk || MKV[e.n])
+  569|       var _vh=exVideoHTML(MKV["Жим лёжа"]);
+  570|       if(_vh.indexOf("barbell-bench-press.mp4")<0) __r.push("КРЭШ exVideoHTML: нет видео-URL для «Жим лёжа»");
+  571|       if(exVideoHTML("")!=="") __r.push("КРЭШ exVideoHTML: пустой slug должен давать пусто");
+  572|       if(exVideoHTML(null)!=="") __r.push("КРЭШ exVideoHTML: null slug должен давать пусто");
+  573|     }
+  574|   } else __r.push("КРЭШ MKV: объект не найден");
+  575| }catch(e){ __r.push("КРЭШ MKV: "+e.message); }
+  576| // Полная база MoveKit: 206 движений влиты в EX и разбиты по мышцам
+  577| try{
+  578|   if(typeof EX!=="object"||!EX.length) __r.push("КРЭШ MK: EX пуст");
+  579|   else{
+  580|     if(EX.length<230) __r.push("КРЭШ MK: EX подозрительно мал ("+EX.length+"), полная база не влита");
+  581|     var _mk=EX.filter(function(e){return e.mk;});
+  582|     if(_mk.length<110) __r.push("КРЭШ MK: мало записей с видео-slug ("+_mk.length+")");
+  583|     var _badMk=_mk.filter(function(e){
+  584|       return !/^[a-z0-9-]+$/.test(e.mk)||!Array.isArray(e.c)||e.c.length<4||!Array.isArray(e.e)||e.e.length<3||!e.m||!Object.keys(e.m).length;
+  585|     });
+  586|     if(_badMk.length) __r.push("КРЭШ MK: битая запись «"+_badMk[0].n+"»");
+  587|     // у каждого движения имя уникально (по имени ищут в программе/замене)
+  588|     var _seen={},_dup=null;
+  589|     EX.forEach(function(e){ if(_seen[e.n]) _dup=e.n; _seen[e.n]=1; });
+  590|     if(_dup) __r.push("КРЭШ MK: дублирующееся имя «"+_dup+"»");
+  591|     // фильтр по мышце находит движения из полной базы
+  592|     var _byMus=EX.filter(function(e){return e.m&&e.m.chest;});
+  593|     if(_byMus.length<15) __r.push("КРЭШ MK: фильтр по мышце (грудь) даёт мало ("+_byMus.length+")");
+  594|     // видео у нового движения строится по его slug
+  595|     if(typeof exVideoHTML==="function"&&_mk.length){
+  596|       var _v=exVideoHTML(_mk[0].mk);
+  597|       if(_v.indexOf(_mk[0].mk+".mp4")<0) __r.push("КРЭШ MK: видео нового движения не строится");
+  598|     }
+  599|   }
+  600| }catch(e){ __r.push("КРЭШ MK: "+e.message); }
+  601| // Оборудование: инвентарь + автозамена на доступный снаряд
+  602| try{
+  603|   if(typeof exEquip!=="function") __r.push("КРЭШ EQ: нет exEquip");
+  604|   else{
+  605|     if(exEquip({n:"Жим лёжа",mk:"barbell-bench-press"})!=="bar") __r.push("КРЭШ EQ: штанга не распознана");
+  606|     if(exEquip({n:"X",eq:"гантели"})!=="db") __r.push("КРЭШ EQ: гантели по метке не распознаны");
+  607|     if(exEquip({n:"Жим лёжа в Смите",m:{}})!=="machine") __r.push("КРЭШ EQ: Смит не распознан по названию");
+  608|     // у каждого движения тип снаряда — валидный ключ
+  609|     var _eqbad=EX.filter(function(e){ return ["bar","db","kb","cable","machine","band","bw"].indexOf(exEquip(e))<0; });
+  610|     if(_eqbad.length) __r.push("КРЭШ EQ: неизвестный снаряд у «"+_eqbad[0].n+"»");
+  611|     // при пустом инвентаре считаем, что есть всё (не прячем всё подряд)
+  612|     if(typeof exEquipOK==="function"&&!exEquipOK({n:"Жим лёжа",mk:"barbell-bench-press",m:{chest:1}})) __r.push("КРЭШ EQ: без инвентаря должно быть доступно всё");
+  613|     // замена: аналог на доступном снаряде, с видео, на ту же мышцу
+  614|     if(typeof bestSwap==="function"){
+  615|       var _sw=bestSwap({n:"__нет такого__",m:{chest:1},eq:"тренажёр",mk:""});
+  616|       if(_sw&&(!_sw.m||!_sw.m.chest)) __r.push("КРЭШ EQ: замена не на ту мышцу");
+  617|       if(_sw&&!exSlug(_sw)) __r.push("КРЭШ EQ: замена без видео");
+  618|     }
+  619|   }
+  620| }catch(e){ __r.push("КРЭШ EQ: "+e.message); }
+  621| // pendvid — заготовки под будущие свои ролики (подхватываются по slug при заливке)
+  622| try{
+  623|   var _pend=EX.filter(function(e){return e.pendvid;});
+  624|   // v550: своей съёмки не будет (слово владельца 09.09) — pendvid значит «ролика в библиотеке нет».
+  625|   // Такое движение держится в генераторе, но их не больше 16, и ни у одного нет клипа.
+  626|   if(_pend.length>4) __r.push("КРЭШ PEND: без ролика в библиотеке "+_pend.length+" движений — больше 4, ищи клип в паке");
+  627|   _pend.forEach(function(e){ if(MKV[e.n]||(typeof MKNEAR!=="undefined"&&MKNEAR[e.n])) __r.push("КРЭШ PEND: у «"+e.n+"» и ролик, и заготовка"); });
+  628|   var _pbad=_pend.filter(function(e){return !/^[a-z0-9-]+$/.test(e.pendvid);});
+  629|   if(_pbad.length) __r.push("КРЭШ PEND: битый slug у «"+_pbad[0].n+"»");
+  630|   // pendvid НЕ должен считаться готовым видео (тренер не предлагает, пока ролика нет)
+  631|   var _leak=_pend.filter(function(e){return exHasVid(e);});
+  632|   if(_leak.length) __r.push("КРЭШ PEND: «"+_leak[0].n+"» уходит тренеру без реального видео");
+  633| }catch(e){ __r.push("КРЭШ PEND: "+e.message); }
+  634| // Программа: разминка, подводящие подходы, санити рабочего веса
+  635| try{
+  636|   if(typeof weightFlag!=="function") __r.push("КРЭШ WK: нет weightFlag");
+  637|   else{
+  638|     var _saveSets=SETS;
+  639|     SETS=[{e:"Жим лёжа",d:"2026-06-01",w:80,r:5}];   // 1ПМ ≈ 93 → рабочий ≈ 73
+  640|     var _it={n:"Жим лёжа",lo:6,hi:8,main:1};
+  641|     if(weightFlag(_it,30)==="") __r.push("КРЭШ WK: заниженный вес (30) не пойман");
+  642|     if(weightFlag(_it,140)==="") __r.push("КРЭШ WK: завышенный вес (140) не пойман");
+  643|     if(weightFlag(_it,72)!=="") __r.push("КРЭШ WK: адекватный вес ложно помечен");
+  644|     /* Чем тяжелее рабочий вес, тем длиннее подход к нему: две ступени хороши
+  645|        для 60–80 кг, но на 140 это прыжок со 105 сразу на рабочий — так едет и
+  646|        техника, и спина (аудит 20.08). */
+  647|     var _rL=rampSets(_it,70), _r=rampSets(_it,100), _rH=rampSets(_it,180);
+  648|     if(!_rL||_rL.length!==2) __r.push("КРЭШ WK: у базы на 70 кг нет 2 подводящих");
+  649|     if(!_r||_r.length<3) __r.push("КРЭШ WK: на 100 кг подводящих всего "+(_r?_r.length:0)+" — прыжок к рабочему слишком велик");
+  650|     if(!_rH||_rH.length<4) __r.push("КРЭШ WK: на 180 кг подводящих всего "+(_rH?_rH.length:0));
+  651|     [["70",_rL],["100",_r],["180",_rH]].forEach(function(p){
+  652|       var a=p[1]; if(!a) return;
+  653|       for(var i=1;i<a.length;i++) if(+a[i].w<=+a[i-1].w)
+  654|         __r.push("КРЭШ WK: подводящие на "+p[0]+" кг не по возрастанию веса");
+  655|       // и ни одна ступень не должна упираться в рабочий вес
+  656|       var top=+a[a.length-1].w, wrk=+p[0];
+  657|       if(top>=wrk*0.95) __r.push("КРЭШ WK: последняя подводящая на "+p[0]+" кг ("+top+") почти рабочая — это уже подход, а не разогрев");
+  658|       // повторы в ступенях не растут: чем тяжелее, тем меньше
+  659|       for(var j=1;j<a.length;j++) if(+a[j].r>+a[j-1].r)
+  660|         __r.push("КРЭШ WK: в подводящих на "+p[0]+" кг повторы растут вместе с весом");
+  661|     });
+  662|     if(rampSets({n:"Планка"},0)!==null) __r.push("КРЭШ WK: свой вес не должен иметь подводящих");
+  663|     if(typeof workingWeightRounded==="function"){
+  664|       var _ww=workingWeightRounded(_it);              // ≈ рабочий ~73, округлён под шаг
+  665|       if(!(_ww>60&&_ww<85)) __r.push("КРЭШ WK: подставляемый рабочий вес вне ожиданий ("+_ww+")");
+  666|     } else __r.push("КРЭШ WK: нет workingWeightRounded");
+  667|     if(typeof dayMuscles==="function"){
+  668|       var _dm=dayMuscles({ex:[{n:"Жим лёжа"}]});
+  669|       if(_dm.indexOf("Грудь")<0) __r.push("КРЭШ WK: dayMuscles не вернул грудь");
+  670|     }
+  671|     // разминка-блок: общая база + активация целевой мышцы, не пусто
+  672|     if(typeof dayWarmup==="function"){
+  673|       var _wu=dayWarmup({ex:[{n:"Жим лёжа"}]});
+  674|       if(!_wu.list||_wu.list.length<5) __r.push("КРЭШ WK: разминка слишком короткая");
+  675|       var _txt=_wu.list.map(function(x){return x.t}).join("|");
+  676|       if(_txt.indexOf("резин")<0&&_txt.indexOf("Отжим")<0) __r.push("КРЭШ WK: нет активации целевой мышцы в разминке");
+  677|       if(_wu.list.some(function(x){return !x.d})) __r.push("КРЭШ WK: у пункта разминки нет времени/повторов");
+  678|     } else __r.push("КРЭШ WK: нет dayWarmup");
+  679|     // направленность тренировки: непустая строка
+  680|     if(typeof sessionFocus==="function"){
+  681|       var _sf=sessionFocus({ex:[{n:"Жим лёжа"}]});
+  682|       if(!_sf||_sf.indexOf("Сегодня")<0) __r.push("КРЭШ WK: sessionFocus без направленности");
+  683|     } else __r.push("КРЭШ WK: нет sessionFocus");
+  684|     // уровень усилия: RIR по выбору + предупреждение хардкора (в т.ч. новичку)
+  685|     if(typeof effRIR==="function"){
+  686|       var _se=S.effort;
+  687|       S.effort="health"; if(effRIR()<3) __r.push("КРЭШ EFF: здоровье должно быть далеко от отказа");
+  688|       S.effort="hard";   if(effRIR()!==0) __r.push("КРЭШ EFF: хардкор должен быть до отказа");
+  689|       S.effort="growth"; if(effRIR()!==1) __r.push("КРЭШ EFF: рост должен быть RIR 1");
+  690|       // усилие → объём: меньше усилия (здоровье) — больше подходов базы, чем хардкор
+  691|       if(typeof genProgram==="function"){
+  692|         S.effort="health"; var _ph=genProgram({days:3,equip:"gym",exp:"int",goal:"hyper",inj:[]});
+  693|         S.effort="hard";   var _pd=genProgram({days:3,equip:"gym",exp:"int",goal:"hyper",inj:[]});
+  694|         var _sm=function(p){return p.plan.reduce(function(a,d){return a+d.ex.filter(function(x){return x.main}).reduce(function(b,x){return b+x.sets},0)},0)};
+  695|         if(_sm(_ph)<=_sm(_pd)) __r.push("КРЭШ EFF: объём базы не растёт при снижении усилия ("+_sm(_ph)+" vs "+_sm(_pd)+")");
+  696|         // RIR в сгенерированном плане совпадает с уровнем усилия
+  697|         S.effort="hard"; var _p0=genProgram({days:3,equip:"gym",exp:"int",goal:"hyper",inj:[]});
+  698|         /* v664: у базы запас на один больше (техника тяжёлого подхода), у остальных — сам уровень */
+  699|         if(_p0.plan.some(function(d){return d.ex.some(function(x){return x.rir!==(x.main?1:0)})})) __r.push("КРЭШ EFF: RIR в плане не по уровню усилия");
+  700|       }
+  701|       S.effort=_se;
+  702|     } else __r.push("КРЭШ EFF: нет effRIR");
+  703|     // готовность профиля: массив недостающего
+  704|     if(typeof profileReady==="function"){
+  705|       if(!Array.isArray(profileReady())) __r.push("КРЭШ PROF: profileReady не массив");
+  706|     } else __r.push("КРЭШ PROF: нет profileReady");
+  707|     // добавки: справка, редактирование, скрытие из списка частых
+  708|     if(typeof subInfo==="function"){
+  709|       var _oi=subInfo("Омега-3 1000 мг");
+  710|       if(!_oi||_oi.how.indexOf("ЭПК")<0) __r.push("КРЭШ SUB: справка по омеге не найдена/без ЭПК");
+  711|       if(!subInfo("Креатин моногидрат")) __r.push("КРЭШ SUB: нет справки по креатину");
+  712|       if(subInfo("Ерунда какая-то XYZ")) __r.push("КРЭШ SUB: справка нашлась там, где её нет");
+  713|     } else __r.push("КРЭШ SUB: нет subInfo");
+  714|     if(typeof subMemory==="function"){
+  715|       var _sv=SUBS, _sh=S.subHidden;
+  716|       SUBS=[{id:1,d:td(),t:"08:00",n:"Омега-3",c:"sup",v:1,u:"капс"},{id:2,d:td(),t:"09:00",n:"Креатин",c:"sup",v:5,u:"г"}];
+  717|       if(subMemory().length!==2) __r.push("КРЭШ SUB: память добавок считает неверно");
+  718|       S.subHidden=["Креатин"];
+  719|       var _m2=subMemory();
+  720|       if(_m2.length!==1||_m2[0].n!=="Омега-3") __r.push("КРЭШ SUB: скрытая добавка не убрана из списка");
+  721|       S.subHidden=_sh; SUBS=_sv;
+  722|     } else __r.push("КРЭШ SUB: нет subMemory");
+  723|     if(typeof subEdit!=="function") __r.push("КРЭШ SUB: нет subEdit (редактирование записи)");
+  724|     // тело: напоминание о прогресс-фото раз в 2 недели
+  725|     if(typeof phDue==="function"){
+  726|       var _pv=PH;
+  727|       PH=[]; if(phDue().state!=="none") __r.push("КРЭШ PH: пустая галерея должна давать none");
+  728|       PH=[{id:1,d:ds(dn(td())-3),img:"x"}];
+  729|       if(phDue().state!=="ok") __r.push("КРЭШ PH: 3 дня назад — ещё не пора");
+  730|       PH=[{id:1,d:ds(dn(td())-15),img:"x"}];
+  731|       var _q=phDue();
+  732|       if(_q.state!=="due"||_q.days!==15) __r.push("КРЭШ PH: 15 дней назад — пора делать фото");
+  733|       PH=_pv;
+  734|     } else __r.push("КРЭШ PH: нет phDue");
+  735|     // состав тела по обхватам (метод ВМФ США, метрическая версия — вход в САНТИМЕТРАХ)
+  736|     if(typeof navyBF==="function"){
+  737|       var _sx=S.sex, _hh=S.h;
+  738|       S.sex="m"; S.h=180;
+  739|       var _bm=navyBF({neck:40,waist:90});
+  740|       if(!(_bm>15&&_bm<22)) __r.push("КРЭШ BF: муж 180/40/90 вне ожиданий ("+_bm+")");
+  741|       var _lean=navyBF({neck:40,waist:80}), _fat=navyBF({neck:42,waist:110});
+  742|       if(!(_lean<_bm&&_fat>_bm)) __r.push("КРЭШ BF: жир не растёт вместе с талией");
+  743|       S.sex="f"; S.h=165;
+  744|       var _bf=navyBF({neck:32,waist:72,hips:95});
+  745|       if(!(_bf>20&&_bf<32)) __r.push("КРЭШ BF: жен 165/32/72/95 вне ожиданий ("+_bf+")");
+  746|       if(navyBF({neck:32,waist:72})!==null) __r.push("КРЭШ BF: у женщин без бёдер должно быть null");
+  747|       if(navyBF({neck:40,waist:40})!==null) __r.push("КРЭШ BF: талия=шея должна давать null, а не NaN");
+  748|       if(navyBF(null)!==null) __r.push("КРЭШ BF: пустой замер должен давать null");
+  749|       S.sex=_sx; S.h=_hh;
+  750|     } else __r.push("КРЭШ BF: нет navyBF");
+  751|     // 1ПМ: среднее Эпли+Бжицки, и обратная функция согласована с прямой
+  752|     if(typeof e1rm==="function"&&typeof wFrom1RM==="function"){
+  753|       var _o=e1rm(100,5);
+  754|       if(!(_o>110&&_o<118)) __r.push("КРЭШ 1RM: 100x5 вне ожиданий ("+_o+")");
+  755|       if(e1rm(100,1)!==100) __r.push("КРЭШ 1RM: один повтор должен равняться весу");
+  756|       var _back=wFrom1RM(_o,5);
+  757|       if(Math.abs(_back-100)>2) __r.push("КРЭШ 1RM: обратная функция не сходится с прямой ("+_back+")");
+  758|       if(!(e1rm(100,8)>e1rm(100,5))) __r.push("КРЭШ 1RM: больше повторов — больше расчётный 1ПМ");
+  759|     } else __r.push("КРЭШ 1RM: нет e1rm/wFrom1RM");
+  760|     // подбор блюд: аллергии из анкеты должны доезжать до фильтра, сид — меняться по дням
+  761|     if(typeof foodBanArr==="function"){
+  762|       var _fb=S.foodBan;
+  763|       S.foodBan="рыба, лактоза , x";           // «x» короче 2 символов — отсекается
+  764|       var _a=foodBanArr();
+  765|       if(_a.indexOf("рыба")<0||_a.indexOf("лактоза")<0||_a.indexOf("x")>=0)
+  766|         __r.push("КРЭШ MEAL: разбор аллергий неверен ("+JSON.stringify(_a)+")");
+  767|       /* Группы обязаны разворачиваться в конкретные ингредиенты: на сервер
+  768|          уходит список слов для поиска по составу блюда, и «вегетарианец» там
+  769|          не совпадёт ни с чем — блюдо с курицей вернулось бы в меню человеку,
+  770|          который прямо написал, что мяса не ест (аудит 20.08). */
+  771|       S.foodBan="вегетарианец";
+  772|       var _g=foodBanArr();
+  773|       ["куриц","говядин","свинин","рыб","креветк"].forEach(function(w){
+  774|         if(_g.indexOf(w)<0) __r.push("КРЭШ MEAL: «вегетарианец» не разворачивается в ингредиент «"+w+"» — блюдо с ним придёт в меню");
+  775|       });
+  776|       S.foodBan="веган";
+  777|       if(foodBanArr().indexOf("молок")<0) __r.push("КРЭШ MEAL: «веган» не убирает молочное из подбора блюд");
+  778|       S.foodBan=""; if(foodBanArr().length) __r.push("КРЭШ MEAL: пустое поле должно давать пустой список");
+  779|       S.foodBan=null; if(foodBanArr().length) __r.push("КРЭШ MEAL: null должен давать пустой список");
+  780|       S.foodBan=_fb;
+  781|     } else __r.push("КРЭШ MEAL: нет foodBanArr");
+  782|     if(typeof recSeed==="function"){
+  783|       if(recSeed().indexOf(td())<0) __r.push("КРЭШ MEAL: сид должен содержать дату (стабильность в течение дня)");
+  784|     } else __r.push("КРЭШ MEAL: нет recSeed");
+  785|     // план на сегодня: слоты приёмов и авто-галочка по съеденному
+  786|     if(typeof mealSlotOf==="function"&&typeof mealAutoDone==="function"){
+  787|       if(mealSlotOf(0,3)!=="bf"||mealSlotOf(1,3)!=="ln"||mealSlotOf(2,3)!=="dn") __r.push("КРЭШ PLAN: слоты 3 приёмов неверны");
+  788|       if(mealSlotOf(2,4)!=="sn"||mealSlotOf(3,4)!=="dn") __r.push("КРЭШ PLAN: слоты 4 приёмов неверны");
+  789|       if(mealAutoDone(0,3,700,2400)!==true) __r.push("КРЭШ PLAN: завтрак при 700/2400 должен закрыться авто");
+  790|       if(mealAutoDone(2,3,700,2400)!==false) __r.push("КРЭШ PLAN: ужин при 700/2400 не должен закрываться");
+  791|       if(mealAutoDone(0,3,700,0)!==false) __r.push("КРЭШ PLAN: без таргета авто-галочек нет");
+  792|     } else __r.push("КРЭШ PLAN: нет mealSlotOf/mealAutoDone");
+  793|     // активность вне зала: не ломает зальную авто-сессию, но видна в нагрузке
+  794|     if(typeof gymSess==="function"){
+  795|       var _sv=SESS;
+  796|       SESS=[{d:td(),act:"Бег",min:40,rpe:6,id:1},{d:td(),start:"10:00",min:60,rpe:8,id:2}];
+  797|       var _g=gymSess(td());
+  798|       if(!_g||_g.act) __r.push("КРЭШ ACT: gymSess вернул активность вместо зала");
+  799|       if(typeof loads==="function"){
+  800|         var _L=loads();
+  801|         if(!(_L.map[td()]===40*6+60*8)) __r.push("КРЭШ ACT: нагрузка дня не суммирует зал+активность ("+_L.map[td()]+")");
+  802|       }
+  803|       SESS=_sv;
+  804|     } else __r.push("КРЭШ ACT: нет gymSess");
+  805|     if(typeof collapseHints!=="function") __r.push("КРЭШ HINT: нет collapseHints");
+  806|     // Навигация: ряды подвкладок короткие, все панели групп существуют
+  807|     (function(){
+  808|       var cnt=function(a){return (document.querySelectorAll('['+a+']')||[]).length};
+  809|       var tr=cnt('data-tr'), bd=cnt('data-bd');
+  810|       if(tr>4) __r.push("КРЭШ NAV: в «Зале» "+tr+" подвкладок — ряд не помещается на экран");
+  811|       if(bd>4) __r.push("КРЭШ NAV: в «Теле» "+bd+" подвкладок — ряд не помещается на экран");
+  812|       var need=[["tr",["prog","log","vol","rec","lev","ex"]],["bd",["w","m","s","z","p"]]];
+  813|       need.forEach(function(pair){
+  814|         pair[1].forEach(function(id){
+  815|           if(!document.getElementById(pair[0]+"-"+id))
+  816|             __r.push("КРЭШ NAV: потеряна панель "+pair[0]+"-"+id+" (группировка не должна удалять разделы)");
+  817|         });
+  818|       });
+  819|     })();
+  820|     SETS=_saveSets;
+  821|   }
+  822| }catch(e){ __r.push("КРЭШ WK: "+e.message); }
+  823| // null-устойчивость рендера: элемент вью может отсутствовать в DOM.
+  824| // Реальные краши из прода: v53 rBody→$('wCnt'), v71 rTrain→$('setLog').
+  825| // fakeEl всегда truthy, поэтому подменяем getElementById, чтобы вернуть null для этих id.
+  826| try{
+  827|   var _miss=["setLog","wCnt","wList","tSrc","tdV","labBox"], _gei=document.getElementById;
+  828|   document.getElementById=function(id){ return _miss.indexOf(id)>=0?null:_gei(id); };
+  829|   // 5 главных вью (goView): рендер при несмонтированном контейнере не должен падать
+  830|   ["rFood","rTrain","rBody","rHealth","rCoach"].forEach(function(f){ try{ if(eval("typeof "+f)==="function") eval(f+"()"); }catch(e){ __r.push("КРЭШ null-guard "+f+": "+e.message); } });
+  831|   document.getElementById=_gei;
+  832| }catch(e){ __r.push("КРЭШ null-guard setup: "+e.message); }
+  833| ["2026-07-14","2026-07-15","2026-07-16"].forEach(function(d){ td=function(){return d};vDay=null; try{ rNext(); }catch(e){ __r.push("КРЭШ rNext@"+d+": "+e.message); } });
+  834| // ── ЗНАЧЕНИЯ РАСЧЁТОВ (мутируют W/LOG/S — держим в самом конце) ──
+  835| // solveMacros: чистая математика решателя должна попадать в цель по Б/У
+  836| try{
+  837|   if(typeof solveMacros==="function"&&typeof macroSum==="function"){
+  838|     var _pool=[{n:"P",p:100,f:0,c:0,k:400,cap:300},{n:"C",p:0,f:0,c:100,k:400,cap:300}];
+  839|     var _sol=solveMacros(_pool,{p:50,f:0,c:100}), _s=macroSum(_sol);
+  840|     if(Math.abs(_s.p-50)>3) __r.push("КРЭШ solveMacros: белок "+r1(_s.p)+" вместо ~50");
+  841|     if(Math.abs(_s.c-100)>3) __r.push("КРЭШ solveMacros: углеводы "+r1(_s.c)+" вместо ~100");
+  842|   } else __r.push("КРЭШ solveMacros: функции не найдены");
+  843| }catch(e){ __r.push("КРЭШ solveMacros: "+e.message); }
+  844| // tg(): формула углеводов c = (k - p*4 - f*9)/4 при ручном калораже
+  845| try{
+  846|   if(typeof tg==="function"){
+  847|     W.length=0; S.kcalManual=2000; S.pkg=2; S.fkg=1; S.plan=null;   // вес=80 (curW null → 80)
+  848|     var _t=tg();
+  849|     if(_t.k!==2000) __r.push("КРЭШ tg: k="+_t.k+" вместо 2000");
+  850|     if(_t.p!==160)  __r.push("КРЭШ tg: p="+_t.p+" вместо 160");
+  851|     if(_t.f!==80)   __r.push("КРЭШ tg: f="+_t.f+" вместо 80");
+  852|     if(_t.c!==160)  __r.push("КРЭШ tg: c="+_t.c+" вместо 160 (формула углеводов)");
+  853|     S.kcalManual=0;
+  854|   }
+  855| }catch(e){ __r.push("КРЭШ tg: "+e.message); }
+  856| // estTDEE(): плоский вес + постоянный приём → оценка расхода = приёму (ядро энергобаланса)
+  857| try{
+  858|   if(typeof estTDEE==="function"){
+  859|     W.length=0; LOG.length=0; S.tdee=null;
+  860|     for(var _i=0;_i<15;_i++){ var _d=ds(dn("2026-06-01")+_i); W.push({d:_d,kg:80}); LOG.push({d:_d,k:2000}); }
+  861|     var _e=estTDEE();
+  862|     if(!_e.ok) __r.push("КРЭШ estTDEE: не посчитал при полных данных (r="+_e.r+")");
+  863|     else if(Math.abs(_e.est-2000)>1) __r.push("КРЭШ estTDEE: est="+r0(_e.est)+" при плоском весе и 2000 ккал/день (энергобаланс сломан)");
+  864|   }
+  865| }catch(e){ __r.push("КРЭШ estTDEE: "+e.message); }
+  866| // РАЗБОР смотрит вперёд: план на 2 недели обязателен в схеме и рендерится.
+  867| try{
+  868|   if(typeof renderAnalysis==="function"){
+  869|     renderAnalysis({insights:[{t:"Тест",d:"цифры",sev:"good"}],
+  870|       plan2w:[{w:1,focus:"разгрузка плеч",d:"лёгкие веса"},{w:2,focus:"возврат к рабочим",d:"обычная неделя"}],
+  871|       adjustments:[]});
+  872|     var _ao=document.getElementById("anaOut").innerHTML||"";
+  873|     if(_ao.indexOf("План на 2 недели")<0) __r.push("КРЭШ plan2w: блок плана не отрисовался");
+  874|     if(_ao.indexOf("разгрузка плеч")<0||_ao.indexOf("Неделя 2")<0) __r.push("КРЭШ plan2w: недели плана потерялись");
+  875|   }
+  876| }catch(e){ __r.push("КРЭШ plan2w: "+e.message); }
+  877| // ПАМЯТЬ ТРЕНЕРА: сводка для ИИ обязана включать прошлые назначения.
+  878| try{
+  879|   if(typeof dataDigest==="function"){
+  880|     S.progLog=[{d:td(),src:"ИИ-разгрузка",txt:"Разгрузка «Плечи» до 30.07"}];
+  881|     S.plan={x:1}; S.planFrom=ds(dn(td())-10);
+  882|     var _dg=dataDigest();
+  883|     if(_dg.indexOf("ИСТОРИЯ НАЗНАЧЕНИЙ")<0) __r.push("КРЭШ память: журнал программы не попал в сводку анализа");
+  884|     if(_dg.indexOf("Разгрузка «Плечи»")<0) __r.push("КРЭШ память: конкретное назначение потерялось");
+  885|     if(_dg.indexOf("неделя 2")<0) __r.push("КРЭШ память: неделя плана тренера не посчитана (10 дней = неделя 2)");
+  886|     S.progLog=[]; S.plan=null; S.planFrom=null;
+  887|   }
+  888| }catch(e){ __r.push("КРЭШ память: "+e.message); }
+  889| // РЯД КНОПОК НЕ БЫВАЕТ ЧЕТВЕРНЫМ. .row — это flex с flex:1 на детях и без
+  890| // переноса: четыре кнопки в нём сжимаются до ширины, где подписи наезжают
+  891| // друг на друга (полевой скриншот 21.08 — четыре кнопки синхронизации).
+  892| // Три — предел, дальше сетка или полная ширина.
+  893| try{
+  894|   var _rows=(globalThis.__HTML||"").split('<div class="row"').slice(1)
+  895|     .map(function(x){ return x.slice(0, x.indexOf("</div>")+6); });
+  896|   _rows.forEach(function(r){
+  897|     var n=(r.match(/<button/g)||[]).length;
+  898|     if(n>3){
+  899|       var first=(r.split("</button>")[0]||"").split(">").pop();
+  900|       __r.push("КРЭШ вёрстка: "+n+" кнопок в одном ряду ("+first.trim()+"…) — подписи наедут друг на друга");
+  901|     }
+  902|   });
+  903| }catch(e){ __r.push("КРЭШ вёрстка: "+e.message); }
+  904| // ЛИСТЫ ЖИВУТ ПО ВИДИМОЙ ОБЛАСТИ, А НЕ ПО «БУМАЖНОЙ». iOS не уменьшает vh
+  905| // под клавиатуру: лист остаётся во всю высоту экрана, верх уезжает под часы,
+  906| // поля прячутся за клавиатурой (полевой скриншот 21.08).
+  907| try{
+  908|   var _css=globalThis.__HTML||"";
+  909|   if(typeof vvSync!=="function") __r.push("КРЭШ вёрстка: видимая область не меряется — при клавиатуре лист вылезет за экран");
+  910|   if(_css.indexOf("html[data-vv] .sheet .in{max-height:calc(var(--vvh)")<0)
+  911|     __r.push("КРЭШ вёрстка: высота листа не привязана к видимой области — при клавиатуре он вылезет за экран");
+  912|   if(_css.indexOf('92dvh')<0) __r.push("КРЭШ вёрстка: у листа нет запасной высоты в dvh");
+  913| }catch(e){ __r.push("КРЭШ вёрстка: "+e.message); }
+  914| // ЗАБЫТЫЙ ПАРОЛЬ НЕ ДОЛЖЕН БЫТЬ ТУПИКОМ. Полевой случай 21.08: «жена забыла
+  915| // пароль, ставим новое устройство и не можем войти» — кнопок сброса не было
+  916| // вообще. Раньше их и нельзя было сделать: ключ шифрования выводился из
+  917| // пароля. Теперь данные шифруются отдельным ключом, а пароль лишь запирает
+  918| // его — и сброс работает как везде. Что обязано существовать:
+  919| try{
+  920|   var _H=globalThis.__HTML||"";
+  921|   // 1. Ключ данных отвязан от пароля
+  922|   if(typeof dekNew!=="function"||typeof keySetup!=="function")
+  923|     __r.push("КРЭШ вход: ключ данных снова выводится из пароля — сброс пароля станет потерей данных");
+  924|   if(_H.indexOf("sbKey='bv1|'+p")>=0)
+  925|     __r.push("КРЭШ вход: при входе ключ опять берётся прямо из пароля");
+  926|   // 2. Сброс через почту — настоящий, с письмом
+  927|   if(typeof sbSendReset!=="function") __r.push("КРЭШ вход: письмо для сброса пароля отправить нечем");
+  928|   if(_H.indexOf('id="syForgot"')<0) __r.push("КРЭШ вход: нет «не помню пароль» — человек с новым устройством упирается в тупик");
+  929|   if(_H.indexOf('id="fgSend"')<0) __r.push("КРЭШ вход: в «не помню пароль» нет кнопки отправки письма");
+  930|   if(typeof recoveryFromLink!=="function") __r.push("КРЭШ вход: возврат по ссылке из письма не обрабатывается — человек упрётся в пустой экран");
+  931|   // сброс пароля у аккаунта СТАРОЙ схемы: данные под прежним паролем, кода нет.
+  932|   // Первый же реальный сброс упёрся сюда — приложение обязано дать выход, а не ошибку.
+  933|   if(typeof askOldPass!=="function"&&_H.indexOf("function askOldPass(")<0)
+  934|     __r.push("КРЭШ вход: после сброса пароля у старого аккаунта нет экрана с выходом — только тупик");
+  935|   if(typeof keyAdopt!=="function"&&_H.indexOf("function keyAdopt(")<0)
+  936|     __r.push("КРЭШ вход: нечем перевести старый аккаунт на новый ключ");
+  937|   // 3. Код восстановления: создать, показать, спросить, перевыпустить
+  938|   [["recNew","создать код"],["recUnlock","открыть данные кодом"],["recRotate","перевыпустить код"],
+  939|    ["showRecovery","показать код"],["askRecovery","спросить код"]].forEach(function(f){
+  940|     if(typeof globalThis[f[0]]!=="function"&&_H.indexOf("function "+f[0])<0)
+  941|       __r.push("КРЭШ вход: нечем "+f[1]+" ("+f[0]+")");
+  942|   });
+  943|   if(_H.indexOf('id="bSyRec"')<0) __r.push("КРЭШ вход: код восстановления нельзя посмотреть из настроек");
+  944|   /* Кто вошёл ДО появления кодов, входит по refresh-токену мимо keySetup —
+  945|      и остался бы без кода навсегда. Переезд обязан случаться сам. */
+  946|   if(_H.indexOf("if(S.keyScheme!=='dek'){")<0)
+  947|     __r.push("КРЭШ вход: действующие пользователи не переезжают на новый ключ — у них так и не будет кода восстановления");
+  948|   if(_H.indexOf('id="bSyKey"')<0)
+  949|     __r.push("КРЭШ вход: у кого пароль не сохранён, нет способа получить код восстановления");
+  950|   // код обязан уезжать в файл экспорта: у того, кто хоть раз делал бэкап, он не потеряется
+  951|   if(_H.indexOf("sbPass:'',sbKey:'',sbRefresh:''")>=0&&/recCode:''/.test(_H))
+  952|     __r.push("КРЭШ вход: код восстановления вычищается из экспорта — тогда его негде будет взять");
+  953|   if(_H.indexOf('id="bSyPw"')<0) __r.push("КРЭШ вход: сменить пароль из приложения нечем");
+  954|   // 4. Про код сказано ТАМ, где задают пароль, а не в справке через экран
+  955|   if(_H.indexOf('id="sy_p"')>=0){
+  956|     var _pw=_H.slice(_H.indexOf('id="sy_p"'), _H.indexOf('id="sy_p"')+900);
+  957|     if(!/код восстановления/i.test(_pw)) __r.push("КРЭШ вход: под полем пароля не сказано про код восстановления");
+  958|   }
+  959|   // 5. Перенос без пароля назван ситуацией, а не форматом файла
+  960|   if(_H.indexOf('id="gImp"')>=0){
+  961|     var _g=_H.slice(Math.max(0,_H.indexOf('id="gImp"')-500), _H.indexOf('id="gImp"')+500);
+  962|     if(!/с другого устройства/i.test(_g)) __r.push("КРЭШ вход: перенос на первом экране назван форматом файла, а не ситуацией человека");
+  963|     if(!/пароль[^<]{0,30}не нужен/i.test(_g)) __r.push("КРЭШ вход: не сказано, что перенос работает без пароля");
+  964|   }
+  965|   // 6. Код — это то, что человек может записать: читаемый вид, без похожих символов
+  966|   if(typeof recNew==="function"){
+  967|     for(var _i=0;_i<40;_i++){
+  968|       var _c=recNew();
+  969|       if(!/^[A-Z2-9]{5}(-[A-Z2-9]{5}){3}$/.test(_c)){ __r.push("КРЭШ вход: код восстановления нечитаемого вида: "+_c); break; }
+  970|       if(/[01OIL]/.test(_c)){ __r.push("КРЭШ вход: в коде символы, которые путают при переписывании: "+_c); break; }
+  971|     }
+  972|     var _s1=recNew(), _s2=recNew();
+  973|     if(_s1===_s2) __r.push("КРЭШ вход: код восстановления не случайный");
+  974|   }
+  975| }catch(e){ __r.push("КРЭШ вход: "+e.message); }
+  976| // ПОТОЛОК ДНЯ НЕ ИМЕЕТ ПРАВА БЫТЬ ВЫШЕ ОБЕЩАНИЯ. Тест ниже проверяет, что
+  977| // день не длиннее 28 подходов; но и сам код не должен разрешать больше —
+  978| // иначе добор спокойно строит день, который мы человеку не обещали (21.08).
+  979| try{
+  980|   if(typeof dayCapSets==="function"){
+  981|     ["nov","int","mid","adv"].forEach(function(exp){
+  982|       [2,3,4,6].forEach(function(days){
+  983|         var cap=dayCapSets({cfg:{exp:exp,days:days}});
+  984|         if(!(cap>0&&cap<=28)) __r.push("КРЭШ потолок: "+exp+"/"+days+" дн — код разрешает "+cap+" подходов за день (обещали не больше 28)");
+  985|       });
+  986|     });
+  987|   }
+  988| }catch(e){ __r.push("КРЭШ потолок: "+e.message); }
+  989| // РАЗМЕТКА ПОДГРУПП НЕ ДОЛЖНА ГНИТЬ. Карта тела и подбор замены считают по
+  990| // полю sub; упражнение без него молча выпадает из обоих. Добавили движение —
+  991| // разметь, иначе мышца снова станет невидимой (правило выведено 21.08).
+  992| try{
+  993|   if(typeof SUBM==="object"&&Array.isArray(EX)){
+  994|     // осознанные исключения: приводящие мышцы у нас не подгруппа, растяжка не нагрузка
+  995|     var _subOK={"Сведение ног в тренажёре":1,"Растяжка пресса, вариант 1":1,"Растяжка пресса, вариант 2":1,
+  996|                 "Растяжка пресса, вариант 3":1,"Растяжка пресса, вариант 4":1};
+  997|     var _prim=function(e){ var mx=Math.max.apply(null,Object.values(e.m||{0:0}));
+  998|       return Object.keys(e.m||{}).filter(function(m){return e.m[m]===mx})[0]; };
+  999|     var _bad=EX.filter(function(e){ return SUBM[_prim(e)]&&!(e.sub&&e.sub.length)&&!_subOK[e.n]; });
+ 1000|     if(_bad.length) __r.push("КРЭШ подгруппы: без разметки осталось "+_bad.length+" упражнений ("
+ 1001|       +_bad.slice(0,4).map(function(e){return e.n}).join(", ")+") — в карте тела их работы не видно");
+ 1002|     // и разметка обязана быть из своего словаря, а не из опечатки
+ 1003|     var _known={}; Object.values(SUBM).forEach(function(o){ Object.keys(o).forEach(function(k){_known[k]=1}) });
+ 1004|     var _junk=EX.filter(function(e){ return (e.sub||[]).some(function(k){return !_known[k]}) });
+ 1005|     if(_junk.length) __r.push("КРЭШ подгруппы: неизвестный код у "+_junk[0].n+" ("
+ 1006|       +(_junk[0].sub||[]).filter(function(k){return !_known[k]}).join(",")+")");
+ 1007|     // подгруппа обязана принадлежать мышце, которую упражнение реально грузит
+ 1008|     var _own={}; Object.entries(SUBM).forEach(function(kv){ Object.keys(kv[1]).forEach(function(k){_own[k]=kv[0]}) });
+ 1009|     var _alien=EX.filter(function(e){ return (e.sub||[]).some(function(k){
+ 1010|       var m=_own[k]; return m&&!(e.m&&e.m[m]>0); }); });
+ 1011|     if(_alien.length) __r.push("КРЭШ подгруппы: у «"+_alien[0].n+"» подгруппа мышцы, которой в упражнении нет");
+ 1012|   }
+ 1013| }catch(e){ __r.push("КРЭШ подгруппы: "+e.message); }
+ 1014| // РАЗГРУЗКА: баннер обязан называть срок, источник и давать снять на месте.
+ 1015| try{
+ 1016|   if(typeof sessionFocus==="function"){
+ 1017|     S.deload={m:"delts",until:ds(dn(td())+3),from:td(),src:"ai"};
+ 1018|     var _sf=sessionFocus({n:"Т",ex:[]});
+ 1019|     if(_sf.indexOf("осталось")<0&&_sf.indexOf("последний день")<0) __r.push("КРЭШ разгрузка: в баннере нет срока");
+ 1020|     if(_sf.indexOf("data-dloff")<0) __r.push("КРЭШ разгрузка: нет кнопки снять на месте");
+ 1021|     if(_sf.indexOf("ИИ-анализ")<0) __r.push("КРЭШ разгрузка: назначенная ИИ разгрузка не названа так в баннере");
+ 1022|     // Разгрузку человек включает сам — баннер не должен врать, что это сделал ИИ.
+ 1023|     S.deload={m:"all",until:ds(dn(td())+6),from:td(),src:"self"};
+ 1024|     var _sf2=sessionFocus({n:"Т",ex:[]});
+ 1025|     if(_sf2.indexOf("ИИ")>=0) __r.push("КРЭШ разгрузка: своя разгрузка подписана как ИИ-назначение");
+ 1026|     if(_sf2.indexOf("всё тело")<0) __r.push("КРЭШ разгрузка: разгрузка всего тела не названа человеческим словом");
+ 1027|     if(_sf2.indexOf("data-dloff")<0) __r.push("КРЭШ разгрузка: нет кнопки снять на месте (своя разгрузка)");
+ 1028|     delete S.deload;
+ 1029|   }
+ 1030| }catch(e){ __r.push("КРЭШ разгрузка: "+e.message); }
+ 1031| // РАЗГРУЗКА ВСЕГО ТЕЛА: снижение веса обязано доставать до любого движения,
+ 1032| // а не только до одной группы — «all» появился именно ради общей усталости.
+ 1033| try{
+ 1034|   if(typeof nextTarget==="function"&&typeof dlHits==="function"){
+ 1035|     var _dT=td(), _dP=ds(dn(_dT)-3);
+ 1036|     SETS=[{e:"Жим лёжа",d:_dP,w:100,r:8,ua:1,id:901},{e:"Жим лёжа",d:_dP,w:100,r:8,ua:2,id:902},
+ 1037|           {e:"Сгибание ног лёжа",d:_dP,w:40,r:10,ua:1,id:903},{e:"Сгибание ног лёжа",d:_dP,w:40,r:10,ua:2,id:904}];
+ 1038|     S.deload={m:"all",until:ds(dn(_dT)+5),from:_dT,src:"self"};
+ 1039|     var _nb=nextTarget("Жим лёжа",{n:"Жим лёжа",sets:2,lo:6,hi:8,main:true});
+ 1040|     var _nl=nextTarget("Сгибание ног лёжа",{n:"Сгибание ног лёжа",sets:2,lo:8,hi:10});
+ 1041|     if(!(_nb&&_nb.w>0&&_nb.w<100*0.75)) __r.push("КРЭШ разгрузка all: вес жима не снижен ("+((_nb||{}).w)+" при рабочих 100)");
+ 1042|     if(!(_nl&&_nl.w>0&&_nl.w<40*0.75)) __r.push("КРЭШ разгрузка all: разгрузка всего тела не достала до ног ("+((_nl||{}).w)+" при рабочих 40)");
+ 1043|     if(_nb&&String(_nb.msg||"").indexOf("undefined")>=0) __r.push("КРЭШ разгрузка all: в тексте undefined вместо названия");
+ 1044|     // Одна группа — соседние движения трогать нельзя.
+ 1045|     S.deload={m:"chest",until:ds(dn(_dT)+5),from:_dT,src:"ai"};
+ 1046|     var _nl2=nextTarget("Сгибание ног лёжа",{n:"Сгибание ног лёжа",sets:2,lo:8,hi:10});
+ 1047|     if(_nl2&&_nl2.w>0&&_nl2.w<40*0.75) __r.push("КРЭШ разгрузка: разгрузка груди срезала вес на ногах");
+ 1048|     delete S.deload; SETS=[];
+ 1049|   }
+ 1050| }catch(e){ __r.push("КРЭШ разгрузка all: "+e.message); }
+ 1051| // ПОДВОДЯЩИЕ: ступени различны, не упираются в рабочий, предлагаются по повадкам.
+ 1052| try{
+ 1053|   if(typeof rampSets==="function"&&typeof rampWanted==="function"){
+ 1054|     var _tR=td(), _pR=ds(dn(_tR)-3);
+ 1055|     // грубый шаг из истории (скачки по 20) не должен схлопывать 50% и 75% в одно
+ 1056|     SETS=[{e:"Тяга штанги в наклоне",d:_pR,w:40,r:8,ua:1,id:21},{e:"Тяга штанги в наклоне",d:_pR,w:60,r:8,ua:2,id:22}];
+ 1057|     var _rs=rampSets({n:"Тяга штанги в наклоне",main:true},60);
+ 1058|     if(_rs&&_rs.length===2&&_rs[0].w===_rs[1].w) __r.push("КРЭШ rampSets: две одинаковые ступени ("+_rs[0].w+") — полевой кейс 40×8→40×4");
+ 1059|     if(_rs&&_rs.some(function(x){return x.w>=60*0.9})) __r.push("КРЭШ rampSets: ступень вплотную к рабочему весу");
+ 1060|     // одинаковые после округления — схлопываются в одну (шаг 5, рабочий 16: обе ступени → 10)
+ 1061|     SETS=[{e:"дубль-кейс",d:_pR,w:55,r:8,ua:1,id:25},{e:"дубль-кейс",d:_pR,w:60,r:8,ua:2,id:26}];
+ 1062|     var _rs2=rampSets({n:"дубль-кейс",main:true},16);
+ 1063|     if(_rs2&&_rs2.length!==1) __r.push("КРЭШ rampSets: дубль-ступени не схлопнулись ("+JSON.stringify(_rs2)+")");
+ 1064|     // повадки: прошлую сессию начал сразу с рабочего → не навязываем
+ 1065|     SETS=[{e:"Тяга штанги в наклоне",d:_pR,w:60,r:8,ua:1,id:31},{e:"Тяга штанги в наклоне",d:_pR,w:60,r:8,ua:2,id:32}];
+ 1066|     if(rampWanted("Тяга штанги в наклоне",_tR)) __r.push("КРЭШ rampWanted: навязывает подводящие тому, кто их не делает");
+ 1067|     SETS=[{e:"Тяга штанги в наклоне",d:_pR,w:40,r:8,ua:1,id:33},{e:"Тяга штанги в наклоне",d:_pR,w:60,r:8,ua:2,id:34}];
+ 1068|     if(!rampWanted("Тяга штанги в наклоне",_tR)) __r.push("КРЭШ rampWanted: прячет подводящие от того, кто разогревается");
+ 1069|     SETS=[];
+ 1070|     if(!rampWanted("новичок-без-истории",_tR)) __r.push("КРЭШ rampWanted: новичку без истории не предложены подводящие");
+ 1071|   } else __r.push("КРЭШ rampSets/rampWanted: функций нет");
+ 1072| }catch(e){ __r.push("КРЭШ ramp: "+e.message); }
+ 1073| // МИГРАЦИЯ-СТРАЖ: гибрид, занесённый обратно (старый клиент через синк), чинится на каждом запуске
+ 1074| try{
+ 1075|   if(typeof migrateNames==="function"){
+ 1076|     var _mp2={cfg:{},plan:[{dow:1,n:"Т",ex:[{n:"Французский жим / разгибания на трицепс"}]}]};
+ 1077|     S.exNamesV1=1;                     // флаг стоит — раньше это блокировало починку
+ 1078|     S.prog=_mp2;
+ 1079|     S.ua=1;
+ 1080|     var _r2=migrateNames();
+ 1081|     (_r2&&_r2.then?_r2:Promise.resolve()).then(function(){
+ 1082|       if(_mp2.plan[0].ex[0].n!=="Французский жим") __r.push("КРЭШ страж: гибрид из синка не починился при выставленном флаге");
+ 1083|       if(!(S.ua>1)) __r.push("КРЭШ страж: метка времени не поднята — синк «новее выигрывает» вернёт гибрид с сервера");
+ 1084|     });
+ 1085|   }
+ 1086| }catch(e){ __r.push("КРЭШ страж: "+e.message); }
+ 1087| // ПОДХОДЫ: «прошл.» показывает рабочие (не разминочные), план-стоп работает.
+ 1088| try{
+ 1089|   if(typeof prevSessionBefore==="function"){
+ 1090|     var _t1=td(), _pd=ds(dn(_t1)-7);   // ранний тест переставляет td — даты только относительные
+ 1091|     SETS=[{e:"Жим лёжа",d:_pd,w:20,r:20,ua:1,id:1},{e:"Жим лёжа",d:_pd,w:20,r:20,ua:2,id:2},
+ 1092|           {e:"Жим лёжа",d:_pd,w:90,r:8,ua:3,id:3},{e:"Жим лёжа",d:_pd,w:90,r:8,ua:4,id:4}];
+ 1093|     var _pv=prevSessionBefore("Жим лёжа",_t1);
+ 1094|     if(_pv.some(function(x){return x.w<50})) __r.push("КРЭШ prevSession: разминочные 20×20 попали в колонку «прошл.»");
+ 1095|     if(_pv.length!==2) __r.push("КРЭШ prevSession: рабочих должно остаться 2, а осталось "+_pv.length);
+ 1096|     // план-стоп: 3 рабочих записаны при плане 3 — ряда ввода нет, есть кнопка
+ 1097|     S.prog={cfg:{days:1,dows:[dowOf(_t1)]},plan:[{dow:dowOf(_t1),n:"Т",ex:[{n:"Жим лёжа",sets:3,lo:6,hi:10}]}]};
+ 1098|     SETS=[1,2,3].map(function(i){return {e:"Жим лёжа",d:_t1,w:80,r:8,ua:i,id:i}});
+ 1099|     extraSet.clear(); if(typeof wcKeep!=="undefined") wcKeep.clear(); rNext();
+ 1100|     /* С v514 сделанное упражнение сворачивается в строку «3 из 3 ✓» (решение
+ 1101|        владельца 03.09). Путь человека: строка есть → тап раскрывает → там
+ 1102|        «План выполнен» и «ещё подход сверх плана», ряда ввода нет → тап по
+ 1103|        кнопке возвращает ряд. Правило идёт этим путём, а не ждёт кнопку в
+ 1104|        свёрнутой строке. */
+ 1105|     var _nb1=document.getElementById("nextBox").innerHTML||"";
+ 1106|     if(_nb1.indexOf('class="wc wc-done"')<0) __r.push("КРЭШ план-стоп: после 3/3 упражнение не свернулось в строку — экран тренировки снова растёт на каждое сделанное");
+ 1107|     if(_nb1.indexOf("3 из 3")<0) __r.push("КРЭШ план-стоп: в свёрнутой строке нет счёта «3 из 3»");
+ 1108|     if(_nb1.indexOf('data-wcopen="Жим лёжа"')<0) __r.push("КРЭШ план-стоп: у свёрнутой строки нет метки data-wcopen — тап по ней ничего не раскроет (M781)");
+ 1109|     if(_nb1.indexOf("wkg_")>=0) __r.push("КРЭШ план-стоп: свёрнутое упражнение всё ещё показывает ряд ввода");
+ 1110|     /* Фейковый DOM не умеет селекторы, поэтому сам тап здесь не нажать —
+ 1111|        его жмёт tests/browser.js. Смоук держит память о проводке: строка и
+ 1112|        ссылка «Свернуть» обязаны быть подключены к wcKeep (M781/M782). */
+ 1113|     if(__HTML.indexOf("qa('[data-wcopen]').forEach(b=>b.onclick=()=>{ wcKeep.add(D+':'+b.dataset.wcopen); rNext(); })")<0)
+ 1114|       __r.push("КРЭШ план-стоп: свёрнутая строка не подключена к раскрытию (data-wcopen → wcKeep.add)");
+ 1115|     if(__HTML.indexOf("qa('[data-wcclose]').forEach(b=>b.onclick=()=>{ wcKeep.delete(D+':'+b.dataset.wcclose); extraSet.delete(D+':'+b.dataset.wcclose); rNext(); })")<0)
+ 1116|       __r.push("КРЭШ план-стоп: ссылка «Свернуть» не подключена (data-wcclose → wcKeep.delete)");
+ 1117|     if(typeof wcKeep!=="undefined") wcKeep.add(_t1+":Жим лёжа"); rNext();
+ 1118|     var _nb2=document.getElementById("nextBox").innerHTML||"";
+ 1119|     if(_nb2.indexOf('class="wc wc-done"')>=0) __r.push("КРЭШ план-стоп: тап по свёрнутой строке не раскрывает упражнение");
+ 1120|     if(_nb2.indexOf("План выполнен")<0) __r.push("КРЭШ план-стоп: после 3/3 нет отметки о выполнении");
+ 1121|     if(_nb2.indexOf("ещё подход сверх плана")<0) __r.push("КРЭШ план-стоп: нет кнопки дополнительного подхода");
+ 1122|     if(_nb2.indexOf("wkg_")>=0) __r.push("КРЭШ план-стоп: ряд ввода продолжает показываться автоматом");
+ 1123|     if(_nb2.indexOf("data-wcclose")<0) __r.push("КРЭШ план-стоп: раскрытое сделанное упражнение нельзя свернуть обратно");
+ 1124|     extraSet.add(_t1+":Жим лёжа"); rNext();
+ 1125|     if((document.getElementById("nextBox").innerHTML||"").indexOf("wkg_")<0)
+ 1126|       __r.push("КРЭШ план-стоп: кнопка «ещё подход» не возвращает ряд ввода");
+ 1127|     /* «Ещё подход» — ровно один ряд (владелец 04.09: «каждый раз формирует ещё
+ 1128|        подход, и я не могу ни удалить, ни закрыть»). Запрос живёт до записи
+ 1129|        подхода: четвёртый записан — ряда нет, карточка свернулась «3 из 3 +1».
+ 1130|        Запись идёт через logWorkSet, как и у пальца, голоса и тренера. */
+ 1131|     if(__HTML.indexOf("try{ extraSet.delete(d+':'+name); wcKeep.delete(d+':'+name); }catch(e){}")<0)
+ 1132|       __r.push("КРЭШ доп. подход: запись подхода не гасит запрос «ещё подход» — ряд ввода будет возвращаться после каждого подхода");
+ 1133|     extraSet.delete(_t1+":Жим лёжа"); wcKeep.delete(_t1+":Жим лёжа");
+ 1134|     SETS.push({e:"Жим лёжа",d:_t1,w:80,r:8,ua:4,id:4}); rNext();
+ 1135|     var _nb4=document.getElementById("nextBox").innerHTML||"";
+ 1136|     if(_nb4.indexOf("wkg_")>=0) __r.push("КРЭШ доп. подход: после записи четвёртого подхода ряд ввода остался — «ещё подход» превратился в вечный");
+ 1137|     if(_nb4.indexOf("3 из 3 +1")<0) __r.push("КРЭШ доп. подход: свёрнутая строка не показывает «3 из 3 +1»");
+ 1138|     /* ── СОСТОЯНИЕ «ПОСЛЕ» (владелец 04.09) ── сессия закрыта: шапка — итог с
+ 1139|        минутами, подходами, тоннажем и входами в разбор и тяжесть; пилюль нет;
+ 1140|        несделанное упражнение тоже строка, без галочки. */
+ 1141|     var _sessWas=(typeof SESS!=="undefined")?SESS:undefined;
+ 1142|     SESS=[{d:_t1,start:"10:00",end:"10:52",min:52,rpe:null,auto:1}];
+ 1143|     S.prog.plan[0].ex.push({n:"Приседания",sets:3,lo:6,hi:10});
+ 1144|     rNext();
+ 1145|     var _nb5=document.getElementById("nextBox").innerHTML||"";
+ 1146|     if(_nb5.indexOf("Сделано")<0||_nb5.indexOf("52 мин")<0) __r.push("КРЭШ после: закрытая тренировка не показывает итог в шапке (минуты, подходы)");
+ 1147|     if(_nb5.indexOf("4 подхода")<0) __r.push("КРЭШ после: в итоге нет числа подходов");
+ 1148|     if(_nb5.indexOf('id="wDebrief"')<0) __r.push("КРЭШ после: нет входа «Разбор тренировки»");
+ 1149|     if(_nb5.indexOf('id="wEnd"')<0) __r.push("КРЭШ после: нет входа в оценку тяжести — RPE не проставить");
+ 1150|     /* ОДНО ЛАЙМОВОЕ ПЯТНО (v539, обход ролей: редактор экрана). Закон у
+ 1151|        .wrow.cur обещал единственный лаймовый ряд, а класс стоял у каждого
+ 1152|        упражнения. Меряем выход: число «wrow cur» в разметке дня, где оно стоит
+ 1153|        до старта, после подхода и после закрытого упражнения; «Выезд/Повторить»
+ 1154|        — только пока тренировка не начата. */
+ 1155|     { var _swL=SETS, _sessL=SESS; SESS=[];
+ 1156|       S.prog.plan[0].ex=[{n:"Жим лёжа",sets:3,lo:6,hi:10},{n:"Приседания",sets:3,lo:6,hi:10},{n:"Тяга штанги в наклоне",sets:3,lo:6,hi:10}];
+ 1157|       var _cnt=function(h){ return (h.match(/class="wrow cur"/g)||[]).length; };
+ 1158|       var _gfH=function(){ var g=document.getElementById("gymFoot"); return (g&&g.innerHTML)||""; };   /* v611: подвал действий — в #gymFoot */
+ 1159|       SETS=[]; rNext(); var _nbA=document.getElementById("nextBox").innerHTML||"";
+ 1160|       if(_cnt(_nbA)!==1) __r.push("КРЭШ лайм: до старта лаймовых рядов "+_cnt(_nbA)+" вместо одного — если светится всё, не светится ничего");
+ 1161|       if(_gfH().indexOf('id="bTravel"')<0||_gfH().indexOf('id="bRepeat"')<0) __r.push("КРЭШ лайм: до старта нет «Выезд»/«Повторить прошлую» — решение до тренировки пропало");
+ 1162|       SESS=[{d:_t1,start:"10:00",end:null,min:null,rpe:null,auto:1}];
+ 1163|       SETS=[{e:"Приседания",d:_t1,w:100,r:8,ua:1,id:21}]; rNext(); var _nbB=document.getElementById("nextBox").innerHTML||"";
+ 1164|       if(_cnt(_nbB)!==1) __r.push("КРЭШ лайм: после подхода лаймовых рядов "+_cnt(_nbB)+" вместо одного");
+ 1165|       var _iSq=_nbB.indexOf("Приседания"), _iCur=_nbB.indexOf('class="wrow cur"'), _iNext=_nbB.indexOf("Тяга штанги");
+ 1166|       if(!(_iCur>_iSq&&_iCur<_iNext)) __r.push("КРЭШ лайм: лайм не у упражнения последнего подхода (присед), а где-то ещё");
+ 1167|       if(_gfH().indexOf('id="bTravel"')>=0||_gfH().indexOf('id="bRepeat"')>=0) __r.push("КРЭШ лайм: во время тренировки внизу стоят «Выезд»/«Повторить прошлую» — сносят день с подходами");
+ 1168|       SETS=[{e:"Приседания",d:_t1,w:100,r:8,ua:1,id:21},{e:"Приседания",d:_t1,w:100,r:8,ua:2,id:22},{e:"Приседания",d:_t1,w:100,r:8,ua:3,id:23}]; rNext(); var _nbC=document.getElementById("nextBox").innerHTML||"";
+ 1169|       if(_cnt(_nbC)!==1) __r.push("КРЭШ лайм: после закрытого приседа лаймовых рядов "+_cnt(_nbC)+" вместо одного");
+ 1170|       var _iCur2=_nbC.indexOf('class="wrow cur"'), _iT=_nbC.indexOf("Тяга штанги");
+ 1171|       if(!(_iCur2>_iT)) __r.push("КРЭШ лайм: присед закрыт — лайм должен перейти на следующее незакрытое (тягу), а стоит раньше");
+ 1172|       SETS=_swL; SESS=_sessL; }
+ 1173|     /* ЗАКРЫТА БЕЗ ПОДХОДОВ (v535, обход ролей: удержание). Разминка и
+ 1174|        «Закрыть» давали «Сделано · 52 мин · 0 подходов», разбор — «не сделано:
+ 1175|        все семь, подберём замену», а путь новичка ставил галочку «первая
+ 1176|        тренировка». Меряем выход: шапку, разбор, счёт дней. */
+ 1177|     { var _sw0=SETS; SETS=[{e:"Жим лёжа",d:_t1,w:40,r:10,wu:1,ua:9,id:9}]; rNext();
+ 1178|       var _nb9=document.getElementById("nextBox").innerHTML||"";
+ 1179|       if(_nb9.indexOf("Сделано")>=0) __r.push("КРЭШ без подходов: закрытая тренировка с одной разминкой показывает «Сделано»");
+ 1180|       if(_nb9.indexOf("без подходов")<0) __r.push("КРЭШ без подходов: шапка не говорит, что тренировка закрыта без подходов и не засчитана");
+ 1181|       if(typeof workoutDays==="function"&&workoutDays()!==0) __r.push("КРЭШ без подходов: разминка без работы засчитана тренировочным днём ("+workoutDays()+")");
+ 1182|       if(typeof sessDebrief==="function"){ try{ sessDebrief(_t1); var _ab=String((document.getElementById("aiBody")||{}).innerHTML||"");
+ 1183|         if(_ab.indexOf("Подходов нет")<0) __r.push("КРЭШ без подходов: разбор не говорит «Подходов нет»");
+ 1184|         if(_ab.indexOf("замену")>=0||_ab.indexOf("Не сделано")>=0) __r.push("КРЭШ без подходов: разбор перечисляет «не сделано» и советует замену человеку, который сделал разминку и ушёл"); }catch(e){ __r.push("КРЭШ без подходов: разбор упал: "+e.message); } }
+ 1185|       SETS=_sw0; rNext(); }
+ 1186|     /* ТАЙМЕР ОТДЫХА ГАСНЕТ ВМЕСТЕ С ТРЕНИРОВКОЙ (обход ролей 05.09, тренер).
+ 1187|        Полоса «0:40 · между подводящими» шла поверх шапки-итога и экрана
+ 1188|        «Отдых», вибрировала в раздевалке и держала wake-lock. Фейковый DOM без
+ 1189|        IndexedDB обработчик закрытия не прогонит (put), а общий S.prog между
+ 1190|        async-правилами делит гонку — поэтому здесь исходник: оба конца
+ 1191|        тренировки зовут stopRest; выход меряет tests/browser.js (полоса без on
+ 1192|        после «Закрыть тренировку»). */
+ 1193|     var _bs=__HTML.indexOf("$('bSess').onclick=async()=>{"), _bsEnd=_bs>=0?__HTML.indexOf(String.fromCharCode(10)+"};",_bs):-1;
+ 1194|     var _bsSrc=_bs>=0&&_bsEnd>_bs?__HTML.slice(_bs,_bsEnd):"";
+ 1195|     if(!_bsSrc) __r.push("КРЭШ таймер-закрытие: не нашёл обработчик «Закрыть тренировку»");
+ 1196|     else if(_bsSrc.indexOf("stopRest()")<0) __r.push("КРЭШ таймер-закрытие: «Закрыть тренировку» не гасит таймер отдыха — вибрация в раздевалке, полоса поверх итога");
+ 1197|     var _as=__HTML.indexOf("async function autoSession(D){"), _asEnd=_as>=0?__HTML.indexOf(String.fromCharCode(10)+"}"+String.fromCharCode(10),_as):-1;
+ 1198|     var _asSrc=_as>=0&&_asEnd>_as?__HTML.slice(_as,_asEnd):"";
+ 1199|     if(!_asSrc) __r.push("КРЭШ таймер-закрытие: не нашёл autoSession");
+ 1200|     else if(_asSrc.indexOf("stopRest()")<0) __r.push("КРЭШ таймер-закрытие: автозакрытие по последнему подходу не гасит таймер отдыха");
+ 1201|     if(_nb5.indexOf("data-rdtog")>=0||_nb5.indexOf("data-wutog")>=0) __r.push("КРЭШ после: пилюли разминки/готовности остались после закрытия тренировки");
+ 1202|     if(_nb5.indexOf('data-wcopen="Приседания"')<0||_nb5.indexOf("0 из 3")<0) __r.push("КРЭШ после: несделанное упражнение не свернулось в строку «0 из 3»");
+ 1203|     if(_nb5.indexOf("wkg_")>=0) __r.push("КРЭШ после: после закрытия на экране остался ряд ввода");
+ 1204|     SESS=[]; rNext();
+ 1205|     if((document.getElementById("nextBox").innerHTML||"").indexOf('data-wcopen="Приседания"')>=0)
+ 1206|       __r.push("КРЭШ после: несделанное упражнение свёрнуто и в ОТКРЫТОЙ тренировке — подходы негде записывать");
+ 1207|     if(_sessWas!==undefined) SESS=_sessWas;
+ 1208|     /* ── ДЕНЬ ОТДЫХА (v517) ── заголовок «Отдых», факты строками: следующая
+ 1209|        тренировка, вчера, шаги. Предупреждения «Сегодня по плану отдых» нет,
+ 1210|        «+ Упражнение» тихая. */
+ 1211|     var _rdw=(dowOf(_t1)%7)+1;
+ 1212|     /* created — программа собрана сегодня: иначе с v614 «Верх» шестидневной давности встал бы на сегодня из очереди */
+ 1213|     S.prog={cfg:{days:1,dows:[_rdw]},plan:[{dow:_rdw,n:"Верх",ex:[{n:"Жим лёжа",sets:3,lo:6,hi:10}]}],created:_t1};
+ 1214|     SETS=[{e:"Жим лёжа",d:ds(dn(_t1)-1),w:80,r:8,ua:1,id:5}]; if(typeof vDay!=="undefined") vDay=null; rNext();
+ 1215|     var _nb6=document.getElementById("nextBox").innerHTML||"";
+ 1216|     if(_nb6.indexOf('class="dhd-t">Отдых<')<0) __r.push("КРЭШ отдых: в день отдыха заголовок не «Отдых»");
+ 1217|     if(_nb6.indexOf("Следующая ·")<0||_nb6.indexOf('class="rs-t">Шаги<')<0) __r.push("КРЭШ отдых: в шапке дня отдыха нет фактов «Следующая ·» / «Шаги»");
+ 1218|     if(_nb6.indexOf("Вчера ·")<0) __r.push("КРЭШ отдых: вчерашняя тренировка не названа в шапке дня отдыха");
+ 1219|     if(_nb6.indexOf("Сегодня по плану отдых")>=0||_nb6.indexOf('class="ib"><b>Сегодня')>=0) __r.push("КРЭШ отдых: предупреждение «Сегодня по плану отдых» вернулось — отдых подан как ошибка с крестиком");
+ 1220|     var _gf6=(function(){ var g=document.getElementById("gymFoot"); return (g&&g.innerHTML)||""; })();   /* v611: кнопка — строкой списка в подвале #gymFoot */
+ 1221|     if(!/id="bAddEx"/.test(_gf6)||!/class="lrow" id="bAddEx"/.test(_gf6)) __r.push("КРЭШ отдых: «+ Упражнение» в день отдыха не тихая строка списка в подвале — лаймовая кнопка без главного действия");
+ 1222|     /* ── СДВИГ НЕДЕЛИ — ТОЛЬКО ДО СТАРТА (v519) ── вчера была тренировка по
+ 1223|        плану и не сделана: до старта строка «Сдвинуть неделю на день» есть,
+ 1224|        после первого подхода её нет — решение принимают до, а не с гантелей. */
+ 1225|     var _yw=dowOf(ds(dn(_t1)-1)), _tw=dowOf(_t1);
+ 1226|     S.prog={cfg:{days:2,dows:[_yw,_tw]},plan:[{dow:_yw,n:"Вчера",ex:[{n:"Приседания",sets:3,lo:6,hi:10}]},{dow:_tw,n:"Сегодня",ex:[{n:"Жим лёжа",sets:3,lo:6,hi:10}]}]};
+ 1227|     SETS=[]; if(typeof vDay!=="undefined") vDay=null; rNext();
+ 1228|     var _nb7=document.getElementById("nextBox").innerHTML||"";
+ 1229|     var _shiftOk=false; try{ _shiftOk=!!shiftKeepsVolume(S.prog,_t1,1); }catch(e){}
+ 1230|     if(_shiftOk&&_nb7.indexOf('data-shift="1"')<0) __r.push("КРЭШ сдвиг: вчера тренировка пропущена, а строки «Сдвинуть неделю на день» до старта нет");
+ 1231|     if(_shiftOk&&/class="lrow" data-shift/.test(_nb7)) __r.push("КРЭШ сдвиг: предложение сдвига снова строкой списка на 63 px — должно быть строкой-фактом со ссылкой");
+ 1232|     SETS=[{e:"Жим лёжа",d:_t1,w:60,r:8,ua:1,id:8}]; rNext();
+ 1233|     if((document.getElementById("nextBox").innerHTML||"").indexOf('data-shift="1"')>=0) __r.push("КРЭШ сдвиг: строка «Сдвинуть неделю на день» стоит над упражнениями после старта тренировки — 63 px решения, которое уже не принять");
+ 1234|     /* ── ДЕНЬ ДО РОЖДЕНИЯ ПРОГРАММЫ — НЕ ПРОПУСК (v534, обход ролей: удержание).
+ 1235|        Программа собрана сегодня, в плане вчерашний день — новичок читал
+ 1236|        «Вчера пропущена · Сдвинуть неделю» в первую минуту. Программа недельной
+ 1237|        давности — упрёк честный, строка остаётся. */
+ 1238|     if(_shiftOk){
+ 1239|       SETS=[]; S.prog.created=_t1; rNext();
+ 1240|       if((document.getElementById("nextBox").innerHTML||"").indexOf('data-shift="1"')>=0) __r.push("КРЭШ сдвиг: программа собрана сегодня, а шапка упрекает «Вчера пропущена» — упрёк за день до рождения программы");
+ 1241|       S.prog.created=ds(dn(_t1)-7); rNext();
+ 1242|       if((document.getElementById("nextBox").innerHTML||"").indexOf('data-shift="1"')<0) __r.push("КРЭШ сдвиг: программа недельной давности, вчера пропущено — строки сдвига нет (правило заглушило честный упрёк)");
+ 1243|       /* и прошлый день: листнул назад на день до рождения программы — «Перенести на сегодня» там не стоит */
+ 1244|       if(typeof vDay!=="undefined"){ S.prog.created=_t1; vDay=ds(dn(_t1)-1); rNext();
+ 1245|         if((document.getElementById("nextBox").innerHTML||"").indexOf('data-shift="1"')>=0) __r.push("КРЭШ сдвиг: на дне до рождения программы стоит «Перенести на сегодня» — тренировки там не было и быть не могло");
+ 1246|         vDay=null; }
+ 1247|       delete S.prog.created;
+ 1248|     }
+ 1249|     extraSet.clear(); if(typeof wcKeep!=="undefined") wcKeep.clear(); SETS=[]; S.prog=null;
+ 1250|   }
+ 1251| }catch(e){ __r.push("КРЭШ подходы: "+e.message); }
+ 1252| /* ── ОТВЕТЫ ВЛАДЕЛЬЦА ИЗ ФОРМЫ 04.09 → v520 ── четыре починки, каждая со своей памятью. */
+ 1253| try{
+ 1254|   // 1. «Отменить не могу»: закрытую тренировку можно открыть снова из того же листа
+ 1255|   if(__HTML.indexOf('id="bSessOpen"')<0) __r.push("КРЭШ закрытие: в листе закрытия нет кнопки «Открыть тренировку снова»");
+ 1256|   if(__HTML.indexOf("$('bSessOpen').onclick=async()=>{")<0||__HTML.indexOf("await put('sess',{...ex,end:null,min:null}); SESS=await all('sess');")<0)
+ 1257|     __r.push("КРЭШ закрытие: кнопка «Открыть тренировку снова» не снимает время конца — закрытие необратимо");
+ 1258|   if(__HTML.indexOf("if(o) o.hidden=!(sx&&sx.end);")<0) __r.push("КРЭШ закрытие: кнопка «Открыть снова» не прячется в открытой тренировке — лишняя кнопка на пути");
+ 1259|   // 2. Чипы подгрупп заполняют строку до края
+ 1260|   if(__HTML.indexOf("#exSubChips>.chip{flex:1 1 auto}")<0||__HTML.indexOf("#exSubChips{display:flex;flex-wrap:wrap;")<0)
+ 1261|     __r.push("КРЭШ техника: чипы подгрупп не заполняют строку — «Низ груди» снова один на второй строке");
+ 1262|   /* 3. Входы «Коуча» собраны вместе, а не разведены по экрану.
+ 1263|      Полевой отчёт 29.08 был про одинокую плашку на сером фоне. В v520 это
+ 1264|      чинилось сеткой egrid, в v565 владелец переделал экран целиком: сверху
+ 1265|      наблюдения ИИ, под ними одна крупная кнопка действия, под ней ОДИН
+ 1266|      список остальных функций. Обещание то же, разметка другая — правило
+ 1267|      переписано под новую, иначе оно сторожит то, чего больше нет.
+ 1268|      Разряд: КРЭШ — если кнопка пропала из разметки вовсе (это поломка,
+ 1269|      человек её не найдёт). ВИД — если она есть, но стоит вне списка
+ 1270|      (это композиция, владелец видит её сам на первом экране). */
+ 1271|   var _cl=__HTML.indexOf('id="coachRows"');
+ 1272|   var _clEnd=_cl<0?-1:__HTML.indexOf('id="packBox"',_cl);
+ 1273|   var _list=_cl<0?"":__HTML.slice(_cl,_clEnd>_cl?_clEnd:_cl+4000);
+ 1274|   /* Семь входов раздела — строками общего списка. Именно эти семь: столько
+ 1275|      функций у «Коуча» после v565, и ни одна не должна потеряться молча. */
+ 1276|   ['id="bWeek"','id="bAna"','id="bPlan"','id="bTdee"','id="bBody"','id="bPack"','id="bRep"'].forEach(function(id){
+ 1277|     if(__HTML.indexOf(id)<0) __r.push("КРЭШ коуч: входа "+id+" нет в разметке вообще — функция пропала с экрана");
+ 1278|     else if(_list.indexOf(id)<0) __r.push("ВИД коуч: вход "+id+" стоит вне общего списка — одна плашка снова выделяется на фоне экрана");
+ 1279|   });
+ 1280|   if(_cl<0) __r.push("КРЭШ коуч: нет списка входов coachRows — раздел потерял все функции разом");
+ 1281|   /* Главное действие — одно и крупное. Класс chero отличает его от строк:
+ 1282|      если он станет обычной строкой, ежедневное действие утонет в списке. */
+ 1283|   if(__HTML.indexOf('id="bAsk"')<0) __r.push("КРЭШ коуч: нет кнопки «Спросить тренера» — главное действие раздела пропало");
+ 1284|   else if(__HTML.slice(Math.max(0,__HTML.indexOf('id="bAsk"')-120),__HTML.indexOf('id="bAsk"')).indexOf("chero")<0)
+ 1285|     __r.push("ВИД коуч: «Спросить тренера» перестала быть крупной кнопкой — ежедневное действие сравнялось со строками списка");
+ 1286|   /* Наблюдения ИИ — первыми: это и есть коуч, ради них человек заходит. */
+ 1287|   var _cv2=__HTML.indexOf('id="v-coach"');
+ 1288|   var _ib=__HTML.indexOf('id="insBox"',_cv2), _ak=__HTML.indexOf('id="bAsk"',_cv2);
+ 1289|   if(_ib<0) __r.push("КРЭШ коуч: нет блока наблюдений ИИ — вкладка потеряла то, ради чего в неё заходят");
+ 1290|   else if(_ak>=0&&_ib>_ak) __r.push("ВИД коуч: наблюдения ИИ стоят ниже кнопки действия — человек читает их вторым экраном");
+ 1291| }catch(e){ __r.push("КРЭШ v520: "+e.message); }
+ 1292| // РАЗМИНКА: у каждого движения обязана быть инструкция — новичок не должен гуглить.
+ 1293| try{
+ 1294|   if(typeof WU_GEN!=="undefined"&&typeof WU_MUS!=="undefined"){
+ 1295|     WU_GEN.forEach(function(x){ if(!x.h||x.h.length<30) __r.push("КРЭШ разминка: нет инструкции у «"+x.t+"»"); });
+ 1296|     Object.keys(WU_MUS).forEach(function(m){ WU_MUS[m].forEach(function(x){
+ 1297|       if(!x.h||x.h.length<30) __r.push("КРЭШ разминка: нет инструкции у «"+x.t+"»"); }); });
+ 1298|   } else __r.push("КРЭШ разминка: структур нет");
+ 1299| }catch(e){ __r.push("КРЭШ разминка: "+e.message); }
+ 1300| /* ── ТЕХНИКА: ДОСЯГАЕМА ОДНИМ ТАПОМ И НЕ УРЕЗАНА ──
+ 1301|    До v497 правило стерегло МЕСТО: раскрывашка «Суть и техника» обязана быть
+ 1302|    на карточке. Замер 01.09 показал, что она показывала УРЕЗАННУЮ копию
+ 1303|    справочника — у жима лёжа 5 шагов и 2 ошибки из 4, — то есть на карточке
+ 1304|    лежала худшая версия того, что целиком есть в листе. Это хуже дубля.
+ 1305|    Полевое правило v138–v144 было про то, что человек с гантелей в руке не
+ 1306|    листает ВКЛАДКИ и не гуглит; лист открывается поверх экрана и закрывается
+ 1307|    назад, поэтому оно соблюдено. Правило переписано на смысл:
+ 1308|    вход с карточки один тап · в листе техника ПОЛНАЯ · суть подхода там же ·
+ 1309|    и урезанной копии на карточке больше нет. */
+ 1310| try{
+ 1311|   var _exv=EX.find(function(e){return e&&e.c&&e.c.length>2&&e.e&&e.e.length>2});
+ 1312|   if(!_exv) __r.push("КРЭШ техника: в справочнике не нашлось движения с техникой и ошибками — правило ничего не проверило");
+ 1313|   else{
+ 1314|     S.prog={cfg:{days:1,dows:[dowOf(td())]},plan:[{dow:dowOf(td()),n:"Т",ex:[{n:_exv.n,sets:3,lo:8,hi:12}]}]};
+ 1315|     rNext();
+ 1316|     var _nb=document.getElementById("nextBox").innerHTML||"";
+ 1317|     /* v499: владелец снял ссылку «Разбор ›» — «его же можно по тапу открыть».
+ 1318|        Ряд под таблицей теперь только под действия, и вход в лист — само
+ 1319|        НАЗВАНИЕ движения. Правило стережёт то, что осталось существенным:
+ 1320|        название обязано открывать лист. Раньше здесь требовалась видимая
+ 1321|        ссылка; требование снято решением владельца, но досягаемость — нет. */
+ 1322|     var _nm=_nb.indexOf('class="wc-n"');
+ 1323|     if(_nm<0) __r.push("КРЭШ техника: у упражнения нет названия — проверка входа ничего не проверила");
+ 1324|     else if(_nb.slice(_nm,_nm+260).indexOf('data-tech="')<0)
+ 1325|       __r.push("КРЭШ техника: тап по названию не открывает лист — разбор стал недостижим с экрана тренировки");
+ 1326|     /* Урезанная копия не должна вернуться: если на карточке появились шаги
+ 1327|        техники, значит справочник снова показан наполовину. */
+ 1328|     if(_nb.indexOf(_exv.c[0])>=0)
+ 1329|       __r.push("КРЭШ техника: шаги техники снова печатаются на карточке — это урезанная копия справочника");
+ 1330|     /* А в листе — все шаги и все ошибки, без «первых пяти». Открываем лист
+ 1331|        по-настоящему и читаем то, что в нём отрисовалось. */
+ 1332|     var _sh="";
+ 1333|     try{ showEx(_exv); _sh=(document.getElementById("exBody")||{}).innerHTML||""; }
+ 1334|     catch(e){ _sh="!"+e.message; }
+ 1335|     if(_sh.length<50) __r.push("КРЭШ техника: лист упражнения не отрисовался — проверка полноты ничего не проверила");
+ 1336|     _exv.c.forEach(function(t){ if(_sh.indexOf(t)<0)
+ 1337|       __r.push("КРЭШ техника: в листе нет шага «"+String(t).slice(0,28)+"…» — справочник показан не целиком"); });
+ 1338|     _exv.e.forEach(function(t){ if(_sh.indexOf(t)<0)
+ 1339|       __r.push("КРЭШ техника: в листе нет ошибки «"+String(t).slice(0,28)+"…» — справочник показан не целиком"); });
+ 1340|     /* Суть подхода (схема и задача дня) уехала из карточки в лист — но не пропала. */
+ 1341|     var _g="";
+ 1342|     try{ _g=exGist(_exv.n,{n:_exv.n,sets:3,lo:8,hi:12,main:1}); }catch(e){ _g="!"+e.message; }
+ 1343|     if(_g.indexOf("Схема:")<0||_g.indexOf("Задача сегодня:")<0)
+ 1344|       __r.push("КРЭШ техника: суть подхода не собирается (схема / задача дня) — она пропала вместе с раскрывашкой");
+ 1345|     /* И проверяем, что её кто-то ЗОВЁТ. Мутация M730 вырезала вызов из листа,
+ 1346|        а правило продолжало дёргать функцию напрямую и молчало. */
+ 1347|     var _eh=__HTML.indexOf("function exSheetHist(name){");
+ 1348|     if(_eh<0) __r.push("КРЭШ техника: не найден exSheetHist — проверка подключения ничего не проверила");
+ 1349|     else if(__HTML.slice(_eh,_eh+900).indexOf("exGist")<0)
+ 1350|       __r.push("КРЭШ техника: лист не зовёт суть подхода — из карточки её убрали, а в листе не показали");
+ 1351|     /* Режем по КОНЦУ функции, а не по «плюс 2600 символов»: окно с
+ 1352|        фиксированной длиной ломается от любой правки внутри showEx, и правило
+ 1353|        кричит про поломку, которой нет (напоролся 01.09). */
+ 1354|     var _se=__HTML.indexOf("function showEx(e){");
+ 1355|     var _seEnd=_se<0?-1:__HTML.indexOf(String.fromCharCode(10)+"function ",_se+10);
+ 1356|     var _seBody=_se<0?"":__HTML.slice(_se,_seEnd>_se?_seEnd:_se+6000);
+ 1357|     if(_se<0) __r.push("КРЭШ техника: не найден showEx — проверка подключения ничего не проверила");
+ 1358|     else if(_seBody.indexOf("exSheetHist")<0)
+ 1359|       __r.push("КРЭШ техника: лист не зовёт разбор — суть и история туда не попадут");
+ 1360|     /* ── ВКЛАДКИ ЛИСТА (v520, владелец 05.09) ── три вкладки, три панели;
+ 1361|        техника, суть дня и история — каждая в своей, ни одна не потеряна. */
+ 1362|     if(_sh.indexOf('data-extab="tech"')<0||_sh.indexOf('data-extab="today"')<0||_sh.indexOf('data-extab="hist"')<0)
+ 1363|       __r.push("КРЭШ лист упражнения: нет трёх вкладок «Техника · Сегодня · История»");
+ 1364|     if(_sh.indexOf('data-expane="tech"')<0) __r.push("КРЭШ лист упражнения: техника не в своей панели — переключение вкладок её не покажет");
+ 1365|     if(_seBody.indexOf("show('tech')")<0||_seBody.indexOf("b.onclick=()=>show(b.dataset.extab)")<0)
+ 1366|       __r.push("КРЭШ лист упражнения: вкладки не переключаются — панели показаны все разом или ни одной");
+ 1367|     S.prog=null;
+ 1368|   }
+ 1369| }catch(e){ __r.push("КРЭШ техника: "+e.message); }
+ 1370| /* ── СПРАВОЧНИК ОТКРЫВАЕТСЯ ГРУППАМИ МЫШЦ ──
+ 1371|    Решение владельца 01.09 по скриншоту чужого приложения: сначала группы,
+ 1372|    потом упражнения внутри. Плоский список из 270 строк с прокручиваемым
+ 1373|    рядом фильтров отвечал на вопрос «что тут есть» только тому, кто уже
+ 1374|    знает, что фильтр существует. Правило меряет ВЫХОД: что реально
+ 1375|    отрисовалось в списке на каждом из двух уровней. */
+ 1376| try{
+ 1377|   var _ch=$("exChips"), _sr=$("exSearch");
+ 1378|   if(!_ch||!_sr) __r.push("КРЭШ справочник: нет держателя состояния или поиска — правило ничего не проверило");
+ 1379|   else if(!(function(){ var a=__HTML.indexOf('<section class="view" id="v-coach">'), b=__HTML.indexOf('</section>',a), c=__HTML.indexOf('id="exList"'); return a>=0&&c>a&&c<b; })()) __r.push("КРЭШ v615: справочник упражнений не во вкладке «Коуч»");
+ 1380|   else{
+ 1381|     var _m0=_ch._mus, _s0=_sr.value;
+ 1382|     _ch._mus=""; _ch._sub=""; _sr.value=""; rExList();   /* v615: справочник в «Коуче», рисует себя сам */
+ 1383|     var _l1=($("exList")||{}).innerHTML||"";
+ 1384|     if(_l1.indexOf("data-exmus2=")<0)
+ 1385|       __r.push("КРЭШ справочник: справочник открывается плоским списком, а не группами мышц");
+ 1386|     if(_l1.indexOf("data-ex=")>=0)
+ 1387|       __r.push("КРЭШ справочник: на экране групп сразу лежат упражнения — уровня группировки нет");
+ 1388|     if(_l1.indexOf("Все упражнения")<0)
+ 1389|       __r.push("КРЭШ справочник: с экрана групп нельзя посмотреть весь справочник целиком");
+ 1390|     /* Второй уровень: выбрали группу — видим её упражнения и путь назад. */
+ 1391|     var _mk=Object.keys(MUS).find(function(k){ return EX.some(function(e){return e.m&&e.m[k]}) });
+ 1392|     _ch._mus=_mk; _ch._sub=""; rExList();
+ 1393|     var _l2=($("exList")||{}).innerHTML||"";
+ 1394|     if(_l2.indexOf("data-ex=")<0)
+ 1395|       __r.push("КРЭШ справочник: внутри группы «"+MUS[_mk]+"» нет упражнений — второй уровень пустой");
+ 1396|     if(_l2.indexOf("data-exback")<0)
+ 1397|       __r.push("КРЭШ справочник: из группы нет пути назад к группам — человек застрял на втором уровне");
+ 1398|     /* «Все упражнения» — это второй уровень без фильтра, а не возврат на первый. */
+ 1399|     _ch._mus="*"; rExList();
+ 1400|     var _l3=($("exList")||{}).innerHTML||"";
+ 1401|     if(_l3.indexOf("data-ex=")<0)
+ 1402|       __r.push("КРЭШ справочник: «Все упражнения» открывают пустой экран вместо всего справочника");
+ 1403|     /* Поиск идёт МИМО группировки: печатаешь «жим» — ищем во всём. */
+ 1404|     _ch._mus=""; _sr.value="жим"; rExList();
+ 1405|     var _l4=($("exList")||{}).innerHTML||"";
+ 1406|     if(_l4.indexOf("data-ex=")<0)
+ 1407|       __r.push("КРЭШ справочник: поиск не работает с экрана групп — приходится сперва угадать группу");
+ 1408|     _ch._mus=_m0; _sr.value=_s0; rExList();
+ 1409|   }
+ 1410| }catch(e){ __r.push("КРЭШ справочник: "+e.message); }
+ 1411| /* ── ПЕРВЫЙ ЭКРАН ЗАЛА У НОВИЧКА ВЕДЁТ, А НЕ ОТСЫЛАЕТ ──
+ 1412|    Замер 02.09 пути от чистой установки: на вкладке «Зал» человек без
+ 1413|    программы видел текст «Собери её во вкладке Программа или импортируй план
+ 1414|    тренера в Коуч» и одну кнопку «+ Упражнение». Подсказка называет другое
+ 1415|    место, но не ведёт туда, а десять готовых программ с описанием «кому ·
+ 1416|    что · что будет через месяц» лежат написанными и не видны нигде на этом
+ 1417|    пути. Правило меряет ВЫХОД: что реально отрисовано и работает ли тап. */
+ 1418| try{
+ 1419|   var _pSave=S.prog, _vd2=(typeof vDay!=="undefined")?vDay:null;
+ 1420|   S.prog=null; vDay=null; rTrain();
+ 1421|   var _пуст=(($("nextBox")||{}).innerHTML)||"";
+ 1422|   if(_пуст.indexOf("data-pick=")<0)
+ 1423|     __r.push("КРЭШ первый экран: у новичка в зале нет готовых программ — экран отсылает в другую вкладку вместо того, чтобы вести");
+ 1424|   if(PRESETS.filter(function(p){ return _пуст.indexOf('data-pick="'+p.id+'"')>=0 }).length!==PRESETS.length)
+ 1425|     __r.push("КРЭШ первый экран: показаны не все готовые программы — витрина неполная");
+ 1426|   if(_пуст.indexOf("data-pickown")<0)
+ 1427|     __r.push("КРЭШ первый экран: нет пути собрать программу под себя — остались только готовые");
+ 1428|   /* Тап по строке обязан СОБРАТЬ план, а не открыть ещё один экран: это и
+ 1429|      есть обещанные два тапа. Проверяем, что обработчик зовёт applyPreset. */
+ 1430|   var _rn=__HTML.indexOf("box.querySelectorAll('[data-pick]')");
+ 1431|   if(_rn<0) __r.push("КРЭШ первый экран: строка программы ни к чему не подключена — тап ничего не делает");
+ 1432|   else if(__HTML.slice(_rn,_rn+200).indexOf("applyPreset")<0)
+ 1433|     __r.push("КРЭШ первый экран: тап по программе не собирает план — обещание «два тапа» не выполняется");
+ 1434|   S.prog=_pSave; vDay=_vd2;
+ 1435| }catch(e){ __r.push("КРЭШ первый экран: "+e.message); }
+ 1436| /* ── ЗНАКОМСТВО: ВОСЕМЬ ВОПРОСОВ, ПРОПУСКАЕМОЕ, В ЗАЛ ──
+ 1437|    Решение владельца 02.09: квиз ПРОПУСКАЕМЫЙ (незакрывающийся пейволл —
+ 1438|    то, за что конкурентов из APPS.md ругают в отзывах), после него сразу
+ 1439|    «Зал». И главное: второй анкеты мы не заводим — ответы обязаны лечь в
+ 1440|    те же поля, что заполняет «Стартовый пакет», иначе у человека появится
+ 1441|    два профиля, которые разъедутся. Правило меряет ВЫХОД целиком: показ,
+ 1442|    пропуск, сборку и то, куда он попадает. */
+ 1443| try{
+ 1444|   var _p0=S.prog, _d0=S.onboardDone, _w0=W.slice();
+ 1445|   S.prog=null; S.onboardDone=0; W.length=0;
+ 1446|   if(onbMaybe()!==true) __r.push("КРЭШ знакомство: новичку без программы и без веса оно не показывается");
+ 1447|   W.length=0; _w0.forEach(function(x){W.push(x)});
+ 1448|   S.prog=_p0||{plan:[]}; S.onboardDone=0;
+ 1449|   if(onbMaybe()!==false) __r.push("КРЭШ знакомство: показывается тому, у кого программа уже есть — ему нечего рассказывать");
+ 1450|   S.prog=_p0; S.onboardDone=_d0;
+ 1451|   if(!Array.isArray(ONBQ)||ONBQ.length<6)
+ 1452|     __r.push("КРЭШ знакомство: вопросов "+((ONBQ||[]).length)+" — это уже не знакомство");
+ 1453|   ONBQ.forEach(function(q){ if(!q.opt&&!q.num) __r.push("КРЭШ знакомство: вопрос «"+q.q+"» нечем ответить"); });
+ 1454|   /* Пропуск обязан работать: это условие владельца, а не удобство. */
+ 1455|   if(__HTML.indexOf('id="onbSkip"')<0)
+ 1456|     __r.push("КРЭШ знакомство: кнопки «Пропустить» нет на экране — выйти из него нечем");
+ 1457|   var _skip=__HTML.indexOf("async function onbSkip()");
+ 1458|   if(_skip<0) __r.push("КРЭШ знакомство: пропустить нельзя — нет onbSkip");
+ 1459|   else if(__HTML.slice(_skip,_skip+260).indexOf("onboardDone")<0)
+ 1460|     __r.push("КРЭШ знакомство: пропуск не запоминается — оно вернётся на следующем запуске");
+ 1461|   /* Сборку и запись профиля меряет браузерный прогон (тут нет честного
+ 1462|      асинхронного хранилища). Здесь стережём ПОДКЛЮЧЕНИЕ: что ответы идут в
+ 1463|      те же поля и в тот же генератор, а не в отдельную анкету. */
+ 1464|   var _ap=__HTML.indexOf("async function onbApply()");
+ 1465|   var _apB=_ap<0?"":__HTML.slice(_ap,__HTML.indexOf(String.fromCharCode(10)+"function ",_ap+10));
+ 1466|   if(_ap<0) __r.push("КРЭШ знакомство: нет onbApply — отвечать некуда");
+ 1467|   else{
+ 1468|     if(_apB.indexOf("genProgram")<0)
+ 1469|       __r.push("КРЭШ знакомство: ответы не идут в генератор — восемь вопросов ради ничего");
+ 1470|     ["S.sex=","S.age=","S.h="].forEach(function(f){ if(_apB.indexOf(f)<0)
+ 1471|       __r.push("КРЭШ знакомство: ответ не пишется в "+f+" — значит завели вторую анкету рядом с существующей"); });
+ 1472|     if(_apB.indexOf("put('weight'")<0)
+ 1473|       __r.push("КРЭШ знакомство: вес не записывается — первая точка графика теряется");
+ 1474|     if(_apB.indexOf("onboardDone")<0)
+ 1475|       __r.push("КРЭШ знакомство: пройденное не помечается — покажется снова");
+ 1476|   }
+ 1477|   /* Ищем ИМЯ, а не подпись: правило, знающее аргументы функции, зеленеет и
+ 1478|      краснеет от переименования параметра, а не от поломки (M722 научил). */
+ 1479|   var _cl=__HTML.indexOf("function onbClose(");
+ 1480|   var _clB=_cl<0?"":__HTML.slice(_cl,__HTML.indexOf(String.fromCharCode(10)+"function ",_cl+10));
+ 1481|   if(_cl<0) __r.push("КРЭШ знакомство: нет onbClose");
+ 1482|   else if(_clB.indexOf("goView('train')")<0)
+ 1483|     __r.push("КРЭШ знакомство: после него открывается не «Зал» — решение владельца не выполнено");
+ 1484|   /* ── ПОСЛЕДНИЙ ЭКРАН ЗНАКОМСТВА ──
+ 1485|      Рекомендация №5 из APPS.md. Человек ответил на восемь вопросов; если
+ 1486|      сразу выкинуть его в «Зал», он не узнает ни что собралось, ни что
+ 1487|      приложение вообще умеет. Стережём три вещи: экран есть и его зовут из
+ 1488|      сборки · на нём НАЗВАНЫ факты его программы, а не общие слова ·
+ 1489|      список умений один на приложение, и он же лежит в настройках. */
+ 1490|   if(_apB&&_apB.indexOf("onbEnd(")<0)
+ 1491|     __r.push("КРЭШ знакомство: сборка не открывает последний экран — восемь вопросов заканчиваются молча");
+ 1492|   var _en=__HTML.indexOf("function onbEnd(");
+ 1493|   var _enB=_en<0?"":__HTML.slice(_en,__HTML.indexOf(String.fromCharCode(10)+"function ",_en+10));
+ 1494|   if(_en<0) __r.push("КРЭШ знакомство: нет последнего экрана onbEnd");
+ 1495|   else{
+ 1496|     if(_enB.indexOf("canDoHTML")<0)
+ 1497|       __r.push("КРЭШ знакомство: на последнем экране не сказано, что приложение умеет — ради этого он и заведён");
+ 1498|     if(_enB.indexOf("onbGo")<0)
+ 1499|       __r.push("КРЭШ знакомство: с последнего экрана нечем уйти — тупик после восьми вопросов");
+ 1500|   }
+ 1501|   /* Факты меряем ВЫХОДОМ: подставляем программу и цель и читаем строки,
+ 1502|      которые увидит человек. Проверка «в коде упомянут tg()» пропустила бы
+ 1503|      экран, где вызов остался, а строка не выводится (мутация M751). */
+ 1504|   if(typeof onbFacts!=="function") __r.push("КРЭШ знакомство: нет onbFacts — факты последнего экрана нечем проверить");
+ 1505|   else{
+ 1506|     var _pp=S.prog, _tt=S.target, _km=S.kcalManual;
+ 1507|     S.prog={split:'Фулбоди 3×',plan:[{n:'Всё тело · 1',ex:[{n:'а'},{n:'б'}]},{n:'Всё тело · 2',ex:[{n:'в'}]}]};
+ 1508|     S.kcalManual=2400;
+ 1509|     var _f=onbFacts(true).join(" | ");
+ 1510|     /* Проверку «пропустившему нечего показывать» делаем ПОКА подставлена
+ 1511|        чужая программа: после восстановления S.prog там могло не быть
+ 1512|        программы вовсе, и правило зеленело бы само собой (M757). */
+ 1513|     var _f0=onbFacts(false).join(" | ");
+ 1514|     S.prog=_pp; S.target=_tt; S.kcalManual=_km;
+ 1515|     if(_f.indexOf("Фулбоди 3×")<0)
+ 1516|       __r.push("КРЭШ знакомство: последний экран не называет собранную программу — человек ответил на восемь вопросов и не увидел, что получилось");
+ 1517|     if(_f.indexOf("2 дня")<0)
+ 1518|       __r.push("КРЭШ знакомство: последний экран не называет, сколько дней в неделю");
+ 1519|     if(_f.indexOf("3 упражнения")<0)
+ 1520|       __r.push("КРЭШ знакомство: последний экран не считает упражнения — «программа собрана» без единой цифры это лозунг");
+ 1521|     if(_f.indexOf("2400 ккал")<0)
+ 1522|       __r.push("КРЭШ знакомство: последний экран молчит про калории — а знакомство спрашивало и пол, и рост, и вес именно ради них");
+ 1523|     if(_f0.indexOf("Фулбоди")>=0||_f0.indexOf("упражнени")>=0)
+ 1524|       __r.push("КРЭШ знакомство: пропустившему знакомство показываются факты программы, которую он не собирал");
+ 1525|   }
+ 1526|   /* Цель по калориям обязана ставиться самим знакомством: до этого она
+ 1527|      появлялась только при первом заходе в «Еду», и последний экран честно
+ 1528|      показывать её не мог. */
+ 1529|   if(_apB&&_apB.indexOf("seed()")<0)
+ 1530|     __r.push("КРЭШ знакомство: цель по калориям не ставится — человек назвал пол, рост, вес и темп, а цифры не получил");
+ 1531|   if(__HTML.indexOf('id="onbGo"')<0)
+ 1532|     __r.push("КРЭШ знакомство: кнопки выхода с последнего экрана нет в разметке");
+ 1533|   if(!Array.isArray(CANDO)||CANDO.length<4)
+ 1534|     __r.push("КРЭШ знакомство: список умений короче четырёх — рассказывать нечего");
+ 1535|   else CANDO.forEach(function(c){ if(!c[0]||!c[1])
+ 1536|     __r.push("КРЭШ знакомство: умение «"+(c[0]||'?')+"» без объяснения — это лозунг, а не функция"); });
+ 1537|   if(typeof canDoHTML!=="function") __r.push("КРЭШ знакомство: нет canDoHTML");
+ 1538|   else{
+ 1539|     var _c4=canDoHTML(4), _cAll=canDoHTML(0);
+ 1540|     if((_c4.match(/class="can"/g)||[]).length!==4)
+ 1541|       __r.push("КРЭШ знакомство: на последнем экране не четыре умения — экран рассчитан на четыре строки");
+ 1542|     if((_cAll.match(/class="can"/g)||[]).length!==CANDO.length)
+ 1543|       __r.push("КРЭШ знакомство: в настройках показаны не все умения");
+ 1544|     if(_cAll.indexOf(CANDO[CANDO.length-1][0])<0)
+ 1545|       __r.push("КРЭШ знакомство: последнее умение не доехало до вывода");
+ 1546|   }
+ 1547|   /* Тот же список обязан быть виден и тому, кто знакомство пропустил. */
+ 1548|   if(__HTML.indexOf('id="canBox"')<0)
+ 1549|     __r.push("КРЭШ знакомство: в настройках нет места под список умений — пропустивший знакомство не узнает о них никогда");
+ 1550|   var _rh=__HTML.indexOf("function rHelp(){");
+ 1551|   if(_rh<0) __r.push("КРЭШ знакомство: не найден rHelp — подключение списка не проверено");
+ 1552|   else{
+ 1553|     var _rhB=__HTML.slice(_rh,__HTML.indexOf(String.fromCharCode(10)+"function ",_rh+10));
+ 1554|     /* Не «упомянут canBox», а «в canBox кладут именно список»: мутация M753
+ 1555|        заменила вызов на пустую строку и прошла мимо первой формулировки. */
+ 1556|     if(_rhB.indexOf("canBox")<0||_rhB.indexOf("canDoHTML")<0)
+ 1557|       __r.push("КРЭШ знакомство: список умений в настройках никто не заполняет — пустая раскрывашка");
+ 1558|   }
+ 1559| }catch(e){ __r.push("КРЭШ знакомство: "+e.message); }
+ 1560| /* ── ГОЛОС В КОНЦЕ ОТДЫХА ──
+ 1561|    Полевой отчёт владельца 01.09: телефон не вибрировал, пуша не было,
+ 1562|    вспышку он не увидел — аппарат лежал на скамье. Вибрации на айфоне нет
+ 1563|    и не будет. Голос — единственный канал, который дойдёт до человека,
+ 1564|    не смотрящего на экран, и он же отвечает на «какой был вес».
+ 1565|    Правило: он выключен по умолчанию (заговорить без спроса в зале —
+ 1566|    неловкость, а не забота), включается настройкой, и его действительно
+ 1567|    зовут из конца отдыха, а не просто объявили функцией. */
+ 1568| try{
+ 1569|   var _rs=S.restSay;
+ 1570|   delete S.restSay;
+ 1571|   if(typeof say!=="function"||typeof sayNext!=="function")
+ 1572|     __r.push("КРЭШ голос: функции речи нет — конец отдыха по-прежнему только для того, кто смотрит на экран");
+ 1573|   if(__HTML.indexOf('id="s_restSay"')<0)
+ 1574|     __r.push("КРЭШ голос: в настройках зала нет переключателя — включить нельзя");
+ 1575|   var _sf=__HTML.indexOf("function say(text){");
+ 1576|   var _sfB=_sf<0?"":__HTML.slice(_sf,_sf+700);
+ 1577|   if(_sf<0) __r.push("КРЭШ голос: не найдена say — проверка ничего не проверила");
+ 1578|   else{
+ 1579|     if(_sfB.indexOf("S.restSay")<0)
+ 1580|       __r.push("КРЭШ голос: речь не спрашивает настройку — заговорит у того, кто не просил");
+ 1581|     if(_sfB.indexOf("speechSynthesis")<0)
+ 1582|       __r.push("КРЭШ голос: речь ничем не произносится");
+ 1583|   }
+ 1584|   var _rd=__HTML.indexOf("function restDone(){");
+ 1585|   var _rdB=_rd<0?"":__HTML.slice(_rd,__HTML.indexOf(String.fromCharCode(10)+"function ",_rd+10));
+ 1586|   if(_rd<0) __r.push("КРЭШ голос: не найден restDone — проверка подключения ничего не проверила");
+ 1587|   else if(_rdB.indexOf("sayNext")<0)
+ 1588|     __r.push("КРЭШ голос: конец отдыха не зовёт речь — функция есть, а человек её не услышит");
+ 1589|   /* iOS молчит навсегда, если синтез ни разу не стартовал из жеста. */
+ 1590|   var _sr=__HTML.indexOf("function startRest(sec,");
+ 1591|   var _srB=_sr<0?"":__HTML.slice(_sr,_sr+900);
+ 1592|   if(_sr>=0&&_srB.indexOf("sayWarm")<0)
+ 1593|     __r.push("КРЭШ голос: синтез не разогревается при старте отдыха — на айфоне он молчит навсегда");
+ 1594|   /* И молчит, пока не включили. */
+ 1595|   var _сказал=0, _ss=window.speechSynthesis, _su=window.SpeechSynthesisUtterance;
+ 1596|   /* Ставим и в window, и в globalThis: в фейковом DOM это РАЗНЫЕ объекты,
+ 1597|      а код обращается к синтезу и через window.speechSynthesis (охранник),
+ 1598|      и голым именем (сам вызов). Подменишь одно — правило молчит впустую. */
+ 1599|   var _stub={speak:function(){_сказал++},cancel:function(){},getVoices:function(){return []}};
+ 1600|   window.speechSynthesis=_stub; globalThis.speechSynthesis=_stub;
+ 1601|   var _uStub=function(t){ this.text=t; };
+ 1602|   window.SpeechSynthesisUtterance=_uStub; globalThis.SpeechSynthesisUtterance=_uStub;
+ 1603|   try{ say("проверка"); }catch(e){}
+ 1604|   if(_сказал>0) __r.push("КРЭШ голос: говорит при выключенной настройке — в зале это чужие уши");
+ 1605|   S.restSay=1; try{ say("проверка"); }catch(e){}
+ 1606|   if(!(_сказал>0)) __r.push("КРЭШ голос: включённая настройка не заставляет говорить");
+ 1607|   window.speechSynthesis=_ss; globalThis.speechSynthesis=_ss;
+ 1608|   window.SpeechSynthesisUtterance=_su; globalThis.SpeechSynthesisUtterance=_su;
+ 1609|   if(_rs) S.restSay=_rs; else delete S.restSay;
+ 1610| }catch(e){ __r.push("КРЭШ голос: "+e.message); }
+ 1611| // ПОДСКАЗКА ПРОГРЕССИИ обязана знать снаряд: «плитка» на гантелях — бессмыслица.
+ 1612| try{
+ 1613|   if(typeof nextTarget==="function"){
+ 1614|     var _t0d=td();
+ 1615|     SETS=[1,2,3].map(function(i){return {e:"Жим гантелей сидя",d:_t0d,w:20,r:12,id:900+i}});
+ 1616|     var _nt=nextTarget("Жим гантелей сидя",{sets:3,lo:8,hi:12});
+ 1617|     if(/плитк/i.test(_nt.msg)) __r.push("КРЭШ nextTarget: гантелям советуют плитку тренажёра");
+ 1618|     if(!/гантел/i.test(_nt.msg)) __r.push("КРЭШ nextTarget: для гантелей нет совета про гантели");
+ 1619|     SETS=[1,2,3].map(function(i){return {e:"Разгибание на трицепс канатом",d:_t0d,w:50,r:15,id:910+i}});
+ 1620|     _nt=nextTarget("Разгибание на трицепс канатом",{sets:3,lo:10,hi:15});
+ 1621|     if(!/плитк|стек/i.test(_nt.msg)) __r.push("КРЭШ nextTarget: блоку не советуют плитку стека");
+ 1622|     SETS=[];
+ 1623|   }
+ 1624| }catch(e){ __r.push("КРЭШ nextTarget: "+e.message); }
+ 1625| // ГИБРИДНЫЕ ИМЕНА: «либо / либо» в названии упражнения запрещены —
+ 1626| // у французского жима и разгибаний разные веса, общий журнал бессмыслен.
+ 1627| try{
+ 1628|   // без регэкспа: тест лежит в шаблонной строке, и она съедает обратный слэш
+ 1629|   EX.forEach(function(e){ if(e&&e.n.indexOf(" / ")>=0) __r.push("КРЭШ имена: гибрид «"+e.n+"» — раздели на отдельные упражнения"); });
+ 1630|   if(typeof migrateNames!=="function") __r.push("КРЭШ migrateNames: функции нет");
+ 1631|   else{
+ 1632|     S.exNamesV1=0; SETS=[];
+ 1633|     DATA.sets.length=0; DATA.sets.push({id:1,e:"Французский жим / разгибания на трицепс",d:"2026-07-01",w:20,r:10});
+ 1634|     // all('sets') в песочнице читает из DATA? нет — из фейковой БД; проверяем только карту программы
+ 1635|     var _mprog={cfg:{},plan:[{dow:1,n:"Т",ex:[{n:"Скручивания / пресс на блоке"}]}]};
+ 1636|     S.prog=_mprog;                      // держим свою ссылку: другие async-тесты трогают S.prog
+ 1637|     var _pm=migrateNames();
+ 1638|     (_pm&&_pm.then?_pm:Promise.resolve()).then(function(){
+ 1639|       if(_mprog.plan[0].ex[0].n!=="Скручивания") __r.push("КРЭШ migrateNames: имя в программе не переехало");
+ 1640|     });
+ 1641|   }
+ 1642| }catch(e){ __r.push("КРЭШ имена: "+e.message); }
+ 1643| // КАРТА ПАКЕТА: undefined на экране — полевой баг со скриншота владельца.
+ 1644| try{
+ 1645|   if(typeof renderPackResult==="function"&&typeof genProgram==="function"){
+ 1646|     S.rate=0; S.stepGoal=7500; S.waterGoal=2600; S.budget="mid";
+ 1647|     var _P=genProgram({days:4,equip:"gym",goal:"hyper",exp:"mid",inj:[]});
+ 1648|     renderPackResult("bulk",_P,false);
+ 1649|     var _pk=document.getElementById("pkOut").innerHTML||"";
+ 1650|     if(_pk.indexOf("undefined")>=0) __r.push("КРЭШ renderPackResult: в карте пакета остался undefined");
+ 1651|     if(_pk.indexOf("упр.")<0) __r.push("КРЭШ renderPackResult: дни программы не отрисовались");
+ 1652|   } else __r.push("КРЭШ renderPackResult: функций нет");
+ 1653| }catch(e){ __r.push("КРЭШ renderPackResult: "+e.message); }
+ 1654| // ГОЛОС: ккал обязаны сходиться с продиктованными БЖУ (полевой баг владельца:
+ 1655| // «БЖУ назвал сам, ккал посчитались неверно» — модель подставила справочную цифру).
+ 1656| try{
+ 1657|   if(typeof voiceProduct!=="function"){ __r.push("КРЭШ voiceProduct: функции нет"); }
+ 1658|   else{
+ 1659|     // хлопья: б12 ж6 у62 → 4*12+9*6+4*62 = 350. Модель «дала» 480 — должно пересчитаться.
+ 1660|     // фейковый DOM не парсит HTML — проверяем по разметке, записанной в aiBody
+ 1661|     voiceProduct({name:"Тестовые хлопья",kc:480,p:12,f:6,cb:62});
+ 1662|     var _h1=document.getElementById("aiBody").innerHTML;
+ 1663|     if(_h1.indexOf('value="350"')<0) __r.push("КРЭШ voiceProduct: ккал модели 480 не пересчитаны из БЖУ (ждали 350)");
+ 1664|     if(_h1.indexOf("пересчитаны из БЖУ")<0) __r.push("КРЭШ voiceProduct: пересчёт сделан молча, без пометки");
+ 1665|     // близкая цифра (в пределах 12%) — доверяем модели
+ 1666|     voiceProduct({name:"Тестовые хлопья 2",kc:360,p:12,f:6,cb:62});
+ 1667|     if(document.getElementById("aiBody").innerHTML.indexOf('value="360"')<0)
+ 1668|       __r.push("КРЭШ voiceProduct: честная ккал 360 зачем-то перезаписана");
+ 1669|   }
+ 1670| }catch(e){ __r.push("КРЭШ voiceProduct: "+e.message); }
+ 1671| // ОФЛАЙН-ОЧЕРЕДЬ АНАЛИТИКИ: событие из зала без связи не должно теряться молча.
+ 1672| try{
+ 1673|   if(typeof trkFlush!=="function"||typeof trkLoad!=="function"){
+ 1674|     __r.push("КРЭШ trkQ: функций нет");
+ 1675|   }else{
+ 1676|     // localStorage-стаб превращаем в рабочую карту
+ 1677|     var _ls={}; localStorage.getItem=function(k){return _ls[k]||null};
+ 1678|     localStorage.setItem=function(k,v){_ls[k]=String(v)}; localStorage.removeItem=function(k){delete _ls[k]};
+ 1679|     S.noTrack=0; S.anonId="test-anon-q-0001"; S.trkSeen={};
+ 1680|     __trkQ.length=0;
+ 1681|     // 1) сеть лежит → событие остаётся в очереди и в хранилище
+ 1682|     var _of=globalThis.fetch;
+ 1683|     globalThis.fetch=function(){ return Promise.reject(new Error("offline")) };
+ 1684|     trk("workout_done");
+ 1685|     var _p1=trkFlush();
+ 1686|     (_p1&&_p1.then?_p1:Promise.resolve()).then(function(){
+ 1687|       if(!__trkQ.length) __r.push("КРЭШ trkQ: событие пропало при отказе сети");
+ 1688|       if((_ls["bv_trkq"]||"").indexOf("workout_done")<0)
+ 1689|         __r.push("КРЭШ trkQ: очередь не сохранилась в localStorage — закрытие приложения её убьёт");
+ 1690|       // 2) сеть вернулась → очередь уходит и пустеет
+ 1691|       S.noTrack=0;   // асинхронная часть бежит после всех синхронных тестов — те трогают выключатель
+ 1692|       globalThis.fetch=function(){ return Promise.resolve({ok:true}) };
+ 1693|       var _p2=trkFlush();
+ 1694|       return (_p2&&_p2.then?_p2:Promise.resolve());
+ 1695|     }).then(function(){
+ 1696|       if(__trkQ.length) __r.push("КРЭШ trkQ: очередь не опустела после успешной отправки");
+ 1697|       if(JSON.parse(_ls["bv_trkq"]||"[]").length)
+ 1698|         __r.push("КРЭШ trkQ: хранилище не очищено после успешной отправки");
+ 1699|       globalThis.fetch=_of; S.noTrack=1;
+ 1700|     });
+ 1701|   }
+ 1702| }catch(e){ __r.push("КРЭШ trkQ: "+e.message); }
+ 1703| // ЖУРНАЛ ПРОГРАММЫ: изменение оставляет след, возврат возвращает то, что было.
+ 1704| try{
+ 1705|   if(typeof progSnap!=="function"||typeof rProgHist!=="function"){
+ 1706|     __r.push("КРЭШ progSnap: функций нет");
+ 1707|   }else{
+ 1708|     S.progLog=[]; S.progHist=[];
+ 1709|     S.prog={cfg:{days:3},plan:[{dow:1,n:"Тест",ex:[{n:"Жим лёжа"}]}]};
+ 1710|     progSnap("анкета","Пересборка 1");
+ 1711|     if(!S.progLog.length) __r.push("КРЭШ progSnap: запись в журнал не появилась");
+ 1712|     if(!S.progHist.length) __r.push("КРЭШ progSnap: снимок программы не сохранён");
+ 1713|     S.prog={cfg:{days:4},plan:[{dow:2,n:"Другой",ex:[{n:"Присед"}]}]};
+ 1714|     if(S.progHist[0].prog.plan[0].ex[0].n!=="Жим лёжа")
+ 1715|       __r.push("КРЭШ progSnap: снимок ссылается на живой объект — история переписывается вместе с текущей программой");
+ 1716|     // потолки: журнал не растёт бесконечно
+ 1717|     for(var _i=0;_i<40;_i++) progSnap("анкета","x"+_i);
+ 1718|     if(S.progLog.length>30) __r.push("КРЭШ progSnap: журнал вырос до "+S.progLog.length+" (потолок 30)");
+ 1719|     if(S.progHist.length>5) __r.push("КРЭШ progSnap: снимков "+S.progHist.length+" (потолок 5)");
+ 1720|     S.progLog=[]; S.progHist=[]; S.prog=null;
+ 1721|   }
+ 1722| }catch(e){ __r.push("КРЭШ progSnap: "+e.message); }
+ 1723| // ПРИНЦИПЫ: раздел отказов обязан существовать — он часть продукта, а не декларация.
+ 1724| // Проверяем по исходной разметке: фейковый DOM статический HTML не содержит.
+ 1725| try{
+ 1726|   if(__HTML.indexOf('id="setVows"')<0) __r.push("КРЭШ setVows: раздела «Чего мы не делаем» нет в настройках");
+ 1727|   ["Реклама внутри приложения","Продажа данных","Советы по фарме","Скрытые партнёрки","Журнал отказов"].forEach(function(k){
+ 1728|     if(__HTML.indexOf(k)<0) __r.push("КРЭШ setVows: пропал пункт «"+k+"»");
+ 1729|   });
+ 1730| }catch(e){ __r.push("КРЭШ setVows: "+e.message); }
+ 1731| // ЦЕНА ЗА ГРАММ: деление должно быть честным — это функция против маркетинга.
+ 1732| try{
+ 1733|   if(typeof subCalcHTML!=="function"||typeof showSubInfo!=="function"){
+ 1734|     __r.push("КРЭШ subCalc: функций нет");
+ 1735|   }else{
+ 1736|     showSubInfo("Тестовый протеин");
+ 1737|     var _pr=document.getElementById("sc_pr"), _wt=document.getElementById("sc_wt"), _c=document.getElementById("sc_c");
+ 1738|     if(!_pr||!_wt||!_c){ __r.push("КРЭШ subCalc: полей калькулятора нет в справке"); }
+ 1739|     else{
+ 1740|       _pr.value="2000"; _wt.value="900"; _c.value="70";
+ 1741|       _pr.oninput&&_pr.oninput();
+ 1742|       var _out=document.getElementById("sc_out").innerHTML;
+ 1743|       if(_out.indexOf("630")<0) __r.push("КРЭШ subCalc: 900 г × 70% должно дать 630 г действующего, в выводе этого нет");
+ 1744|       if(_out.indexOf("3.2")<0) __r.push("КРЭШ subCalc: 2000/630 = 3.2 ₽/г, в выводе этого нет");
+ 1745|       // мусор не считаем и не сохраняем
+ 1746|       _c.value="150"; _pr.oninput();
+ 1747|       if(document.getElementById("sc_out").innerHTML.indexOf("Заполни")<0)
+ 1748|         __r.push("КРЭШ subCalc: содержание 150 на 100 г принято за чистую монету");
+ 1749|     }
+ 1750|   }
+ 1751| }catch(e){ __r.push("КРЭШ subCalc: "+e.message); }
+ 1752| // МАРШРУТИЗАЦИЯ ИИ: дешёвые задачи не должны молча уехать на дорогую модель.
+ 1753| try{
+ 1754|   if(typeof TASK_MODEL==="undefined"){ __r.push("КРЭШ TASK_MODEL: карты маршрутов нет"); }
+ 1755|   else{
+ 1756|     if(TASK_MODEL.voice!=="claude-haiku-4-5") __r.push("КРЭШ TASK_MODEL: голос должен идти на Haiku");
+ 1757|     if(TASK_MODEL.label!=="claude-haiku-4-5") __r.push("КРЭШ TASK_MODEL: этикетка должна идти на Haiku");
+ 1758|     if(TASK_MODEL.meal)  __r.push("КРЭШ TASK_MODEL: фото еды должно оставаться на Sonnet (точность дороже)");
+ 1759|     // свой ключ: aiFetch обязана подменить модель и убрать поле task (API его не знает)
+ 1760|     var _req=null,_of=globalThis.fetch;
+ 1761|     globalThis.fetch=function(u,o){ _req={u:String(u),body:JSON.parse(o.body)}; return Promise.resolve({ok:true,json:function(){return Promise.resolve({content:[]})}}); };
+ 1762|     __dirOK=true;   // пробник связи (v233): в этих тестах прямая связь «жива», запрос уходит синхронно
+ 1763|     S.key="sk-test"; aiFetch({model:"claude-sonnet-5",max_tokens:5,messages:[]},"voice");
+ 1764|     globalThis.fetch=_of; S.key="";
+ 1765|     if(!_req) __r.push("КРЭШ aiFetch: запрос не ушёл");
+ 1766|     else{
+ 1767|       if(_req.body.model!=="claude-haiku-4-5") __r.push("КРЭШ aiFetch: голос на своём ключе ушёл на "+_req.body.model);
+ 1768|       if("task" in _req.body) __r.push("КРЭШ aiFetch: поле task утекло в Anthropic API — будет 400");
+ 1769|       if("thinking" in _req.body) __r.push("КРЭШ aiFetch: параметр thinking уехал на Haiku — там другой API");
+ 1770|     }
+ 1771|     // Sonnet 5 думает по умолчанию и на тесном лимите возвращает 200 без текста
+ 1772|     // (полевой кейс v151). Обычный вызов ОБЯЗАН явно выключать размышление.
+ 1773|     _req=null; globalThis.fetch=function(u,o){ _req={body:JSON.parse(o.body)}; return Promise.resolve({ok:true,json:function(){return Promise.resolve({content:[]})}}); };
+ 1774|     S.key="sk-test"; aiFetch({model:"claude-sonnet-5",max_tokens:200,messages:[]});
+ 1775|     if(!_req||!_req.body.thinking||_req.body.thinking.type!=="disabled")
+ 1776|       __r.push("КРЭШ aiFetch: у Sonnet 5 не выключено размышление — тесный max_tokens снова даст пустой ответ");
+ 1777|     // ...а разбору («analysis») размышление оставляем — качество плана дороже
+ 1778|     _req=null;
+ 1779|     aiFetch({model:"claude-sonnet-5",max_tokens:12000,messages:[]},"analysis");
+ 1780|     globalThis.fetch=_of; S.key="";
+ 1781|     if(!_req) __r.push("КРЭШ aiFetch: analysis-запрос не ушёл");
+ 1782|     else{
+ 1783|       if("thinking" in _req.body) __r.push("КРЭШ aiFetch: разбору выключили размышление — качество анализа упадёт");
+ 1784|       if(_req.body.model!=="claude-sonnet-5") __r.push("КРЭШ aiFetch: разбор ушёл не на Sonnet");
+ 1785|     }
+ 1786|     if(typeof THINK_TASKS==="undefined"||!THINK_TASKS.analysis)
+ 1787|       __r.push("КРЭШ THINK_TASKS: карта задач с размышлением потерялась");
+ 1788| 
+ 1789|     /* ── ТЯЖЁЛЫЙ ЗАПРОС УЖИМАЕТСЯ ДО ОТПРАВКИ ──
+ 1790|        Урок отпуска: на LTE длинный аплоад рвётся, человек видит «Load failed».
+ 1791|        Чат тренера весит 8.8 КБ и не при чём — рвут кадры: один занимает
+ 1792|        300–600 КБ в base64, пачка из четырёх даёт больше двух мегабайт. */
+ 1793|     /* ── ПУСТОЙ КОНТЕКСТ ПРИ ЖИВОМ АККАУНТЕ ──
+ 1794|        Урок отпуска: человек вошёл, данные не подтянулись, приложение встретило
+ 1795|        его как новичка — «собери стартовый пакет». Он собрал, и появился
+ 1796|        профиль-двойник, а история осталась в облаке. Пустота при живом аккаунте
+ 1797|        обязана предлагать загрузку, а не анкету. */
+ 1798|     try{
+ 1799|       /* «Новичок» — это ноль ЛЮБЫХ данных, включая вес: с записи веса
+ 1800|          начинается чек-лист в «Зале», и человек, который её сделал, уже начал
+ 1801|          (24.08). Поэтому обнуляем и W. */
+ 1802|       var _sv={e:S.sbEmail,o:S.onboardDone,L:LOG,SE:SETS,W:W,pk:S.pack,pr:S.prog};
+ 1803|       LOG=[]; SETS=[]; W=[]; S.pack=null; S.prog=null; S.onboardDone=0;
+ 1804|       S.sbEmail=''; rFirstRun();
+ 1805|       var _anon=(document.getElementById('frBox')||{}).innerHTML||'';
+ 1806|       if(_anon.indexOf('Добро пожаловать')<0) __r.push("КРЭШ первый запуск: новичку без аккаунта не показано приветствие");
+ 1807|       S.sbEmail='kto@to.ru'; rFirstRun();
+ 1808|       var _auth=(document.getElementById('frBox')||{}).innerHTML||'';
+ 1809|       if(_auth.indexOf('Собрать стартовый пакет')>=0)
+ 1810|         __r.push("КРЭШ пустой контекст: вошедшему в аккаунт с пустой базой предложена анкета — так и родился профиль-двойник");
+ 1811|       if(_auth.indexOf('frPull')<0)
+ 1812|         __r.push("КРЭШ пустой контекст: нет кнопки загрузить данные из облака");
+ 1813|       if(_auth.indexOf('kto@to.ru')<0)
+ 1814|         __r.push("КРЭШ пустой контекст: не сказано, под каким аккаунтом человек вошёл");
+ 1815|       /* ПЕРВЫЕ ДЕСЯТЬ МИНУТ — ВЫЧИТАНИЕМ. Пока не сделано ничего, пустые
+ 1816|          приборы («Цели пока нет», «Жидкость 0 / 2500», «Шаги 0 / 8000») с
+ 1817|          экрана уходят: пустой прибор не мотивирует, а выглядит как уже
+ 1818|          сломанное приложение. Замер: 1643 px на экране 844 до правки. */
+ 1819|       S.sbEmail='';
+ 1820|       if(typeof isFirstRun!=="function") __r.push("КРЭШ первый экран: нет признака первого запуска (isFirstRun)");
+ 1821|       else{
+ 1822|         if(!isFirstRun()) __r.push("КРЭШ первый экран: человек без единой записи не считается новичком");
+ 1823|         W=[{d:td(),kg:82.4}];
+ 1824|         if(isFirstRun()) __r.push("КРЭШ первый экран: записал вес, а приложение всё ещё встречает его как новичка — приборы не вернутся, приветствие не уйдёт");
+ 1825|         W=[]; LOG=[{d:td(),k:300,p:10,f:5,c:40}];
+ 1826|         if(isFirstRun()) __r.push("КРЭШ первый экран: записал еду, а приложение всё ещё считает, что он ничего не делал");
+ 1827|         LOG=[];
+ 1828|       }
+ 1829|       if(__HTML.indexOf("_fr?'none':''")<0)
+ 1830|         __r.push("КРЭШ первый экран: пустые приборы снова показываются новичку — «Цели пока нет» и «0 / 2500» на пустом месте выглядят как сломанное приложение");
+ 1831|       S.sbEmail=_sv.e; S.onboardDone=_sv.o; LOG=_sv.L; SETS=_sv.SE; W=_sv.W; S.pack=_sv.pk; S.prog=_sv.pr;
+ 1832|       rFirstRun();
+ 1833|     }catch(e){ __r.push("КРЭШ пустой контекст: "+e.message); }
+ 1834| 
+ 1835|     /* ── ГРЯЗНАЯ АНКЕТА НЕ ПРЕВРАЩАЕТ РАСКЛАДКУ В NaN ──
+ 1836|        Настройки «на кг» приходят из чужого импорта и ручной правки: там
+ 1837|        бывает строка, NaN или ноль. Раскладка отдавала NaN, и на экран уезжало
+ 1838|        «NaN г» (грязный прогон 19.08). */
+ 1839|     try{
+ 1840|       var _pk=S.pkg, _fk=S.fkg;
+ 1841|       S.pkg='два'; S.fkg=NaN;
+ 1842|       var _mm=macroSplit(1700,93);
+ 1843|       var _fin=[_mm.p,_mm.f,_mm.c].every(function(x){ return typeof x==='number'&&isFinite(x)&&x>=0; });
+ 1844|       if(!_fin) __r.push("КРЭШ раскладка: мусор в настройках «на кг» даёт нечисло: "+JSON.stringify(_mm));
+ 1845|       if(_fin&&Math.abs(_mm.p*4+_mm.f*9+_mm.c*4-1700)>10)
+ 1846|         __r.push("КРЭШ раскладка: на дефолтах не сходится с калориями: "+JSON.stringify(_mm));
+ 1847|       S.pkg=0; S.fkg=-1;
+ 1848|       var _m0=macroSplit(1700,93);
+ 1849|       if(!(_m0.p>0&&_m0.f>0)) __r.push("КРЭШ раскладка: нулевые настройки обнулили белок и жиры: "+JSON.stringify(_m0));
+ 1850|       // невозможные вход/вес не должны давать NaN
+ 1851|       var _mz=macroSplit(0,0);
+ 1852|       if(!isFinite(_mz.p)||!isFinite(_mz.c)) __r.push("КРЭШ раскладка: нулевая цель даёт нечисло");
+ 1853|       S.pkg=_pk; S.fkg=_fk;
+ 1854|     }catch(e){ __r.push("КРЭШ раскладка на грязи: "+e.message); }
+ 1855| 
+ 1856|     /* ── ПЕРВАЯ НЕДЕЛЯ НЕ ПОДВОДИТ ИТОГИ ──
+ 1857|        На третий день карточка называлась «Разбор недели» и превращалась в
+ 1858|        список того, чего человек НЕ сделал: пять серых медалей из шести,
+ 1859|        «Белок 90% — 0 дн», «Сон —». Недели не было, а итоги подведены не в его
+ 1860|        пользу — и это бьёт ровно в те 14 дней, ради которых всё делается. */
+ 1861|     try{
+ 1862|       var _rs={L:LOG,S:SETS,W:W,t:S.target,d:S.tdee};
+ 1863|       var _t=dn(td());
+ 1864|       LOG=[]; SETS=[]; W=[];
+ 1865|       for(var i=2;i>=0;i--){ var dd=ds(_t-i);
+ 1866|         W.push({d:dd,kg:93-i*0.1});
+ 1867|         LOG.push({d:dd,n:'еда',u:100,a:100,k:1800,p:120,f:60,c:150}); }
+ 1868|       SETS.push({e:'Приседания со штангой',d:ds(_t-1),w:60,r:8,pos:1,ua:1});
+ 1869|       rRecap();
+ 1870|       var _h=(document.getElementById('recapBox')||{}).innerHTML||'';
+ 1871|       if(_h.indexOf('Разбор недели')>=0)
+ 1872|         __r.push("КРЭШ первая неделя: на третий день подводятся итоги недели, которой не было");
+ 1873|       if(_h.indexOf('Как идёт начало')<0)
+ 1874|         __r.push("КРЭШ первая неделя: нет карточки начала пути");
+ 1875|       // ищем прочерк именно как ЗНАЧЕНИЕ метрики, а не любое тире в тексте
+ 1876|       if(_h.indexOf('>'+String.fromCharCode(8212)+'<')>=0)
+ 1877|         __r.push("КРЭШ первая неделя: в карточке начала метрика показана прочерком — читается как сломанное");
+ 1878|       var _grey=_h.split('осталось').length-1;
+ 1879|       if(_grey>1) __r.push("КРЭШ первая неделя: показано "+_grey+" недостигнутых целей вместо одной ближайшей");
+ 1880|       if(_h.indexOf('Первая тренировка')<0)
+ 1881|         __r.push("КРЭШ первая неделя: заработанное не показано");
+ 1882|       // наблюдатель на третий день молчит: замечать поведение можно, когда оно есть
+ 1883|       var _ins=(typeof behaviorInsights==='function')?behaviorInsights():null;
+ 1884|       if(!Array.isArray(_ins)) __r.push("КРЭШ наблюдатель: не вернул список — проверка пустая");
+ 1885|       else if(_ins.length) __r.push("КРЭШ наблюдатель: упрекает человека на третий день: "+(_ins[0].text||'').slice(0,70));
+ 1886|       // а на десятый день — обычный разбор недели
+ 1887|       for(var j=9;j>=3;j--){ var d2=ds(_t-j);
+ 1888|         W.push({d:d2,kg:93.5}); LOG.push({d:d2,n:'еда',u:100,a:100,k:1800,p:120,f:60,c:150}); }
+ 1889|       rRecap();
+ 1890|       var _h2=(document.getElementById('recapBox')||{}).innerHTML||'';
+ 1891|       /* Правило искало ЗАГОЛОВОК «Разбор недели» внутри карточки. В v571 он
+ 1892|          убран: имя блока уже стоит в шапке листа, второй раз его не пишем.
+ 1893|          Обещание же было не про заголовок, а про то, что после недели данных
+ 1894|          итоги ПОЯВИЛИСЬ — их и проверяем, по самим цифрам. */
+ 1895|       if(_h2.indexOf('Тренировок')<0||_h2.indexOf('Подходов')<0)
+ 1896|         __r.push("КРЭШ первая неделя: после недели данных итоги так и не появились");
+ 1897|       // кривая дата из старого экспорта делала историю бесконечно старой и
+ 1898|       // обходила режим первых дней (грязный прогон 19.08)
+ 1899|       LOG=[]; SETS=[]; W=[];
+ 1900|       for(var k2=2;k2>=0;k2--){ var d3=ds(_t-k2);
+ 1901|         W.push({d:d3,kg:93}); LOG.push({d:d3,n:'еда',u:100,a:100,k:1800,p:120,f:60,c:150}); }
+ 1902|       LOG.push({d:'0000-00-00',n:'из ниоткуда',u:100,a:100,k:700,p:20,f:10,c:80});
+ 1903|       rRecap();
+ 1904|       var _h3=(document.getElementById('recapBox')||{}).innerHTML||'';
+ 1905|       if(_h3.indexOf('Как идёт начало')<0)
+ 1906|         __r.push("КРЭШ первая неделя: битая дата из старого экспорта состарила историю — новичку подводят итоги недели");
+ 1907|       var _ins2=(typeof behaviorInsights==='function')?behaviorInsights():[];
+ 1908|       if(_ins2.length) __r.push("КРЭШ наблюдатель: битая дата открыла ему рот на третий день: "+(_ins2[0].text||'').slice(0,60));
+ 1909|       LOG=_rs.L; SETS=_rs.S; W=_rs.W; S.target=_rs.t; S.tdee=_rs.d;
+ 1910|     }catch(e){ __r.push("КРЭШ первая неделя: "+e.message); }
+ 1911| 
+ 1912|     if(typeof fitAiBody!=="function") __r.push("КРЭШ: нет ужимания тела ИИ-запроса под мобильную сеть");
+ 1913|     else{
+ 1914|       // лёгкий запрос обязан уходить в том же тике — иначе поедут все вызовы,
+ 1915|       // которые полагаются на синхронную отправку
+ 1916|       var _light=fitAiBody({model:"m",messages:[{role:"user",content:"привет"}]});
+ 1917|       if(_light&&typeof _light.then==="function")
+ 1918|         __r.push("КРЭШ fitAiBody: лёгкий запрос стал асинхронным — отправка сдвинулась на микрозадачу");
+ 1919|       // тяжёлый с картинками — возвращает промис и реально ужимает
+ 1920|       var _big="A".repeat(1300*1024);
+ 1921|       var _pl={model:"m",messages:[{role:"user",content:[
+ 1922|         {type:"image",source:{type:"base64",media_type:"image/jpeg",data:_big}},
+ 1923|         {type:"text",text:"что на фото"}]}]};
+ 1924|       var _was=aiBodySize(_pl);
+ 1925|       if(_was<=AI_BODY_MAX) __r.push("КРЭШ: тестовый payload оказался меньше потолка — проверка ничего не значит");
+ 1926|       /* Сам путь ужимания здесь НЕ запускаем: canvas в фейковом DOM нет, а
+ 1927|          запущенный промис пишет событие в телеметрию и ломает соседние
+ 1928|          проверки очереди. Здесь — только то, что проверяется синхронно;
+ 1929|          настоящее сжатие на настоящем JPEG проверяет browser.js. */
+ 1930|       if(aiImgParts(_pl).length!==1) __r.push("КРЭШ aiImgParts: кадры в запросе не находятся — жать будет нечего");
+ 1931|       // тяжёлый БЕЗ картинок жать нечем — обязан вернуться как есть, без промиса
+ 1932|       var _txt=fitAiBody({model:"m",messages:[{role:"user",content:"C".repeat(1300*1024)}]});
+ 1933|       if(_txt&&typeof _txt.then==="function")
+ 1934|         __r.push("КРЭШ fitAiBody: тяжёлый текст ушёл на ужимание, хотя жать в нём нечего");
+ 1935|     }
+ 1936|     // сам вызов «Разбора» обязан идти с запасом токенов и меткой analysis
+ 1937|     if(__HTML.indexOf("12000,'analysis')")<0)
+ 1938|       __r.push("КРЭШ analysis: вызов разбора без запаса токенов/метки — размышление съест лимит");
+ 1939|   }
+ 1940| }catch(e){ __r.push("КРЭШ TASK_MODEL: "+e.message); }
+ 1941| // ГОЛОСОВОЙ ВВОД: намерение важнее подсказки, упражнение подбирается по словам.
+ 1942| try{
+ 1943|   if(typeof pVoiceAny!=="function"||typeof exByVoice!=="function"){
+ 1944|     __r.push("КРЭШ voice: функций нет");
+ 1945|   }else{
+ 1946|     var _p=pVoiceAny("дома есть овсяные хлопья","pantry");
+ 1947|     ["intent","pantry","product","weight","guessed","dish"].forEach(function(k){
+ 1948|       if(_p.indexOf(k)<0) __r.push("КРЭШ pVoiceAny: в промпте нет "+k);
+ 1949|     });
+ 1950|     if(_p.indexOf("сказанное важнее контекста")<0)
+ 1951|       __r.push("КРЭШ pVoiceAny: подсказка не помечена как слабее сказанного — голос из кладовой не сможет попасть в дневник");
+ 1952|     if(_p.indexOf("дома есть овсяные хлопья")<0) __r.push("КРЭШ pVoiceAny: сказанное не попало в промпт");
+ 1953| 
+ 1954|     // подбор упражнения по вольной формулировке: речь распознаётся не дословно
+ 1955|     var _cases=[["жим лежа","Жим лёжа"],["присед","Приседания со штангой"],
+ 1956|                 ["тяга гантели","Тяга гантели одной рукой"],["гравитрон","Подтягивания в гравитроне"]];
+ 1957|     _cases.forEach(function(c){
+ 1958|       var got=exByVoice(c[0]);
+ 1959|       if(got!==c[1]) __r.push("КРЭШ exByVoice: «"+c[0]+"» → «"+(got||"ничего")+"», ожидалось «"+c[1]+"»");
+ 1960|     });
+ 1961|     if(exByVoice("абракадабра квазимодо")!==null)
+ 1962|       __r.push("КРЭШ exByVoice: мусор подобрался к упражнению — молча запишется не тот подход");
+ 1963|     if(exByVoice("")!==null) __r.push("КРЭШ exByVoice: пустая строка должна давать null");
+ 1964|   }
+ 1965| }catch(e){ __r.push("КРЭШ voice: "+e.message); }
+ 1966| // НАПОМИНАНИЯ: на сервер не должно уезжать ничего из зашифрованного хранилища.
+ 1967| try{
+ 1968|   if(typeof pushSupported!=="function"||typeof pushDows!=="function"){
+ 1969|     __r.push("КРЭШ push: функций нет");
+ 1970|   }else{
+ 1971|     if(pushSupported()!==false) __r.push("КРЭШ pushSupported: в среде без Notification должен быть false");
+ 1972|     S.prog={cfg:{dows:[1,3,5]}};
+ 1973|     var _d=pushDows();
+ 1974|     if(_d.join(",")!=="1,3,5") __r.push("КРЭШ pushDows: дни программы не подхватились ("+_d.join(",")+")");
+ 1975|     S.prog=null;
+ 1976|     if(pushDows().length) __r.push("КРЭШ pushDows: без программы дней быть не должно");
+ 1977|     if(pushHour()!==18) __r.push("КРЭШ pushHour: без поля должен быть дефолт 18");
+ 1978|     var _k=pushKinds();
+ 1979|     if(_k.join(",")!=="workout") __r.push("КРЭШ pushKinds: дефолт должен быть workout");
+ 1980|     // вход обязателен: пуш физически идёт через сервер
+ 1981|     var _err=null;
+ 1982|     pushEnable().catch(function(e){ _err=e; });
+ 1983|   }
+ 1984| }catch(e){ __r.push("КРЭШ push: "+e.message); }
+ 1985| // ПЕРВЫЕ 14 ДНЕЙ: путь до третьей тренировки. Карточка обязана исчезать сама —
+ 1986| // иначе она превращается в постоянный визуальный шум.
+ 1987| try{
+ 1988|   if(typeof startPath!=="function"||typeof startCard!=="function"){
+ 1989|     __r.push("КРЭШ startPath: функций нет");
+ 1990|   }else{
+ 1991|     var _t0=dn(td());
+ 1992|     S.firstDay=ds(_t0-2); S.prog=null;
+ 1993|     SETS=[];
+ 1994|     var _p=startPath();
+ 1995|     if(!_p) __r.push("КРЭШ startPath: новичку путь не показан");
+ 1996|     else if(_p.steps.length!==5) __r.push("КРЭШ startPath: шагов "+_p.steps.length+" вместо 5");
+ 1997|     if(startCard().indexOf("Первые две недели")<0) __r.push("КРЭШ startCard: карточка не отрисовалась");
+ 1998| 
+ 1999|     /* v518: программа есть, следующий шаг — тренировка → карточки нет,
+ 2000|        счёт несёт строка шапки; во время тренировки строки нет. */

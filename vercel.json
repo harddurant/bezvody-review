@@ -1,0 +1,101 @@
+{
+  "headers": [
+    {
+      "source": "/(.*)",
+      "headers": [
+        {
+          "key": "Permissions-Policy",
+          "value": "camera=(self)"
+        },
+        {
+          "key": "X-Content-Type-Options",
+          "value": "nosniff"
+        },
+        {
+          "key": "Referrer-Policy",
+          "value": "no-referrer"
+        }
+      ]
+    },
+    {
+      "source": "/sw.js",
+      "headers": [
+        {
+          "key": "Cache-Control",
+          "value": "no-cache, no-store, must-revalidate"
+        }
+      ]
+    },
+    {
+      "source": "/",
+      "headers": [
+        {
+          "key": "Cache-Control",
+          "value": "no-cache, must-revalidate"
+        }
+      ]
+    },
+    {
+      "source": "/index.html",
+      "headers": [
+        {
+          "key": "Cache-Control",
+          "value": "no-cache, must-revalidate"
+        }
+      ]
+    },
+    {
+      "source": "/fonts/(.*)",
+      "headers": [
+        {
+          "key": "Cache-Control",
+          "value": "public, max-age=31536000, immutable"
+        }
+      ]
+    },
+    {
+      "source": "/icons/(.*)",
+      "headers": [
+        {
+          "key": "Cache-Control",
+          "value": "public, max-age=31536000, immutable"
+        }
+      ]
+    }
+  ],
+  "buildCommand": "node tests/smoke.js && node tests/field.js && node tests/kitchen.js && node tests/matrix.js && node tests/build.js",
+  "outputDirectory": "dist",
+  "functions": {
+    "api/ai.js": { "maxDuration": 300 }
+  },
+  "rewrites": [
+    {
+      "source": "/sb/:path*",
+      "destination": "https://SUPABASE_PROJECT_REF.supabase.co/:path*"
+    },
+    {
+      "source": "/media/:path*",
+      "destination": "https://R2_PUBLIC_BUCKET.r2.dev/:path*"
+    },
+    {
+      "source": "/about",
+      "destination": "/promo/about.html"
+    },
+    {
+      "source": "/studio",
+      "destination": "/promo/studio.html"
+    },
+    {
+      "source": "/reel",
+      "destination": "/promo/reel.html"
+    },
+    {
+      "source": "/privacy",
+      "destination": "/promo/privacy.html"
+    },
+    {
+      "source": "/terms",
+      "destination": "/promo/terms.html"
+    }
+  ]
+}

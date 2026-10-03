@@ -1,0 +1,30 @@
+name: skills
+# Сканер скиллов агента — отдельным workflow с фильтром путей (23.09).
+# Причина: 23.09 у аккаунта кончились бесплатные минуты Actions за месяц;
+# этот job ставил uv и Skillspector на КАЖДЫЙ пуш (~3 мин из ~12 на прогон),
+# хотя скиллы меняются раз в неделю. Правило прежнее: любой HIGH — стоп.
+on:
+  push:
+    paths:
+      - ".claude/skills/**"
+      - "scripts/skillcheck.sh"
+      - ".skillspector-baseline.yaml"
+      - ".github/workflows/skills.yml"
+  pull_request:
+    paths:
+      - ".claude/skills/**"
+      - "scripts/skillcheck.sh"
+      - ".skillspector-baseline.yaml"
+jobs:
+  skills:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: '20' }
+      - uses: astral-sh/setup-uv@v6
+      - name: skillspector (закреплённый коммит)
+        run: uv tool install --python 3.12 git+https://github.com/NVIDIA/skillspector.git@704bc9544260c2f41222dc0f92982521709496ab
+      - name: скиллы через сканер
+        run: ./scripts/skillcheck.sh
+

@@ -1,0 +1,1501 @@
+// ИЗВЛЕЧЕНИЕ ДЛЯ ЧТЕНИЯ: index.html, строки 24001–25500 из 31008. Номера строк совпадают с оригиналом. Код не менялся.
+24001|         :/* Закрыта без единого рабочего подхода (обход ролей 06.09, удержание):
+24002|              «Сделано · 52 мин · 0 подходов» — цифра без смысла ровно там, где
+24003|              решается, вернётся ли человек. Говорим честно; открыть снова —
+24004|              из листа тяжести. */
+24005|          `<div class="dhd-f"><b>Закрыта без подходов</b>${_итог.мин?' · '+_итог.мин+' мин':''} · не засчитана</div>`}
+24006|         ${_итог.next?`<div class="dhd-f" style="margin-top:4px">Следующая · ${DOW_L[_итог.next.dow]||''}${_итог.next.n?' · '+esc(_итог.next.n):''}</div>`:''}
+24007|         <div class="dhd-p"><button id="wDebrief">Разбор тренировки</button><button id="wEnd">${_итог.rpe?'Тяжесть '+_итог.rpe+' · править':'Оценить тяжесть'}</button></div>
+24008|       </div>`
+24009|     : _нач
+24010|     ? `<div class="dhd go">${_датаРяд}
+24011|         <div class="dhd-b"><span class="n">${esc(ttlNow)}</span>${
+24012|           _счёт?`<span class="c">${_счёт.сдел}<s> / ${_счёт.все}</s></span>`:''}${_mic}</div>${
+24013|         _счёт?`<div class="dhd-r"><i style="width:${Math.max(0,Math.min(100,Math.round(100*_счёт.сдел/_счёт.все)))}%"></i></div>`:''}
+24014|         ${_пилюли}
+24015|         ${(function(){ /* Закрыть тренировку — из шапки, листом: карточка внизу стоила 316 px
+24016|              и была нужна три секунды в день (владелец, 03.09). Закрытая сессия
+24017|              показывает итог и открывает тот же лист на правку. */
+24018|            let sx=null; try{ sx=(typeof gymSess==='function'&&gymSess(D))||null; }catch(e){}
+24019|            const done=!!(sx&&sx.end);
+24020|            return `<button class="btn gho sm dhd-end" id="wEnd">${done?('Тренировка закрыта'+(sx.min?' · '+sx.min+' мин':'')):'Закрыть тренировку'}</button>`; })()}
+24021|       </div>`
+24022|     : `<div class="dhd${(!day&&!onlyNow&&P&&P.plan&&P.plan.length)?' dhd-rest':''}">${_датаРяд}
+24023|         <h2 class="dhd-t">${esc(ttlNow)}</h2>
+24024|         ${_факты}${_future?'':startLine()}${/* v614: подпись «Просмотр завтрашнего дня» снята — состояние
+24025|               говорят сами карточки (wc-ro, без полей ввода) и пустой подвал */''}
+24026|         ${_совет?`<div class="dhd-w">${esc(_совет)}</div>`:''}
+24027|         ${day&&!onlyNow&&isToday?`<button class="btn dhd-go" id="wStart">Начать тренировку</button>${_пилюли}`:''}
+24028|       </div>`;
+24029|   const wire=()=>{
+24030|     $('wPrev')&&($('wPrev').onclick=()=>{ vDay=shiftDay(D,-1); rNext(); });
+24031|     /* v612: вперёд — строго на один день от сегодня (завтра — только просмотр, см. _future) */
+24032|     $('wNext')&&($('wNext').onclick=()=>{ if(dn(D)-dn(td())<1){ vDay=shiftDay(D,1); if(vDay===td())vDay=null; rNext(); } });
+24033|     /* v612: тап по дате — быстрый переход: с любого дня — на сегодня, с сегодня — на завтра */
+24034|     { const _dd=box.querySelector&&box.querySelector('.dhd-nav .d');
+24035|       if(_dd) _dd.onclick=()=>{ if(!isToday){ vDay=null; } else { vDay=shiftDay(D,1); } rNext(); }; }
+24036|     /* v612: шаги на карточке отдыха — ручной ввод листом, запись в стор steps */
+24037|     if(box.querySelectorAll) box.querySelectorAll('[data-steps]').forEach(el=>el.onclick=async()=>{
+24038|       const d=el.dataset.steps||D;
+24039|       const v=await askText({title:'Шаги за день',label:fdMid(d),type:'number',placeholder:'8 000',value:stepsOf(d)||'',ok:'Записать'});
+24040|       if(v==null) return;
+24041|       const n=Math.round(num(v));
+24042|       if(!(n>=0&&n<=100000)){ toast('Проверь число',{kind:'error'}); return; }
+24043|       await stepsWrite(n,d,true); rNext();
+24044|       toast(n?'Шаги записаны: '+n.toLocaleString('ru'):'Шаги очищены',{kind:'ok'});
+24045|     });
+24046|     $('wVoice')&&($('wVoice').onclick=()=>voiceAny('set'));
+24047|     /* Старт — единственное главное действие экрана «до». Он ставит честное
+24048|        время начала и переводит день в рабочее состояние; больше он ничего не
+24049|        делает, поэтому промахнуться им нельзя. */
+24050|     $('wEnd')&&($('wEnd').onclick=()=>{ try{ rSessList(); }catch(e){}
+24051|       /* Закрытую тренировку можно открыть снова (владелец 05.09: «если нажал —
+24052|          отменить не могу»): кнопка видна только когда сессия закрыта. */
+24053|       try{ const sx=gymSess(D); const o=$('bSessOpen'); if(o) o.hidden=!(sx&&sx.end);
+24054|            const o2=$('bSess2'); if(o2) o2.hidden=!(sx&&sx.end&&D===td()); }catch(e){}
+24055|       sheet('sh-sess',true); });
+24056|     $('wDebrief')&&($('wDebrief').onclick=()=>{ try{ sessDebrief(D); }catch(e){ toast('Разбор не собрался: '+e.message); } });
+24057|     $('wStart')&&($('wStart').onclick=async()=>{
+24058|       try{ await autoSession(D); }catch(e){}
+24059|       rNext();
+24060|       try{ const c=document.querySelector('#v-train .wc'); c&&c.scrollIntoView({behavior:'smooth',block:'start'}); }catch(e){}
+24061|       toast('Тренировка началась — время пошло');
+24062|     });
+24063|   };
+24064|   // Суть подхода прямо в карточке: зачем это упражнение сегодня, почему такая
+24065|   // схема, конкретная задача дня — и техника. Всё на месте, без переключений
+24066|   // (полевой отчёт: «пришёл в зал — хочу видеть суть каждого подхода внутри»).
+24067|   /* subInline снят (v497): раскрывашка «Суть и техника» показывала урезанную
+24068|      копию справочника, а суть подхода переехала в лист функцией exGist. */
+24069| 
+24070| 
+24071|   if(!names.length){
+24072|     /* v614: плашки «Профиль неполный» в «Зале» больше нет (шум над делом), а
+24073|        кнопка «Перенести сюда» снята: пропущенный день теперь встаёт на
+24074|        сегодняшний отдых сам (rollPick). День отдыха — факты в шапке и подвал. */
+24075|     box.innerHTML=`<div class="card flat">${nav}
+24076|       ${day?`<div class="ob"><b>${esc(day.n)}</b> по плану на этот день.</div>`
+24077|            :(P?'':startPick())}
+24078|       </div>`;
+24079|     /* Тихая строка списка: в день отдыха лаймовое «сделай сейчас» ничему не положено (закон цвета 01.09). */
+24080|     { const _gf=$('gymFoot'); if(_gf){ _gf.innerHTML=gymFootHtml({isToday,future:_future,coachN:window._coachN,addLabel:P?'+ Упражнение':'Записать упражнение вручную',
+24081|         pre:!!(P&&P.plan&&P.plan.length)&&!(function(){ try{ const ss=gymSess(D); return !!(ss&&ss.start); }catch(e){ return false; } })()}); } }
+24082|     wire(); wireFoot();
+24083|     /* Тап по строке программы СРАЗУ собирает план. Полный разбор («кому,
+24084|        что, что будет через месяц») остался во вкладке «Программа» — там он
+24085|        и нужен тому, кто выбирает вдумчиво. Тому, кто открыл приложение
+24086|        первый раз, нужен план, а не чтение: замер 02.09 показал, что сейчас
+24087|        он упирается в текст «собери во вкладке Программа» и одну кнопку
+24088|        «+ Упражнение», то есть в тупик с отсылкой. */
+24089|     box.querySelectorAll('[data-pick]').forEach(b=>b.onclick=()=>applyPreset(b.dataset.pick));
+24090|     box.querySelectorAll('[data-pickall]').forEach(b=>b.onclick=()=>{ rCatalog(); sheet('sh-cat',true); });
+24091|     box.querySelectorAll('[data-pickown]').forEach(b=>b.onclick=()=>{ sheet('sh-prog',true); });
+24092|     /* Сдвиг и возврат — одна кнопка на каждое действие, без вопросов и
+24093|      подтверждений: человек уже решил, а вернуть можно тем же тапом. */
+24094|   box.querySelectorAll('[data-shift]').forEach(b=>b.onclick=async()=>{
+24095|     shiftWeek(td(),1); S.ua=Date.now();
+24096|     vDay=null;                       // после переноса показываем СЕГОДНЯ: работа тут
+24097|     try{ await put('settings',S,'main'); }catch(_){}
+24098|     renderAll(); toast('Перенесено на сегодня — расписание сдвинулось на день');
+24099|   });
+24100|   box.querySelectorAll('[data-shiftoff]').forEach(b=>b.onclick=async()=>{
+24101|     dayMapClearAhead(); S.moveWk=null; S.ua=Date.now();   // v665: прошлое в карте остаётся
+24102|     try{ await put('settings',S,'main'); }catch(_){}
+24103|     renderAll(); toast('Расписание вернулось к календарю');
+24104|   });
+24105|   box.querySelectorAll('[data-dotoday]').forEach(b=>b.onclick=async()=>{ await dayToToday(parseInt(b.dataset.dotoday,10)); toast('Сегодня — этот день. Календарный вернётся на выходной'); });   // v644
+24106|     return;
+24107|   }
+24108|   /* Разовый день (выезд, повтор прошлой) показываем как отдельную тренировку:
+24109|      своё название, своя разминка по СВОИМ движениям и честная строка о том,
+24110|      что день программы отложен и его можно вернуть одной кнопкой (21.08). */
+24111|   const only=onlyNow;
+24112|   const wuDay=_wuDay;                 // один список разминки на шапку и на карточку
+24113|   let html=`<div class="card flat">${nav}
+24114|     ${(function(){
+24115|       /* Сдвиг предлагаем ровно тогда, когда он нужен: вчера была тренировка
+24116|          по плану и она не сделана. Не спрашиваем каждый день. */
+24117|       try{
+24118|         /* Человек листает НАЗАД, на пропущенный день, и ищет перенос именно
+24119|            там — это и есть естественное место (полевой отчёт владельца 28.08:
+24120|            «я даже понять не могу, как мне это сдвинуть»). Кнопка была только
+24121|            на сегодняшнем экране, то есть не там, где её ищут. */
+24122|         /* День до рождения программы — не пропуск (обход ролей 06.09,
+24123|            удержание): новичок, собравший программу в субботу с пятницей в
+24124|            плане, первым делом читал «Вчера пропущена · Сдвинуть неделю».
+24125|            Упрекать за то, что ещё не успел, — способ потерять (тот же закон,
+24126|            что у плашки профиля). */
+24127|         const _born=(S.prog&&S.prog.created)||null;
+24128|         if(D<td()){
+24129|           if(shiftOn()) return '';
+24130|           if(_born&&D<_born) return '';
+24131|           const _has=(day&&(day.ex||[]).some(e=>!e.hidden));
+24132|           if(!_has||dayDoneDow(D)!=null) return '';   // v665: «сделан» — по содержанию; чужая работа в эту дату дверь не закрывает
+24133|           const _ago=dn(td())-dn(D);
+24134|           if(_ago===1&&shiftKeepsVolume(S.prog,td(),1)&&shiftMakesSense(S.prog,td()))
+24135|             return `<div class="lst"><button class="lrow" data-shift="1"><span class="g"><span class="t">Перенести на сегодня</span><span class="s">Тренировка не сделана · расписание сдвинется на день</span></span><span class="ch"></span></button></div>`;
+24136|           /* v644: долг старше вчера — день встаёт на сегодня, очередь вернёт вытесненный на выходной */
+24137|           if(_ago>=1&&_ago<=7&&!SETS.some(x=>x.d===td()&&!x.wu)&&debtDows(td()).indexOf(effDow(D))>=0)
+24138|             return `<div class="lst"><button class="lrow" data-dotoday="${effDow(D)}"><span class="g"><span class="t">Сделать сегодня</span><span class="s">${esc(day.n)} не сделан · сегодняшний день вернётся на ближайший выходной</span></span><span class="ch"></span></button></div>`;
+24139|           return '';
+24140|         }
+24141|         if(D!==td()) return '';
+24142|         /* Сдвиг недели — решение ДО тренировки. С гантелей в руке строка
+24143|            «Сдвинуть неделю на день» стоит над первым упражнением (63 px,
+24144|            прогон 05.09 — суббота после пропущенной пятницы) и ничего не
+24145|            решает: день уже начат. */
+24146|         if(_нач) return '';
+24147|         if(_rolled) return '';   // v614: сегодня уже ведём пропущенный день — «Вчера пропущена» была бы о нём же
+24148|         /* Строкой-фактом, а не строкой списка на 63 px (замер 05.09): решение
+24149|            одно, и оно читается за секунду. */
+24150|         if(shiftOn()){
+24151|           /* v644: один день на сегодня — так и говорим, а не «расписание сдвинуто» */
+24152|           const _one=S.dayMap&&Object.keys(S.dayMap).filter(k=>dn(k)>=dn(td())).length===1&&S.dayMap[td()]&&day;   // v665: прошлые даты карты — история, не считаются
+24153|           if(_one){ const _cal=(S.prog.plan||[]).find(x=>x.dow===dowOf(td())); return `<div class="dhd-f" style="margin:0 16px 8px">Сегодня ${esc(day.n)}${_cal&&_cal.dow!==day.dow?' вместо '+esc(_cal.n):''} · <a data-shiftoff="1" style="color:var(--ac2);cursor:pointer">Вернуть</a></div>`; }
+24154|           return `<div class="dhd-f" style="margin:0 16px 8px">Расписание сдвинуто на день · <a data-shiftoff="1" style="color:var(--ac2);cursor:pointer">Вернуть как было</a></div>`;
+24155|         }
+24156|         const yd=ds(dn(td())-1), yw=effDow(yd);
+24157|         const yday=(_born&&yd<_born)?null:(S.prog&&S.prog.plan||[]).find(x=>x.dow===yw&&(x.ex||[]).some(e=>!e.hidden));
+24158|         if(yday&&dayDoneDow(yd)==null&&shiftKeepsVolume(S.prog,td(),1)&&shiftMakesSense(S.prog,td()))   // v665: «пропущена» — по содержанию; сдвиг — только туда, где сегодня будет тренировка
+24159|           return `<div class="dhd-f" style="margin:0 16px 8px">Вчера пропущена · <a data-shift="1" style="color:var(--ac2);cursor:pointer" title="${esc(yday.n)}">Сдвинуть неделю</a></div>`;
+24160|         /* v644: долг старше вчера (вторник в четверг) — строкой-фактом с одним действием */
+24161|         const _debt=debtDows(td()).filter(w=>w!==dw)[0];
+24162|         if(_debt&&!SETS.some(x=>x.d===td()&&!x.wu)){
+24163|           const _dd=(S.prog.plan||[]).find(x=>x.dow===_debt);
+24164|           if(_dd) return `<div class="dhd-f" style="margin:0 16px 8px">Не сделан: ${esc(_dd.n)} (${DOW[_debt]}) · <a data-dotoday="${_debt}" style="color:var(--ac2);cursor:pointer">Сделать сегодня</a></div>`;
+24165|         }
+24166|         return '';
+24167|       }catch(e){ return ''; }
+24168|     })()}
+24169|     ${moved&&!only?`<div class="lst"><button class="lrow" data-mvoff="1"><span class="g"><span class="t">Вернуть выходной</span><span class="s">Перенесённая тренировка (${DOW[dw]}) — выходной сместился</span></span><span class="ch"></span></button></div>`:''}
+24170|     ${only?`<div class="ib" style="margin-top:4px">${only==='travel'?'Разовая тренировка под то, что есть под рукой.':'Те же движения, что в прошлый раз.'} День программы${day?' «'+esc(day.n)+'»':''} на сегодня отложен — сама программа цела. <a data-onlyoff="1" style="color:var(--ac2);cursor:pointer">Вернуть день программы</a></div>`:''}
+24171|     ${/* Режим дня и место в цикле переехали в подзаголовок строкой выше.
+24172|           Здесь остаётся только РАЗГРУЗКА: это не справка, а смена правил
+24173|           (веса ×0.6) со своей кнопкой — такое человек обязан видеть. */''}
+24174|     ${day&&!only&&dlActive()?sessionFocus(day):''}
+24175|     ${(day&&!only&&day.tShort)?`<div class="note" style="margin-top:4px">${esc(day.tShort)}</div>`:''}
+24176|     ${/* ── ГОТОВНОСТЬ: ОДИН РАЗ НА ДЕНЬ, В ШАПКЕ ДНЯ ──
+24177|           28.08 опрос убрали с экрана дня: он занимал 201 px и спрашивал «как
+24178|           ты» раньше, чем человек увидел, что делает. Переехал в карточку
+24179|           первого упражнения — и там, замер 01.09, стал самым большим блоком
+24180|           перед первым подходом: 103 px пути до дела.
+24181|           Оба места были неверны по одной причине: готовность — свойство ДНЯ,
+24182|           а не жима лёжа, и не выбора веса. Возвращается в шапку дня, но
+24183|           строкой, а не карточкой на 201 px: пять слов и пять кнопок в ряд,
+24184|           ответил — строка схлопывается в балл.
+24185|           Теперь она и правда что-то меняет (v489: режет объём), поэтому
+24186|           стоит там, где человек видит план на день целиком. */''}
+24187|     ${/* Опрос готовности раскрывает ПИЛЮЛЯ шапки, а не постоянная строка:
+24188|           отвечают на него один раз в день, а место он занимал все семьдесят
+24189|           минут. Открыт — когда тапнули пилюлю (rdOpen) или когда тренировка
+24190|           уже идёт и шапки-пилюль на экране нет. */''}
+24191|     ${isToday&&day&&!onlyNow&&rdOpen?readyInline(D):''}
+24192|     ${/* «Убрано из этого дня» уехало ВНИЗ, к хвосту дня (12.09). Замер на
+24193|           375×667: блок стоил 66 px ровно на пути к первой строке подхода, а
+24194|           говорит он о том, чего сегодня НЕТ. Человек с гантелей в руке идёт
+24195|           к подходу, а не к списку убранного; вернуть движение — решение
+24196|           редкое и спокойное, ему место рядом с «+ Упражнение». */''}
+24197|     ${/* Объяснение среза живёт в ПАНЕЛИ готовности, а не над первым
+24198|           упражнением: замер 04.09 — 196 px на каждом входе в «Зал», путь
+24199|           до первого упражнения 406 px. Факт «−2 подх.» несёт пилюля, кнопка
+24200|           «верни план» — по тапу на неё. */''}
+24201|     ${rdAdj&&!_закрыто&&rdOpen?rdShiftNote(rdAdj):''}
+24202|     ${/* То же с разминкой: панель раскрывает пилюля. Там, где пилюль нет
+24203|           (прошлый день, разовая тренировка, дня программы нет), карточка
+24204|           стоит как раньше — иначе к разминке не попасть вовсе. */''}
+24205|     ${wuDay&&!_future&&(S.wuOpen||!isToday||!day||onlyNow)?warmupCard(wuDay):''}`;
+24206|   /* ── ОДНО ЛАЙМОВОЕ ПЯТНО (обход ролей 06.09, редактор экрана) ──
+24207|      Закон записан у .wrow.cur: «следующий подход — единственное лаймовое
+24208|      пятно экрана», а класс ставился в цикле по каждому упражнению — семь
+24209|      карточек, семь лаймовых рядов, и глаз не находит «где я». Лайм получает
+24210|      одна карточка: та, где человек сейчас, — упражнение последнего записанного
+24211|      подхода, если в нём остались подходы, иначе следующее незакрытое. */
+24212|   const _focus=focusExName(D,day,names);
+24213|   const _ctx={D,isToday,day,names,planNames,_focus,_закрыто,_future}; _nextCtx=_ctx;   // v609: контекст дня для точечной замены карточек
+24214|   names.forEach(name=>{ html+=renderSingleExerciseCard(name,null,_ctx); });
+24215|   /* «Спросить тренера» переехал из шапки СЮДА (v495). В шапке он стоял между
+24216|      человеком и первым упражнением каждый день, а вопрос к тренеру возникает
+24217|      не до тренировки, а когда уже увидел, что сегодня делаешь. */
+24218|   /* v611: «Спросить тренера», «+ Упражнение», «Выезд» и «Повторить прошлую» —
+24219|      одной группой списка в подвале #gymFoot (gymFootHtml), а не россыпью кнопок
+24220|      под карточками. «Выезд» и «Повторить прошлую» — решения ДО тренировки: во
+24221|      время и после они бессмысленны (день уже идёт) и опасны (сносят день с
+24222|      записанными подходами), а лаймом спорили с текущим подходом (обход 06.09). */
+24223|   /* v614: «невидимый выход» — тихая ссылка под последней карточкой, без фона и
+24224|      рамки, цветом подписи. Только сегодня и только ДО первого подхода: день с
+24225|      записанными подходами уже прожит, пропускать в нём нечего. */
+24226|   html+=`<div class="wc-tail">
+24227|     ${isToday&&day&&!only&&!_нач&&!_закрыто?`<button class="wc-skip" data-dayskip="1">✕ Пропустить этот день цикла</button>`:''}
+24228|     ${(_past&&_didAny)?`<button class="wc-skip" data-daymove="1">Тренировка была в другой день</button>`:''}
+24229|     ${hiddenEx.length?`<div class="note keep">Убрано из этого дня: ${hiddenEx.map(i=>`<a data-unhide="${esc(i.n)}" style="color:var(--ac2);cursor:pointer">${esc(i.n)} — вернуть</a>`).join(' · ')}</div>`:''}
+24230|     </div></div>`;
+24231|   box.innerHTML=html;
+24232|   { const _gf=$('gymFoot'); if(_gf){ _gf.innerHTML=gymFootHtml({isToday,future:_future,coachN:window._coachN,addLabel:'+ Упражнение',
+24233|       pre:!(function(){ try{ const ss=gymSess(D); return !!(ss&&ss.start); }catch(e){ return false; } })()}); } }
+24234|   wire(); wireFoot();
+24235|   /* v609: обработчики — одной функцией от корня: rNext вешает на весь #nextBox,
+24236|      точечная замена карточки — на новую карточку. Селекторы прежние. */
+24237|   const wireBox=(root)=>{
+24238|     /* Атрибуты бывают и на самом корне (свёрнутая карточка несёт data-wcopen на .wc) —
+24239|        querySelectorAll корень не включает, поэтому ищем «корень + потомки». */
+24240|     const qa=sel=>{ const r=[...root.querySelectorAll(sel)]; try{ if(root.matches&&root.matches(sel)) r.unshift(root); }catch(e){} return r; };
+24241|     qa('[data-tech]').forEach(e=>e.onclick=()=>{const x=EX.find(z=>z.n===e.dataset.tech);if(x)showEx(x)});
+24242|     qa('[data-dloff]').forEach(b=>b.onclick=deloadOff);
+24243|     qa('[data-onlyoff]').forEach(b=>b.onclick=()=>dayOnlyOff(vDay||td()));
+24244|     qa('[data-rdv]').forEach(b=>b.onclick=()=>{ rdOpen=false; readyQuick(+b.dataset.rdv); });
+24245|     qa('[data-rdedit]').forEach(b=>b.onclick=()=>{ rdOpen=true; if(typeof rTrain==='function') rTrain(); });
+24246|     /* Пилюли шапки: одна кнопка — одна панель. Раскрытое состояние разминки
+24247|        запоминается в настройках (кто раскрывает её каждый раз, раскроет один
+24248|        раз навсегда), состояние опроса — только на время экрана. */
+24249|     qa('[data-wutog]').forEach(b=>b.onclick=async()=>{
+24250|       S.wuOpen=S.wuOpen?0:1;
+24251|       try{ await put('settings',S,'main'); }catch(_){}
+24252|       rNext();
+24253|       if(S.wuOpen){ try{ const d=$('wuDet'); d&&d.scrollIntoView({behavior:'smooth',block:'nearest'}); }catch(_){} }
+24254|     });
+24255|     qa('[data-rdtog]').forEach(b=>b.onclick=()=>{ rdOpen=!rdOpen; rNext(); });
+24256|     qa('[data-histtog]').forEach(b=>b.onclick=e=>{ e.stopPropagation(); const k=D+':'+b.dataset.histtog; if(histFold.has(k)) histFold.delete(k); else histFold.add(k); rNext(); });
+24257|     /* «Я в порядке» сильнее нашего расчёта и держится ровно сутки: завтра
+24258|        анкета новая, и подстройка считается заново. */
+24259|     qa('[data-rdundo]').forEach(b=>b.onclick=async()=>{
+24260|       b.disabled=true; S.rdOff=td(); await put('settings',S,'main').catch(()=>{});
+24261|       rTrain(); toast('Вернул план как есть');
+24262|     });
+24263|     /* «Подробнее» вело в ЧУЖУЮ вкладку. Замер 02.09 в обоих режимах: тап
+24264|        открывал «Тело» → «Шаги и сон», а развёрнутая форма живёт в «Зале» —
+24265|        scrollIntoView отрабатывал на элементе спрятанного экрана и не делал
+24266|        ничего. Человек нажимал «подробнее» и оказывался неизвестно где, без
+24267|        формы. Ссылка осталась с тех пор, когда опросник жил в «Теле»
+24268|        (переехал в v494), и переезд её не заметил — это не поломка расчёта,
+24269|        а неучтённый хвост переноса, и обход такое не ловит: обработчик на
+24270|        кнопке есть, значит для него она живая.
+24271|        Теперь никуда не уходим: форма в этом же экране, к ней и ведём. В
+24272|        простом режиме карточка спрятана классом pro — раскрываем её по
+24273|        явной просьбе, а не оставляем ссылку в никуда (та же ловушка 24.08,
+24274|        когда подробная форма становилась недостижимой). */
+24275|     qa('[data-rdfull]').forEach(b=>b.onclick=()=>{
+24276|       /* v615: подробная форма живёт в листе «Тренер» («Моё состояние») — открываем
+24277|          его, как из подвала, и подводим к форме. */
+24278|       try{ coachCards(); }catch(e){}
+24279|       sheet('sh-ask',true); renderAsk();
+24280|       setTimeout(()=>{ const f=$('rdForm'); if(f&&f.scrollIntoView) f.scrollIntoView({behavior:'smooth',block:'center'}); },60);
+24281|     });
+24282|     qa('[data-rampshow]').forEach(b=>b.onclick=()=>{
+24283|       rampShow.add(D+':'+b.dataset.rampshow); rNext();
+24284|     });
+24285|     qa('[data-wcopen]').forEach(b=>b.onclick=()=>{ wcKeep.add(D+':'+b.dataset.wcopen); rNext(); });
+24286|     qa('[data-wcclose]').forEach(b=>b.onclick=()=>{ wcKeep.delete(D+':'+b.dataset.wcclose); extraSet.delete(D+':'+b.dataset.wcclose); rNext(); });
+24287|     qa('[data-swapback]').forEach(b=>b.onclick=()=>swapBack(b.dataset.swapback));
+24288|     qa('[data-pin]').forEach(b=>b.onclick=()=>pinSwap(b.dataset.pin));
+24289|     qa('[data-ramp]').forEach(b=>b.onclick=()=>{
+24290|       const k=D+':'+b.dataset.ramp+':'+b.dataset.ri;
+24291|       rampDone.has(k)?rampDone.delete(k):rampDone.add(k); rNext();
+24292|     });
+24293|     qa('[data-extraset]').forEach(b=>b.onclick=()=>{
+24294|       extraSet.add(D+':'+b.dataset.extraset); rNext();
+24295|     });
+24296|     qa('[data-techtog]').forEach(b=>b.onclick=()=>{
+24297|       const n=b.dataset.techtog;
+24298|       techOpen.has(n)?techOpen.delete(n):techOpen.add(n);
+24299|       rNext();
+24300|     });
+24301|     qa('[data-stype]').forEach(b=>b.onclick=()=>setTypeCycle(+b.dataset.stype));
+24302|     qa('[data-exnote]').forEach(b=>b.onclick=()=>exNoteSet(b.dataset.exnote));
+24303|     qa('[data-ss]').forEach(b=>b.onclick=()=>ssToggle(b.dataset.ss));
+24304|     qa('[data-easier]').forEach(b=>b.onclick=()=>easierSwap(b.dataset.easier));
+24305|     qa('[data-fb]').forEach(b=>b.onclick=()=>fbSet(b.dataset.fb,b.dataset.fbq,b.dataset.fbv,D));
+24306|     qa('[data-fbedit]').forEach(b=>b.onclick=()=>{ fbOpen.add((D||td())+':'+b.dataset.fbedit); rTrain(); });
+24307|     qa('[data-whytog]').forEach(b=>b.onclick=()=>{
+24308|       const n=b.dataset.whytog;
+24309|       whyOpen.has(n)?whyOpen.delete(n):whyOpen.add(n);
+24310|       rNext();
+24311|     });
+24312|     qa('[data-histtog]').forEach(b=>b.onclick=()=>{
+24313|       const n=b.dataset.histtog;
+24314|       histOpen.has(n)?histOpen.delete(n):histOpen.add(n);
+24315|       rNext();
+24316|     });
+24317|     qa('[data-addwu]').forEach(b=>b.onclick=()=>saveWarmSet(b.dataset.addwu,+b.dataset.ei,+b.dataset.ri));
+24318|     qa('[data-add]').forEach(b=>b.onclick=()=>saveInlineSet(b.dataset.add,+b.dataset.ei));
+24319|     qa('[data-add]').forEach(b=>{
+24320|       const nm=b.dataset.add, ei=+b.dataset.ei;
+24321|       const wEl=$('wkg_'+ei), rEl=$('wrep_'+ei);
+24322|       const sv=()=>wDraftSet(D,nm,wEl?wEl.value:'',rEl?rEl.value:'');
+24323|       if(wEl) wEl.addEventListener('input',sv);
+24324|       if(rEl) rEl.addEventListener('input',sv);
+24325|     });
+24326|     qa('[data-del]').forEach(b=>b.onclick=()=>delInlineSet(+b.dataset.del));
+24327|     qa('[data-delex]').forEach(b=>b.onclick=async()=>{
+24328|       const n=b.dataset.delex;
+24329|       if(SETS.some(s=>s.d===D&&s.e===n)) return toast('Сначала удали подходы этого упражнения');
+24330|       /* Спрашиваем ПОЧЕМУ убрал (поле 18.08: «убрал из-за колена, а он снова
+24331|          ставит и гонит вес»). Боль — это медицинский факт, а не каприз:
+24332|          упражнение уходит в чёрный список, тренер видит причину и дату. */
+24333|       const why=await ask({title:'Убрать «'+n.slice(0,28)+'»?',text:'Если больно — запомню и не буду ставить это движение.',ok:'Больно',cancel:'Просто пропускаю'});
+24334|       const P=S.prog, dw=effDow(vDay||td()); const day=P&&P.plan&&P.plan.find(d=>d.dow===dw);
+24335|       if(why){
+24336|         S.pain=S.pain||{};
+24337|         S.pain[n]={d:td(),n};
+24338|         await put('settings',S,'main').catch(()=>{});
+24339|         toast('Запомнил: «'+n.slice(0,20)+'» больно — уберу из программы и не предложу');
+24340|         try{ await painRebuild(n); }catch(e){}
+24341|       }
+24342|       if(day&&exHide(day,n)){ S.ua=Date.now(); put('settings',S,'main').catch(()=>{}); }
+24343|       extraEx=extraEx.filter(x=>!(x.n===n&&x.d===(vDay||td()))); exExtraSave(); rNext();
+24344|     });
+24345|     qa('[data-unhide]').forEach(el=>el.onclick=()=>{
+24346|       const P=S.prog, dw=effDow(vDay||td()); const day=P&&P.plan&&P.plan.find(d=>d.dow===dw);
+24347|       if(day&&exUnhide(day,el.dataset.unhide)){ S.ua=Date.now(); put('settings',S,'main').catch(()=>{}); rNext(); toast('Вернул на место'); }
+24348|     });
+24349|     /* v614: пропуск дня цикла — с подтверждением (действие красное: день уходит из
+24350|        очереди). Маркер живёт в настройках (S.daySkip), не в подходах: фиктивная
+24351|        запись в SETS всплывала бы карточкой, объёмом и в сводке тренера. */
+24352|     qa('[data-dayskip]').forEach(el=>el.onclick=async()=>{
+24353|       const ok=await ask({title:'Пропустить этот день цикла?',text:'ИИ-тренер учтет пропуск и скорректирует объемы, чтобы мышцы не отставали.',ok:'Пропустить',danger:true});
+24354|       if(!ok) return;
+24355|       daySkip(D); rNext(); toast('День пропущен — очередь пошла дальше');
+24356|     });
+24357|     /* v665: дата тренировки правится человеком — подходы, легшие в чужой день, переезжают целиком */
+24358|     qa('[data-daymove]').forEach(el=>el.onclick=async()=>{
+24359|       const nd=await askText({title:'Когда была эта тренировка?',label:'Дата',type:'date',value:D,ok:'Перенести'});
+24360|       if(!nd||nd===D) return;
+24361|       if(dn(nd)>dn(td())){ toast('В будущее тренировку не перенести'); return; }
+24362|       const n=await moveDaySets(D,nd);
+24363|       vDay=(nd===td())?null:nd; renderAll(); toast('Перенёс '+n+' '+plural(n,'подход','подхода','подходов')+' на '+fd(nd));
+24364|     });
+24365|     qa('[data-mvoff]').forEach(el=>el.onclick=async()=>{
+24366|       S.moveWk=null; try{ await put('settings',S,'main'); }catch(_){} renderAll(); toast('Выходной возвращён'); });
+24367|     /* Перенос недели. Обработчик стоял ТОЛЬКО в ветке «сегодня отдых», а ссылку
+24368|        рисует и обычный день — на пропущенной тренировке она была нарисована и
+24369|        мертва (полевой отчёт владельца 28.08: «перенести на сегодня не кликается»).
+24370|        Разметка и обработчик обязаны заводиться в одном месте. */
+24371|     qa('[data-shift]').forEach(b=>b.onclick=async()=>{
+24372|       shiftWeek(td(),1); S.ua=Date.now();
+24373|       vDay=null;                       // после переноса показываем СЕГОДНЯ: работа тут
+24374|       try{ await put('settings',S,'main'); }catch(_){}
+24375|       renderAll(); toast('Перенесено на сегодня — расписание сдвинулось на день');
+24376|     });
+24377|     qa('[data-shiftoff]').forEach(b=>b.onclick=async()=>{
+24378|       dayMapClearAhead(); S.moveWk=null; S.ua=Date.now();   // v665: прошлое в карте остаётся
+24379|       try{ await put('settings',S,'main'); }catch(_){}
+24380|       renderAll(); toast('Расписание вернулось к календарю');
+24381|     });
+24382|     qa('[data-dotoday]').forEach(b=>b.onclick=async()=>{ await dayToToday(parseInt(b.dataset.dotoday,10)); toast('Сегодня — этот день. Календарный вернётся на выходной'); });   // v644
+24383|   
+24384|     qa('[data-exup]').forEach(b=>b.onclick=()=>{
+24385|       const P=S.prog, dw=effDow(vDay||td()); const day=P&&P.plan&&P.plan.find(d=>d.dow===dw);
+24386|       if(day&&exMoveUp(day,b.dataset.exup)){ S.ua=Date.now(); put('settings',S,'main').catch(()=>{}); rNext(); }
+24387|     });
+24388|     qa('[data-exmore]').forEach(b=>b.onclick=()=>{
+24389|       const n=b.dataset.exmore; if(exMore.has(n)) exMore.delete(n); else exMore.add(n); rNext();
+24390|     });
+24391|     qa('[data-swapq]').forEach(b=>b.onclick=()=>swapQuick(b.dataset.swapq));
+24392|     qa('[data-swapex]').forEach(b=>b.onclick=()=>swapExercise(b.dataset.swapex));
+24393|     qa('[data-usew]').forEach(b=>b.onclick=()=>useWorkingWeight(b.dataset.usew));
+24394|     /* v613: вес на завтра — лист askText → item.wNext (на эту дату) + item.start/weeks (контракт useWorkingWeight);
+24395|        журнал подходов не трогается — барьер logWorkSet цел. */
+24396|     qa('[data-planw]').forEach(el=>el.onclick=async()=>{
+24397|       const name=el.dataset.planw; const dayP=S.prog&&S.prog.plan&&S.prog.plan.find(x=>x.dow===effDow(D)); const it=dayP&&dayP.ex.find(i=>i.n===name); if(!it) return;
+24398|       const cur=(it.wNext&&it.wNext.d===D)?it.wNext.w:(function(){ try{ const n=nextSet(it,D); return n&&n.w>0?n.w:''; }catch(e){ return ''; } })();
+24399|       const v=await askText({title:'Вес на завтра',label:name,type:'number',placeholder:'90',value:cur||'',ok:'Записать'});
+24400|       if(v==null) return; const w=num(v);
+24401|       if(!(w>0&&w<=500)){ toast('Проверь вес: от 0.5 до 500 кг',{kind:'error'}); return; }
+24402|       it.wNext={d:D,w}; it.start=w; it.weeks=null; S.ua=Date.now();
+24403|       try{ await put('settings',S,'main'); }catch(e){}
+24404|       if(!refreshExCard(name)) rNext();
+24405|       toast('Завтра начнём с '+r1(w)+' '+exUnit(name)+' — прогрессия от этого веса',{kind:'ok'});
+24406|     });
+24407|     { const _wd=root.querySelector('#wuDet'); if(_wd) _wd.addEventListener('toggle',()=>{
+24408|         S.wuOpen=_wd.open?1:0; put('settings',S,'main').catch(()=>{}); }); }
+24409|     qa('[data-wu]').forEach(b=>b.onclick=()=>{
+24410|       const k=(vDay||td())+':'+b.dataset.wu; if(wuDone.has(k)) wuDone.delete(k); else wuDone.add(k); wuSave(); rNext();
+24411|     });
+24412|     qa('[data-wuh]').forEach(el=>el.onclick=()=>{
+24413|       const k=(vDay||td())+':'+el.dataset.wuh; if(wuOpen.has(k)) wuOpen.delete(k); else wuOpen.add(k); rNext();
+24414|     });
+24415|     qa('[data-exunit]').forEach(el=>el.onclick=()=>{
+24416|       const n=el.dataset.exunit; S.exUnit=S.exUnit||{};
+24417|       if(S.exUnit[n]==='lb') delete S.exUnit[n]; else S.exUnit[n]='lb';   // кг ⇄ lb (кг — дефолт, не храним)
+24418|       put('settings',S,'main'); rNext();
+24419|     });
+24420|     qa('[data-aiw]').forEach(el=>el.onclick=()=>{
+24421|       const P=S.prog, dw=effDow(vDay||td()); const day=P&&P.plan&&P.plan.find(d=>d.dow===dw);
+24422|       const it=day&&day.ex.find(i=>i.n===el.dataset.aiw); if(it) aiSuggestWeight(it);
+24423|     });
+24424|     qa('[data-restov]').forEach(el=>el.onclick=()=>restCycle(el.dataset.restov));
+24425|     qa('[data-eximg]').forEach(b=>b.onclick=()=>exImgSet(b.dataset.eximg));
+24426|     qa('[data-eximgview]').forEach(el=>el.onclick=async()=>{
+24427|       const im=exImgGet(el.dataset.eximgview);
+24428|       if(im){ const w=window.open(); if(w) w.document.write('<img src="'+im+'" style="width:100%">'); else if(await ask({title:'Удалить фото тренажёра?',ok:'Удалить',danger:true})) exImgDel(el.dataset.eximgview); }
+24429|     });
+24430|   };
+24431|   wireBox(box); _nextWire=wireBox;
+24432| }
+24433| /* прошлая сессия ДО указанной даты (для «прошлый раз») */
+24434| let swapName=null;
+24435| function exImgKey(n){ return 'exImg:'+(n||'').trim().toLowerCase(); }
+24436| function exImgGet(n){ try{ return localStorage.getItem(exImgKey(n)); }catch(e){ return null; } }
+24437| async function exImgSet(n){ const img=await pickImg(); if(!img) return;
+24438|   try{ localStorage.setItem(exImgKey(n),img); toast('Фото тренажёра сохранено'); }
+24439|   catch(e){ toast('Не поместилось — фото слишком большое'); } rTrain(); }
+24440| function exImgDel(n){ try{ localStorage.removeItem(exImgKey(n)); }catch(e){} toast('Фото удалено'); rTrain(); }
+24441| /* Замена упражнения плана на реально выполняемое (другой тренажёр/вариант) */
+24442| /* Применение замены упражнения плана — общий путь для выбора из списка
+24443|    и для ИИ-замены по фото тренажёра. startW задан → ИИ уже оценил вес. */
+24444| /* ── ЗАМЕНА «ЗАНЯТО» ЖИВЁТ ОДИН ДЕНЬ ──
+24445|    Полевой отчёт владельца 27.08: «мы меняем мой зал уже 3 раз за неделю».
+24446|    Причина «занят тренажёр» — ситуативная: сегодня к жиму очередь, завтра нет.
+24447|    А замена переписывала программу НАВСЕГДА: план уезжал от одного разового
+24448|    неудобства. Тренер так не работает — он говорит «сегодня сделай на другом»,
+24449|    а не переписывает мезоцикл.
+24450|    Замена по «занято» помечается днём и к следующей тренировке возвращается
+24451|    сама. По «больно» — остаётся: там причина не ситуативная. */
+24452| function swapExpire(P){
+24453|   if(!P||!Array.isArray(P.plan)) return 0;
+24454|   let back=0;
+24455|   P.plan.forEach(d=>{
+24456|     (d.ex||[]).forEach((it,i)=>{
+24457|       if(!it||!it.altDay||!it.altName||!it.altKeep) return;
+24458|       if(it.altDay===td()) return;                 // сегодня ещё действует
+24459|       const k=it.altKeep;
+24460|       d.ex[i]={...it,n:it.altName,sets:k.sets,lo:k.lo,hi:k.hi,main:!!k.main,
+24461|         weeks:k.weeks||null,rest:k.rest||null,start:null,
+24462|         altName:null,altW:null,altReps:null,altKeep:null,altDay:null,custom:false};
+24463|       back++;
+24464|     });
+24465|   });
+24466|   return back;
+24467| }
+24468| /* Счётчик смен считался по ИМЕНИ упражнения, и потому не мог сработать
+24469|    никогда: поменял жим лёжа на Хаммер — у «жима лёжа» счётчик 1, у «Хаммера»
+24470|    свой, цепочка A→B→C выглядит как три первых замены. Считаем по СЛОТУ:
+24471|    день недели плюс роль движения. Тогда видно, что человек четвёртый раз
+24472|    меняет одно и то же место в программе. */
+24473| function slotKey(dow,name){ return dow+':'+((EM[name]||{}).role||'?'); }
+24474| function slotChanges(dow,name,days){
+24475|   const k=slotKey(dow,name), L=(S.slotChg&&S.slotChg[k])||[];
+24476|   const lim=dn(td())-(days||30);
+24477|   return L.filter(x=>dn(x)>=lim).length;
+24478| }
+24479| /* «Занято» — не смена программы, и в счётчик смен ему нельзя: человек, у
+24480|    которого блок занят каждый вторник, получал бы выговор «это место меняется
+24481|    4-й раз за месяц» за то, что программу не трогал вовсе. Считаем отдельно —
+24482|    и не ругаем, а предлагаем закрепить (полевой отчёт владельца 27.08:
+24483|    «я это упражнение так же делаю в хаммере, там другие веса»). */
+24484| function busyPicks(dow,name,toName,days){
+24485|   const k=slotKey(dow,name), L=(S.slotBusy&&S.slotBusy[k])||[];
+24486|   const lim=dn(td())-(days||30);
+24487|   return L.filter(x=>x&&dn(x.d)>=lim&&(!toName||x.n===toName)).length;
+24488| }
+24489| /* СНАРЯД, А НЕ КЛАСС ИНВЕНТАРЯ. exEquip сводит зал к пяти ключам, и по нему
+24490|    «Тяга верхнего блока» и «Тяга сверху в Хаммере» — одно и то же ('machine').
+24491|    Для «занято» это и есть главный вопрос: занят СТАНОК, значит уводить надо
+24492|    с него. Берём явную разметку снаряда, а где её нет — читаем название:
+24493|    ошибиться тут можно только порядком в списке, ничего не отсекая. */
+24494| function stationOf(n){
+24495|   const raw=String(((EX.find(x=>x.n===n)||{}).eq)||'').toLowerCase();
+24496|   const RU={'гантели':'гантели','гиря':'гиря','блок':'блок','штанга':'штанга',
+24497|     'тренажёр':'тренажёр','резина':'резина','свой вес':'свой вес',
+24498|     'db':'гантели','kb':'гиря','bw':'свой вес','gym':'тренажёр'};
+24499|   if(RU[raw]) return RU[raw];
+24500|   const s=String(n||'').toLowerCase();
+24501|   if(/хаммер|рычаж/.test(s)) return 'рычаг';
+24502|   if(/блок|кроссовер/.test(s)) return 'блок';
+24503|   if(/штанг|гриф|смит/.test(s)) return 'штанга';
+24504|   if(/гантел/.test(s)) return 'гантели';
+24505|   if(/гир[ияе]/.test(s)) return 'гиря';
+24506|   if(/резин|эспандер/.test(s)) return 'резина';
+24507|   if(/тренажёр|тренажер|машин/.test(s)) return 'тренажёр';
+24508|   return 'свой вес';
+24509| }
+24510| /* dowOpt — когда замена идёт не из сегодняшней карточки, а из совета про
+24511|    программу: там движение может стоять в другом дне недели, и поиск по
+24512|    «сегодня» тихо промахивался мимо (полевой отчёт 27.08). */
+24513| /* quiet — не говорить своим голосом: вызвавший скажет точнее. Нужен там, где
+24514|    замена это не самостоятельное действие, а способ выполнить просьбу («добавь
+24515|    движение», а места в объёме нет): два тоста подряд человек читает как сбой. */
+24516| async function applySwap(fromName,toName,startW,mode,dowOpt,quiet){
+24517|   const P=S.prog, dw=dowOpt||effDow(vDay||td()); const day=P&&P.plan&&P.plan.find(d=>d.dow===dw);
+24518|   const it=day&&day.ex.find(i=>i.n===fromName);
+24519|   if(it){ const origW=(function(){try{return planWeight(it)}catch(e){return null}})()||(it.weeks&&it.weeks[0])||null;
+24520|     it.altName=fromName; it.altW=origW; it.altReps=it.lo+(it.hi>it.lo?'-'+it.hi:'');
+24521|     /* Запоминаем, что было ДО замены. Кнопка ⚡ подписана «занят тренажёр» —
+24522|        причина ситуативная, а замена меняла программу навсегда, и вернуть
+24523|        своё упражнение было нечем: только искать его вручную в полном списке
+24524|        или пересобирать программу (полевая находка 21.08). */
+24525|     it.altKeep={sets:it.sets,lo:it.lo,hi:it.hi,weeks:it.weeks||null,main:!!it.main,rest:it.rest||null};
+24526|     /* «занято» — только на сегодня; «больно» и осознанный выбор — насовсем */
+24527|     it.altDay=(mode==='today')?td():null;
+24528|     { const k=slotKey(dw,fromName);
+24529|       if(mode==='today'){ S.slotBusy=S.slotBusy||{};
+24530|         S.slotBusy[k]=((S.slotBusy[k]||[]).concat([{d:td(),n:toName}])).slice(-12); }
+24531|       else { S.slotChg=S.slotChg||{};
+24532|         S.slotChg[k]=((S.slotChg[k]||[]).concat(td())).slice(-12); } }
+24533|     const _wasMain=!!it.main;
+24534|     it.n=toName; it.custom=!EX.find(e=>e.n===toName); it.main=!!(EM[toName]&&EM[toName].main); it.weeks=null;
+24535|     it.start=(startW>0)?startW:null;
+24536|     /* Секунды планки — не повторы скручиваний (поле 18.08: замена статики
+24537|        на динамику дала «2×30–60 повторов»). Меняется тип движения — схема
+24538|        собирается заново по цели программы, а не тащится от старого.
+24539|        v664: тип — это класс движения (статика / переноска / база / составное /
+24540|        изоляция): тяга блока на подтягивания и жим лёжа на бабочку тоже меняют
+24541|        коридор, а не только планка на скручивания. */
+24542|     if(exClass(fromName,_wasMain)!==exClass(toName,it.main)){
+24543|       const sch=SCHEME[(P&&P.cfg&&P.cfg.goal)]||SCHEME.hyper;
+24544|       const ss=(it.main?sch.main:sch.acc)[0], rg=exRange(toName,(P&&P.cfg&&P.cfg.goal),it.main);
+24545|       it.lo=rg[0]; it.hi=rg[1]; it.rir=exRIR(toName,it.main);
+24546|       it.sets=Math.max(2,Math.min(it.sets||ss,5));
+24547|       if(exTimed(fromName)!==exTimed(toName)) it.start=null;   // вес статики к динамике не переносится
+24548|     }
+24549|     await put('settings',S,'main').catch(()=>{});
+24550|     if(!(startW>0)&&aiReady()) aiSuggestWeight(it);   // 50 кг блока не равны 50 кг гантелей
+24551|   }
+24552|   else { extraEx=extraEx.map(x=>x.n===fromName?{...x,n:toName}:x); exExtraSave(); }
+24553|   rTrain();
+24554|   /* Если замена уносит работу, которую в программе больше никто не делает,
+24555|      говорим об этом сразу. Быстрая замена теперь старается сохранить
+24556|      подгруппу, но иногда её просто нечем сохранить: камбаловидная живёт
+24557|      только в подъёмах сидя, а прямая мышца бедра — только в разгибаниях
+24558|      ног. Молча закрыть человеку единственный вход в мышцу — это то же
+24559|      самое, чего мы избегали картой тела (21.08). */
+24560|   const lost=subLostBySwap(fromName,toName);
+24561|   if(!quiet) toast('Заменено на «'+toName.slice(0,24)+'»'+(startW>0?' · старт ~'+r0(startW)+' кг':'')
+24562|     +(lost?' · внимание: '+lost+' теперь без работы':''));
+24563|   return lost||'';
+24564| }
+24565| /* Какая работа исчезнет из программы, если заменить одно на другое.
+24566|    Считает одинаково и ДО замены (предупредить), и ПОСЛЕ (сказать вслух):
+24567|    заменяемое движение из подсчёта выбрасывается независимо от того, стоит
+24568|    оно ещё в плане или уже нет. */
+24569| function subLostBySwap(fromName,toName){
+24570|   const was=((EX.find(x=>x.n===fromName)||{}).sub)||[];
+24571|   const now=((EX.find(x=>x.n===toName)||{}).sub)||[];
+24572|   const gone=was.filter(k=>!now.includes(k));
+24573|   if(!gone.length||!S.prog) return null;
+24574|   const rest={...S.prog,plan:((S.prog.plan)||[]).map(d=>({...d,ex:(d.ex||[]).filter(i=>i.n!==fromName)}))};
+24575|   const pv=progSubVolume(rest);
+24576|   const dead=gone.filter(k=>(pv[k]||0)<=0).map(k=>SUBN[k]).filter(Boolean);
+24577|   return dead.length?dead.join(', '):null;
+24578| }
+24579| /* ИИ-замена по фото: тренажёр занят → сфоткал свободный → ИИ узнал его,
+24580|    решил «подходит ли по мышцам» и оценил стартовый вес (запрос владельца 03.08:
+24581|    тренер должен помогать В зале, а не только генерить программу по запросу) */
+24582| async function aiSwapPhoto(name){
+24583|   if(!aiReady()){ toast(AI_GATE_MSG); return openSet('Key'); }
+24584|   toast('Сфоткай свободный тренажёр');   // экран отвечает на тап до камеры — иначе он читается мёртвым (сигнал ux 07.09, 09.09)
+24585|   const img=await pickImg(1100,.8); if(!img) return;   // тренажёру мелкий шрифт не нужен — аплоад легче
+24586|   sheet('sh-st',false);
+24587|   $('aiT').textContent='Замена по фото';
+24588|   $('aiBody').innerHTML='<div class="ib"><span class="load"></span>Смотрю, что за тренажёр…</div>';
+24589|   sheet('sh-ai',true);
+24590|   try{
+24591|     const base=EX.find(x=>x.n===name);
+24592|     const mus=base?Object.entries(base.m||{}).sort((a,b)=>b[1]-a[1]).map(([k])=>MUS[k]).filter(Boolean).join(', '):'';
+24593|     /* Модель судила «годится ли» по группам мышц — а группа это не работа:
+24594|        под «плечи» подходит и жим над головой, и махи назад, хотя это разные
+24595|        пучки. Называем работу так же точно, как её видит карта тела (21.08). */
+24596|     const work=base?((base.sub||[]).map(k=>SUBN[k]).filter(Boolean).join(', ')):'';
+24597|     const names=gymMachList().map(e=>e.n);
+24598|     const _h=SETS.filter(s=>s.e===name&&s.w>0).sort((a,b)=>a.d<b.d?-1:(a.d>b.d?1:0));
+24599|     const lastW=_h.length?_h[_h.length-1].w:null;
+24600|     const p='По плану упражнение «'+name+'» (мышцы: '+(mus||'—')+(work?('; конкретная работа: '+work):'')+'), но тренажёр занят. На фото — свободный тренажёр из зала.\n'
+24601|       +'Список тренажёров приложения:\n'+names.map((n,i)=>(i+1)+'. '+n).join('\n')
+24602|       +'\nОпредели, что на фото (строго имя ИЗ СПИСКА, буква в букву), и реши, годится ли он как замена.'
+24603|       +(work?(' Судить по КОНКРЕТНОЙ РАБОТЕ, а не по группе мышц: «'+work+'» — это не то же самое, что «та же группа». Тренажёр на другую часть той же мышцы засчитывай как ok:false и скажи об этом в why.'):'')
+24604|       +(lastW?(' Рабочий вес в «'+name+'» ~'+lastW+' кг — оцени стартовый вес на тренажёре с фото; рычаги несопоставимы, лучше занизить.')
+24605|              :' Оцени консервативный стартовый вес.')
+24606|       +'\nВерни СТРОГО JSON без markdown: {"found":"имя из списка или null","ok":true|false,"why":"одна короткая фраза почему","start":число_кг_или_null}';
+24607|     const r=await vision(img,p,500);
+24608|     if(r.error||!r.found){ $('aiBody').innerHTML='<div class="wb">'+esc(r.error||'Не узнал тренажёр на фото — выбери замену из списка.')+'</div><button class="btn sec" id="bAiSwapNo" style="margin-top:12px">Выбрать из списка</button>'; }
+24609|     else if(!EX.find(e=>e.n===r.found)){ $('aiBody').innerHTML='<div class="wb">Модель назвала тренажёр вне нашей базы — выбери руками.</div><button class="btn sec" id="bAiSwapNo" style="margin-top:12px">Выбрать из списка</button>'; }
+24610|     else{
+24611|       $('aiBody').innerHTML=
+24612|         '<div class="'+(r.ok?'ob':'wb')+'"><b>'+esc(r.found)+'</b><br>'+esc(r.why||'')
+24613|         +((r.ok&&r.start>0)?('<br>Стартовый вес: ~'+r0(+r.start)+' кг — нарочно занижен, добрать проще.'):'')
+24614|         +(function(){ try{ const l=subLostBySwap(name,r.found);
+24615|             return l?('<br><br><b>Учти:</b> «'+esc(l)+'» после замены в программе не делает больше никто.'):''; }catch(_){return ''} })()
+24616|         +'</div>'
+24617|         +(r.ok?'<button class="btn" id="bAiSwapOk" style="margin-top:12px">Заменить на этот</button>':'')
+24618|         +'<button class="btn sec" id="bAiSwapNo" style="margin-top:8px">Выбрать из списка</button>';
+24619|       const bo=$('bAiSwapOk'); if(bo) bo.onclick=async()=>{ sheet('sh-ai',false); await applySwap(name,r.found,(+r.start>0?+r.start:null),'today'); };
+24620|     }
+24621|     const bn=$('bAiSwapNo'); if(bn) bn.onclick=()=>{ sheet('sh-ai',false); swapExercise(name); };
+24622|   }catch(e){ $('aiBody').innerHTML='<div class="eb"><b>Не получилось.</b><br>'+esc(e.message)+'</div>'; }
+24623| }
+24624| /* Замена с причиной (предложение 18.08): «занято» — разовая подмена,
+24625|    «неудобно/не нравится» — предпочтение на будущее, «больно» — чёрный список.
+24626|    Разные мотивы дают разные последствия: иначе тренажёр, который просто был
+24627|    занят, исчезнет навсегда, а больной — вернётся на следующей неделе. */
+24628| /* Быстрая замена (Hevy: swap in one tap) — когда тренажёр просто занят
+24629|    и выбирать некогда: берём ближайшее по смыслу доступное движение. */
+24630| /* ВЫБОР ЗАМЕНЫ — отдельной функцией, чтобы его можно было проверить тестом.
+24631|    Пока отбор жил внутри обработчика кнопки, тест повторял его логику у себя и
+24632|    был зелёным даже при сломанном приложении (долг 21.08, закрыт в тот же день). */
+24633| /* pain=true — меняем ПОТОМУ ЧТО БОЛЬНО, а не потому что тренажёр занят.
+24634|    Это разные задачи, и до 25.08 их обслуживал один отбор. «Занято» хочет
+24635|    максимально близкий аналог — то же движение на соседнем станке. «Больно»
+24636|    хочет ровно обратного: то же движение тем же суставом под тем же углом —
+24637|    это и есть раздражитель, из-за которого человек сюда пришёл.
+24638|    Полевой отчёт владельца: разгибание ног болит в колене, он меняет на жим
+24639|    ногами — а приложение трижды подставляет своё. Подставляло оно рычажное
+24640|    разгибание ног, потом сисси-присед, потом разгибание с гантелей: три
+24641|    разгибания ног подряд человеку, у которого болит на разгибании ног.
+24642|    Это тот же закон, что и в карточке боли (v413): болит не упражнение,
+24643|    а сустав, и перебирать вариации одного движения бессмысленно. */
+24644| function swapPick(name,exclude,pain){
+24645|   const base=EX.find(x=>x.n===name); if(!base) return null;
+24646|   const dom=Object.entries(base.m||{}).sort((a,b)=>b[1]-a[1])[0];
+24647|   if(!dom) return null;
+24648|   const inDay=exclude instanceof Set?exclude:new Set(exclude||[]);
+24649|   /* Отбор смотрел только на главную мышцу — и подменял тяжёлое движение
+24650|      изоляцией: армейский жим уходил в «разведения гантелей в стороны»,
+24651|      становая — в подтягивания. Формально мышца та же, а работа совсем другая:
+24652|      человек пришёл жать, а ему дали махи с восьмёркой (полевая находка 21.08).
+24653|      Теперь главное — ХАРАКТЕР движения (роль в сплите: жим, тяга, шарнир,
+24654|      присед) и уровень: базу меняем на базу, подсобку на подсобку. Видео и
+24655|      знакомство с движением — только при прочих равных. */
+24656|   const role0=EM[name]&&EM[name].role, main0=!!(EM[name]&&EM[name].main);
+24657|   /* И ТА ЖЕ ПОДГРУППА. Аудит 21.08, сразу после того как карта тела закрыла
+24658|      дыры: быстрая замена открывала их обратно одним тапом. Заднюю дельту
+24659|      меняла на среднюю, икры сидя (камбаловидная — её единственный вход) на
+24660|      носки стоя, косые на прямую мышцу, отведение бедра на ягодичный мост.
+24661|      Формально та же группа, а работа другая — ровно то же, за что мы уже
+24662|      чинили отбор по главной мышце. Подгруппа весит столько же, сколько роль:
+24663|      это и есть «та же работа» на самом мелком уровне, который мы моделируем. */
+24664|   const sub0=(base.sub||[]);
+24665|   /* ── «ЗАНЯТО» ЗНАЧИТ ДРУГОЙ СТАНОК И СВОЙ ВЕС ──
+24666|      Полевой отчёт владельца 27.08: «я это упражнение так же делаю в хаммере,
+24667|      так как станок занят намного чаще и там другие веса». Замер показал две
+24668|      вещи. Первая: на занятый верхний блок отбор предлагал «тягу верхнего
+24669|      блока обратным хватом» — тот же самый занятый станок, только хват другой.
+24670|      Вторая: движение, на котором у человека уже есть свой рабочий вес,
+24671|      стоило в отборе +1 — столько же, сколько наличие видео.
+24672|      Человек стоит посреди зала, а не выбирает из каталога: ему нужен
+24673|      СВОБОДНЫЙ станок и вес, который он уже знает. Роль и уровень движения
+24674|      по-прежнему весят больше — подсобку вместо базы это не подставит.
+24675|      Цена свободного станка — 2, и это не произвол: она обязана быть НИЖЕ
+24676|      разницы «база или подсобка» (3). При равной цене они гасили друг друга,
+24677|      и человек, у которого занята штанга в наклоне, получал тягу блока —
+24678|      подсобку на свободном станке вместо базы на соседней штанге. Поймано
+24679|      полевым тестом сразу после правки. */
+24680|   const st0=stationOf(name);
+24681|   /* «Свой станок» — это две памяти, и обе про одно. Журнал: человек там уже
+24682|      работал и знает вес. Память слота: он уже уходил с этого места именно
+24683|      сюда, даже если подходы записать не успел. Без второй приложение
+24684|      «забывало» его выбор до первой записи. */
+24685|   const _dowNow=(function(){try{ return effDow(vDay||td()) }catch(e){ return null }})();
+24686|   const wentHere=n=>{ try{ return _dowNow!=null&&busyPicks(_dowNow,name,n,60)>0 }catch(e){ return false }};
+24687|   const knownW=n=>SETS.some(t=>t.e===n&&t.w>0&&!t.wu);
+24688|   const score=e=>{
+24689|     const m=EM[e.n]||{};
+24690|     const shared=(e.sub||[]).filter(k=>sub0.includes(k)).length;
+24691|     return (m.role&&role0&&m.role===role0?4:0)
+24692|       +Math.min(2,shared)*4
+24693|       +(!!m.main===main0?3:0)
+24694|       +(exHasVid(e)?1:0)
+24695|       +(pain?(SETS.some(t=>t.e===e.n)?1:0)
+24696|             :((knownW(e.n)?4:0)+(wentHere(e.n)?2:0)+(stationOf(e.n)!==st0?2:0)));
+24697|   };
+24698|   /* Кандидат подходит, если грузит ту же главную мышцу — ИЛИ если это то же
+24699|      движение по характеру и есть любая общая рабочая мышца. Без второго
+24700|      условия становая искала замену только «на спину» (у неё спина, задняя
+24701|      поверхность и ягодицы нагружены поровну, а первой в списке стоит спина) —
+24702|      и уходила в гиперэкстензию вместо румынской тяги. */
+24703|   const mine=Object.entries(base.m||{}).filter(([,v])=>v>=0.7).map(([k])=>k);
+24704|   const fits=e=>(e.m[dom[0]]>=0.7)
+24705|     ||((EM[e.n]&&EM[e.n].role)===role0&&mine.some(m=>e.m[m]>=0.7));
+24706|   /* При равном счёте выигрывает тот, кто сохранил больше подгрупп: у
+24707|      разгибаний ног счёт сходился с жимом ногами, а «то же движение на другом
+24708|      тренажёре» очевидно ближе, чем «другое движение на ту же мышцу». */
+24709|   const shareN=e=>(e.sub||[]).filter(k=>sub0.includes(k)).length;
+24710|   /* ТО ЖЕ САМОЕ ДВИЖЕНИЕ: тот же характер и все до одной рабочие подгруппы
+24711|      исходного. Для «занято» это лучший кандидат, для «больно» — худший:
+24712|      сустав грузится ровно так же. Разгибание ног в тренажёре, рычажное
+24713|      разгибание, разгибание с гантелей и сисси-присед — это по нашей же
+24714|      разметке одно движение (quad + q_rf,q_vas), и все четыре бессмысленны
+24715|      тому, у кого болит на первом. */
+24716|   const sameMove=e=>((EM[e.n]||{}).role===role0)&&sub0.length>0
+24717|     &&sub0.every(k=>(e.sub||[]).includes(k));
+24718|   /* ТРАВМЫ ИЗ АНКЕТЫ. Быстрая замена фильтровала «нет в зале» и «болит»,
+24719|      а про отмеченные травмы не знала вовсе — и подставляла приседания со
+24720|      штангой человеку, у которого колено, ровно то движение, которое генератор
+24721|      ему запретил. Одна дверь фильтрует, другая нет: тот же класс, что и
+24722|      причина замены, только тише (найдено 25.08 при проверке «нет гакка»). */
+24723|   const _injBan=new Set([].concat(...(((S.prog&&S.prog.cfg&&S.prog.cfg.inj)||[])
+24724|     .map(k=>(INJ[k]||{}).ban||[]))));
+24725|   /* Невыполнимое и то, чего нет в зале, — фильтры генератора, до быстрой
+24726|      замены их не донесли. Отбор без них честно предлагал новичку с занятым
+24727|      верхним блоком подтягивания: снаряд «своё тело» проходит exEquipOK
+24728|      всегда, а турник и уровень никто не спрашивал. Тот же класс, что и
+24729|      травмы (закрыты 25.08): одна дверь фильтрует, другая нет. */
+24730|   const _cfg=(S.prog&&S.prog.cfg)||{};
+24731|   const all=EX.filter(e=>e.n!==name&&!gymOffHas(e.n)&&!painHas(e.n)&&!inDay.has(e.n)
+24732|       &&!_injBan.has(e.n)&&exEquipOK(e)&&e.m&&fits(e)&&!exStatic(e.n)
+24733|       &&gearOK(e.n,_cfg.equip)&&levelOK(e.n,_cfg.exp));
+24734|   /* Две ступени, и порядок между ними — это спор двух ролей.
+24735|      Врач: не давай движение, которое грузит тот же сустав так же. Тренер:
+24736|      не теряй работу, которую в программе больше нечем закрыть.
+24737|      Врач сильнее — но только пока у него есть что предложить. Если ВСЁ, что
+24738|      сохраняет мышцу, это то же самое движение (камбаловидная закрывается
+24739|      только икрами сидя, прямая мышца бедра — только разгибанием колена),
+24740|      выбор становится честным: либо тот же сустав, либо работы нет вовсе.
+24741|      Тогда берём общий пул, а голос о потере даёт painRebuild. */
+24742|   const keepsSub=e=>sub0.length>0&&(e.sub||[]).some(k=>sub0.includes(k));
+24743|   let pool=all;
+24744|   if(pain){
+24745|     /* Годится тот, кто и сустав не повторяет, и работу сохраняет. */
+24746|     const good=all.filter(e=>!sameMove(e)&&keepsSub(e));
+24747|     /* ── КРУГ, ИЗ КОТОРОГО НЕ БЫЛО ВЫХОДА ──
+24748|        Полевой отчёт владельца 25.08, третий заход на одну задачу: «сгибание
+24749|        ног лёжа опять идёт к сгибанию ног сидя, уже в какой раз».
+24750|        Замер объяснил всё. У бицепса бедра ВСЁ, что сохраняет работу (сгибание
+24751|        колена, подгруппа h_kn), — это то же самое движение: сидя, стоя,
+24752|        нордическое, скольжением. А всё, что движением отличается (румынская
+24753|        тяга, гуд-морнинг, гиперэкстензия), — шарнирное и работу через колено
+24754|        не сохраняет. Значит good пуст ВСЕГДА, срабатывал откат «бери общий
+24755|        пул», и первым в нём стояло сгибание ног сидя. Пометил лёжа — получил
+24756|        сидя, оно болит так же; пометил сидя — получил стоя. Круг, и на каждом
+24757|        витке приложение рапортовало «заменил на безопасную альтернативу».
+24758|        Откат был написан под другой случай — когда мышцу закрывает ровно одно
+24759|        движение (камбаловидная, прямая мышца бедра). Там выбор честный: тот же
+24760|        сустав или ничего. Здесь выбор ЕСТЬ, и он тренерски очевиден: у кого
+24761|        болит колено, бицепс бедра грузят через таз — румынская тяга и
+24762|        гуд-морнинг дают ту же мышцу без сгибания колена. Это другая работа, и
+24763|        сказать об этом обязана карточка боли, — но это работа, а не круг. */
+24764|     pool=good.length?good:(all.filter(e=>!sameMove(e)).length
+24765|       ?all.filter(e=>!sameMove(e)):all);
+24766|   } else {
+24767|     /* ── НА ЗАНЯТОЕ ЖЕЛЕЗО НЕ ОТВЕЧАЮТ СВОИМ ВЕСОМ ──
+24768|        Замер 27.08 по отчёту владельца: блок занят — отбор предлагал
+24769|        «Подтягивания обратным хватом». Человек тянет там 100 кг, а ему дают
+24770|        движение, где вес — он сам: ни поставить свой рабочий, ни выполнить
+24771|        план на 10–15 повторов. В программе это правило у нас уже есть
+24772|        («в зале есть железо на то же движение»), до быстрой замены его не
+24773|        донесли — снова одна дверь фильтрует, другая нет.
+24774|        Обратное направление законно: кто делал подтягивания, тому блок
+24775|        подставить можно. */
+24776|     const bw=e=>(EM[e.n]||{}).eq==='bw';
+24777|     if(!bw({n:name})){
+24778|       const iron=all.filter(e=>!bw(e));
+24779|       if(iron.length) pool=iron;
+24780|     }
+24781|   }
+24782|   /* Порядок при равном счёте зависит от ПРИЧИНЫ. Занято — ближе то, что
+24783|      сохранило больше подгрупп. Больно — наоборот: чем меньше общего с больным
+24784|      движением при той же рабочей мышце, тем выше шанс, что сустав это стерпит. */
+24785|   return pool.sort((a,b)=>(score(b)-score(a))
+24786|     ||(pain?(shareN(a)-shareN(b)):(shareN(b)-shareN(a))))[0]||null;
+24787| }
+24788| async function swapQuick(name){
+24789|   if(!EX.find(x=>x.n===name)) return toast('Не знаю это упражнение');
+24790|   const P=S.prog, dw=effDow(vDay||td());
+24791|   const day=P&&P.plan&&P.plan.find(d=>d.dow===dw);
+24792|   const cand=swapPick(name,new Set((day?day.ex:[]).map(i=>i.n)));
+24793|   if(!cand) return swapExercise(name);           // не нашли — открываем полный выбор
+24794|   S.swapCnt=S.swapCnt||{}; S.swapCnt[name]=(S.swapCnt[name]||0)+1;
+24795|   /* ⚡ подписана «занят тренажёр» — причина ситуативная, и с v442 у нас есть
+24796|      возврат на следующий день. Только сюда его не донесли: кнопка звала
+24797|      applySwap без режима, mode оставался пустым, altDay — null, и разовая
+24798|      очередь к станку переписывала программу навсегда. Тот самый «меняем мой
+24799|      зал третий раз за неделю», против которого писался swapExpire. */
+24800|   await applySwap(name,cand.n,null,'today');
+24801| }
+24802| /* Закрепить свой станок: разовая замена перестаёт истекать и становится
+24803|    частью программы. Осознанное решение человека — значит и в счётчик смен
+24804|    попадает как смена, а не как «занято». Возврат ↺ остаётся: altKeep цел. */
+24805| async function pinSwap(name){
+24806|   const P=S.prog, dw=effDow(vDay||td());
+24807|   const day=P&&P.plan&&P.plan.find(d=>d.dow===dw);
+24808|   const it=day&&day.ex.find(i=>i.n===name);
+24809|   if(!it||!it.altName) return toast('Это упражнение не заменяли');
+24810|   it.altDay=null;
+24811|   { const k=slotKey(dw,it.altName); S.slotChg=S.slotChg||{};
+24812|     S.slotChg[k]=((S.slotChg[k]||[]).concat(td())).slice(-12);
+24813|     if(S.slotBusy&&S.slotBusy[k]) S.slotBusy[k]=S.slotBusy[k].filter(x=>!x||x.n!==name); }
+24814|   S.ua=Date.now();
+24815|   await put('settings',S,'main').catch(()=>{});
+24816|   rTrain(); toast('«'+name.slice(0,24)+'» теперь в программе — веса ведём по нему');
+24817| }
+24818| /* Вернуть заменённое упражнение обратно — вместе со схемой и плановыми
+24819|    весами, которые были до замены. */
+24820| async function swapBack(name){
+24821|   const P=S.prog, dw=effDow(vDay||td());
+24822|   const day=P&&P.plan&&P.plan.find(d=>d.dow===dw);
+24823|   const it=day&&day.ex.find(i=>i.n===name);
+24824|   if(!it||!it.altName) return toast('Это упражнение не заменяли');
+24825|   const back=it.altName, k=it.altKeep||null;
+24826|   it.n=back; it.custom=!EX.find(e=>e.n===back);
+24827|   it.altName=null; it.altW=null; it.altReps=null; it.altKeep=null; it.start=null;
+24828|   if(k){ it.sets=k.sets; it.lo=k.lo; it.hi=k.hi; it.weeks=k.weeks; it.main=k.main;
+24829|          if(k.rest) it.rest=k.rest; else delete it.rest; }
+24830|   else { it.weeks=null; it.main=!!(EM[back]&&EM[back].main); }
+24831|   await put('settings',S,'main').catch(()=>{});
+24832|   rTrain(); toast('Вернул «'+back.slice(0,24)+'»');
+24833| }
+24834| /* «Тяжело — не могу» — третий ответ, которого у человека не было.
+24835|    Не «болит» (это неправда и уносит движение навсегда) и не «занято».
+24836|    Меняем на ступень ниже во ВСЕЙ программе: невыполнимое упражнение
+24837|    невыполнимо и в следующий вторник. Помним отдельно от боли — вернуть
+24838|    можно, когда станет по силам. */
+24839| async function easierSwap(name){
+24840|   const P0=S.prog;
+24841|   const dayOf=(P0&&P0.plan||[]).find(d=>(d.ex||[]).some(x=>!x.hidden&&x.n===name));
+24842|   const cand=easierPick(name,dayOf);
+24843|   if(!cand) return toast('Легче этого у меня нет — убавь темп и амплитуду');
+24844|   S.tooHard=S.tooHard||{}; S.tooHard[name]={d:td(),n:name};
+24845|   const P=S.prog; let n=0;
+24846|   if(P&&P.plan) P.plan.forEach(d=>{
+24847|     const i=(d.ex||[]).findIndex(x=>x.n===name);
+24848|     if(i<0) return;
+24849|     /* В КАЖДОМ дне своя обстановка: там, где ступень уже занята, ставить её
+24850|        второй раз нельзя — работа и так закрыта, лишняя строка только путает. */
+24851|     const own=easierPick(name,d);
+24852|     if(!own){ d.ex[i]={...d.ex[i],hidden:1}; return; }
+24853|     d.ex[i]={...d.ex[i],n:own.n,main:!!(EM[own.n]&&EM[own.n].main),weeks:null,start:null,altName:null};
+24854|     n++;
+24855|   });
+24856|   S.ua=Date.now();
+24857|   await put('settings',S,'main').catch(()=>{});
+24858|   try{ rTrain(); }catch(e){}
+24859|   toast(n?('Поставил «'+cand.n.slice(0,24)+'» вместо «'+name.slice(0,20)+'»'+(n>1?(' ('+n+' дн.)'):'')
+24860|     +' — станет по силам, вернём')
+24861|     :('Убрал «'+name.slice(0,20)+'» — та же работа в этом дне уже есть'));
+24862| }
+24863| async function swapWhy(name){
+24864|   const больно=await ask({title:'Почему меняешь «'+name.slice(0,26)+'»?',text:'Если больно или неприятно суставу — запомню и уберу из программы.',ok:'Больно',cancel:'Просто занято'});
+24865|   if(больно){
+24866|     S.pain=S.pain||{}; S.pain[name]={d:td(),n:name};
+24867|     await put('settings',S,'main').catch(()=>{});
+24868|     toast('Запомнил: «'+name.slice(0,18)+'» больно — уберу из программы');
+24869|     /* Сегодняшний день не трогаем: человек стоит в списке замен и выбирает
+24870|        сам. Раньше перестройка шла здесь же и подставляла своё поверх его
+24871|        выбора — трижды подряд по его отчёту. Остальные дни чиним. */
+24872|     try{ await painRebuild(name,effDow(vDay||td())); }catch(e){}
+24873|     return 'pain';
+24874|   }
+24875|   await put('settings',S,'main').catch(()=>{});
+24876|   /* Счётчик по слоту, а не по имени: цепочка A→B→C — это три смены одного
+24877|      места, а не три первых. Говорим прямо, потому что прогресс меряется
+24878|      повторением движения, а не разнообразием. */
+24879|   { const dw=effDow(vDay||td()), n=slotChanges(dw,name,30);
+24880|     if(n>=3) toast('Это место в программе меняется '+(n+1)+'-й раз за месяц. Прогресс так не измерить: вес растёт только там, где движение повторяется');
+24881|   }
+24882|   return 'busy';
+24883| }
+24884| async function swapExercise(name){
+24885|   /* Причину спрашиваем ДО того, как строим список, и ЖДЁМ ответа. Раньше
+24886|      вопрос уходил в фон, а список собирался, не зная причины: человеку,
+24887|      у которого болит колено на разгибании ног, первыми предлагались ещё три
+24888|      разгибания ног (полевой отчёт 25.08). */
+24889|   let why=''; try{ why=await swapWhy(name); }catch(_){}
+24890|   const pain=(why==='pain');
+24891|   try{ window.__swapWhy=why; }catch(_){}
+24892|   swapName=name; stPick=true;
+24893|   // сначала — ближайшие по смыслу: то же движение (role), те же мышцы, тот же инвентарь
+24894|   const base=EX.find(x=>x.n===name);
+24895|   const sim=cand=>{
+24896|     if(!base) return 0; let sc=0;
+24897|     for(const k in base.m) if(cand.m[k]) sc+=Math.min(base.m[k],cand.m[k]);
+24898|     const ra=EM[name]&&EM[name].role, rb=EM[cand.n]&&EM[cand.n].role;
+24899|     if(ra&&ra===rb) sc+=2;
+24900|     const ea=EM[name]&&EM[name].eq, eb=EM[cand.n]&&EM[cand.n].eq;
+24901|     if(ea&&ea===eb) sc+=.3;
+24902|     if(SETS.some(t=>t.e===cand.n)) sc+=.2;   // уже делал — знакомая техника
+24903|     // Смит-версия того же движения — не альтернатива, а третья техника без новизны
+24904|     // (полевой отчёт 02.08: «икры стоя и сидя есть — зачем мне ещё Смит?»)
+24905|     if(/в Смите/i.test(cand.n)&&!/в Смите/i.test(name)) sc-=1.5;
+24906|     if(exRare(cand.n)) sc-=2;   // редкая вариация — не замена базе
+24907|     /* Меняем ПОТОМУ ЧТО БОЛЬНО — то же движение теми же подгруппами уходит
+24908|        вниз, а не наверх. Для «занято» оно лучший кандидат, для «больно» —
+24909|        ровно тот раздражитель, из-за которого человек сюда пришёл. */
+24910|     if(pain&&ra&&ra===rb&&(base.sub||[]).length
+24911|        &&(base.sub||[]).every(k=>(cand.sub||[]).includes(k))) sc-=6;
+24912|     return sc;
+24913|   };
+24914|   /* Статику в «ближайшие замены» динамическому движению не кладём — тем же
+24915|      фильтром, что и быстрая замена. Иначе удержание у стены встаёт первым
+24916|      номером человеку, который менял упражнение с рабочим весом. */
+24917|   const st0=exStatic(name);
+24918|   const ranked=EX.filter(e=>e.n!==name&&!gymOffHas(e.n)&&!painHas(e.n)&&(st0||!exStatic(e.n)))
+24919|     .map(e=>({e,s:sim(e)})).sort((a,b)=>b.s-a.s);
+24920|   const top=ranked.slice(0,8).filter(x=>x.s>0).map(x=>x.e.n);
+24921|   const seen=new Set(top); seen.add(name);
+24922|   const g=top.length?[{l:'Ближайшие замены',items:top}]:[];
+24923|   exSetSelect(g.concat(exMusGroups(seen)));
+24924|   const sf=$('stFields'); if(sf) sf.style.display='none';
+24925|   const sp=$('st_prev'); if(sp){ sp.style.display='block'; sp.innerHTML='Выбери, что ты реально делаешь вместо «'+esc(name)+'». Вес и история подтянутся от нового упражнения, а не от планового.'
+24926|     +'<button type="button" class="btn ai sm" id="bAiSwap" style="width:100%;margin-top:12px"><svg class="ic"><use href="#i-cam"/></svg> Занято? Сфоткай свободный тренажёр</button>'
+24927|     /* Третья причина, которой не было: тренажёра нет в зале ВООБЩЕ.
+24928|        Она решается один раз и навсегда, а человек до 25.08 заменял движение
+24929|        руками после каждой пересборки — переключатель «нет в моём зале» живёт
+24930|        в настройках, то есть не там, где он с этой проблемой сталкивается.
+24931|        Всё нужное во время подхода — в карточке; движение остаётся в базе,
+24932|        и одним тапом в настройках вернётся, если тренажёр появится. */
+24933|     +'<button type="button" class="btn sec sm" id="bNoGym" style="width:100%;margin-top:8px">🚫 Такого тренажёра нет в моём зале</button>';
+24934|     const ba=$('bAiSwap'); if(ba) ba.onclick=()=>aiSwapPhoto(name);
+24935|     const bg=$('bNoGym'); if(bg) bg.onclick=async()=>{
+24936|       S.gymOff=S.gymOff||{}; S.gymOff[name]=1;
+24937|       await put('settings',S,'main').catch(()=>{});
+24938|       sheet('sh-st',false);
+24939|       try{ await painRebuild(name,null,false); }catch(_){}
+24940|       toast('«'+name.slice(0,22)+'» убрал из программы — в базе он остался, вернёшь в настройках');
+24941|     }; }
+24942|   $('bStOk').textContent='Заменить упражнение';
+24943|   sheet('sh-st',true); exPickOpen();
+24944| }
+24945| /* ИИ подбирает эквивалентный стартовый вес для альтернативы */
+24946| /* ── ИИ НЕ УГАДЫВАЕТ ТО, ЧТО ПРИЛОЖЕНИЕ ЗНАЕТ ──
+24947|    Полевой отчёт владельца 25.08: «сисси-присед поменялся на жим ногами,
+24948|    ставит вес ИИ 40 кг, у меня дрищ-девочки 50 вешают, я 150 вешу».
+24949|    Разбор: у жима ногами есть норматив, и приложение само считает ему
+24950|    125 кг — а после замены с разгибания ног на 60 кг даёт 185. Ни одна из
+24951|    этих цифр в запрос к модели не уходила. Модель гадала от сисси-приседа,
+24952|    где веса нет вовсе, и ей вдобавок было велено «лучше занизить».
+24953|    Это нарушение простого правила: одно место правды. Есть свой расчёт —
+24954|    он и есть ответ, а модель может его уточнить, но не опрокинуть. Уходит
+24955|    дальше чем на 40% — берём своё и говорим об этом вслух, потому что
+24956|    «ИИ сказал 40» человек прочитает как знание, а это была догадка. */
+24957| const AI_W_TOL=0.4;
+24958| /* Решение «чью цифру взять» вынесено отдельно от запроса к модели: так его
+24959|    можно проверить правилом без сети и без ключа, а не гадать по логам. */
+24960| function aiWeightPick(w,own){
+24961|   if(!(w>0)) return (own>0)?{w:own,note:' (по нашему расчёту — модель не ответила)'}
+24962|                           :{w:null,note:''};
+24963|   if(own>0&&Math.abs(w-own)/own>AI_W_TOL)
+24964|     return {w:own,note:' (ИИ предлагал '+r1(w)+' — это далеко от твоих цифр, беру наш расчёт)'};
+24965|   return {w,note:''};
+24966| }
+24967| async function aiSuggestWeight(item){
+24968|   if(!aiReady()){ toast(AI_GATE_MSG); return openSet('Key'); }
+24969|   const own=(function(){ try{ return workingWeightRounded(item); }catch(e){ return null; } })();
+24970|   toast('ИИ подбирает вес…');
+24971|   try{
+24972|     const bw=curW();
+24973|     const p=`Тренер назначил упражнение "${item.altName||item.n}"${item.altW?', рабочий вес '+item.altW+' кг':''}${item.altReps?', повторы '+item.altReps:''}. Спортсмен${bw?' (вес тела ~'+r0(bw)+' кг)':''} вместо него делает "${item.n}" — другой вариант/тренажёр на ту же группу мышц. Оцени эквивалентный СТАРТОВЫЙ рабочий вес для "${item.n}" в килограммах так, чтобы стимул был сопоставим.${own>0?` Наш собственный расчёт по его массе тела, стажу и истории даёт ${own} кг — считай это опорной цифрой и отклоняйся от неё, только если у движения принципиально другой рычаг.`:''} Правила: НЕ переноси исходную цифру — блок, рычажный тренажёр, штанга и гантели дают несопоставимые числа (50 кг на стеке обратной бабочки ≈ 8–12 кг гантели в махе назад); учитывай длину рычага и число суставов; для гантельных упражнений дай вес ОДНОЙ гантели. Ответь ТОЛЬКО числом в кг (можно с .5), без слов.`;
+24974|     const t=await aiText(p,60);
+24975|     const m=(t||'').replace(',','.').match(/[0-9]+(\.[0-9]+)?/);
+24976|     const pick=aiWeightPick(m?parseFloat(m[0]):null,own);
+24977|     if(!(pick.w>0)){ toast('ИИ не смог оценить — введи вес сам'); return; }
+24978|     item.start=pick.w; await put('settings',S,'main'); rTrain();
+24979|     toast('Старт ~'+r1(pick.w)+' кг'+pick.note);
+24980|   }catch(e){ toast('Не вышло: '+e.message); }
+24981| }
+24982| /* Авто-время тренировки: старт — при первом подходе, финиш — когда вся программа выполнена */
+24983| async function autoSession(D){
+24984|   if(D!==td()) return;                       // авто-время только для сегодняшней тренировки
+24985|   const now=new Date(), hhmm=String(now.getHours()).padStart(2,'0')+':'+String(now.getMinutes()).padStart(2,'0');
+24986|   let ss=gymSess(D);
+24987|   /* Закрытая сессия и прошёл час с её конца — это уже вторая тренировка,
+24988|      а не хвост первой: заводим новую с номером в дне. Меньше часа — человек
+24989|      закрыл раньше времени и дописывает; ему «Открыть тренировку снова». */
+24990|   if(ss&&ss.end){ let gap=(hh(hhmm)-hh(ss.end))*60; if(gap<0) gap+=1440;
+24991|     if(gap>=60){ await put('sess',{d:D,n:(ss.n||1)+1,start:hhmm,end:null,min:null,rpe:null,auto:1}); SESS=await all('sess'); ss=gymSess(D); } }
+24992|   if(!ss){ await put('sess',{d:D,start:hhmm,end:null,min:null,rpe:null,auto:1}); SESS=await all('sess'); ss=gymSess(D); }
+24993|   else if(!ss.start){ ss={...ss,start:hhmm,auto:1}; await put('sess',ss); SESS=await all('sess'); ss=gymSess(D); }
+24994|   const P=S.prog, dw=effDow(D), day=P&&P.plan&&P.plan.find(d=>d.dow===dw);
+24995|   if(day && ss && ss.start && !ss.end){
+24996|     const exs=(day.ex||[]);
+24997|     const _own=sessSets(ss,true);
+24998|     const allDone = exs.length>0 && exs.every(it=>_own.filter(x=>x.e===it.n).length>=it.sets);
+24999|     if(allDone){
+25000|       let min=Math.round((hh(hhmm)-hh(ss.start))*60); if(min<0) min+=1440;
+25001|       min=Math.min(300,Math.max(1,min));    // короткая/зависшая сессия всё равно закрывается
+25002|       await put('sess',{...ss,end:hhmm,min,auto:1}); SESS=await all('sess');
+25003|       try{ stopRest(); }catch(_){}   // автозакрытие — тот же конец тренировки (v523) toast('Тренировка закрыта: '+min+' мин. Оцени RPE в «Закрыть тренировку».');
+25004|     }
+25005|   }
+25006| }
+25007| /* Авто-отдых: если в прошлый раз повторы рухнули (>38% от лучшего подхода)
+25008|    на коротком отдыхе — приложение САМО поднимает отдых до 150 с и пишет это
+25009|    в журнал программы. Мы эксперты, решение по науке принимаем мы, а не
+25010|    пользователь (полевое требование). Одноразово (метка restAuto), ручной
+25011|    тап по «отдых» остаётся главнее. */
+25012| async function autoRest(day){
+25013|   if(!day||!S.prog) return;
+25014|   const bumped=[];
+25015|   day.ex.forEach(item=>{
+25016|     if(item.hidden||item.restAuto||exStatic(item.n)) return;
+25017|     if((item.rest>0?item.rest:exRest(item.n))>=150) return;
+25018|     /* Через progSets: раньше сюда попадали разминочные и дропсеты, то есть
+25019|        правило судило по подходам, которые к прогрессии отношения не имеют.
+25020|        И тот же NaN, что чинили в подсказке: у подтягиваний веса нет, Math.max
+25021|        давал NaN, отбор рабочих подходов пустел, и отдых не поднимался никогда
+25022|        (аудит 19.08). */
+25023|     const hist=progSets(item.n).sort((a,b)=>a.d<b.d?1:-1);
+25024|     if(!hist.length) return;
+25025|     const lastDay=hist[0].d, ss=hist.filter(s=>s.d===lastDay);
+25026|     const hasW=ss.some(s=>s.w>0);
+25027|     const w=hasW?Math.max(...ss.filter(s=>s.w>0).map(s=>s.w)):0;
+25028|     const work=hasW?ss.filter(s=>s.w===w):ss.slice();
+25029|     if(work.length<3) return;
+25030|     const maxR=Math.max(...work.map(s=>s.r)), minR=Math.min(...work.map(s=>s.r));
+25031|     if(!(maxR>=item.lo&&minR<=Math.round(maxR*0.62))) return;
+25032|     item.rest=150; item.restAuto=1; bumped.push(item.n+' ('+maxR+'→'+minR+')');
+25033|   });
+25034|   if(bumped.length){
+25035|     progSnap('авто-отдых','Отдых поднят до 150 с: '+bumped.join(', ')+' — повторы рушились на коротком отдыхе');
+25036|     S.ua=Date.now();
+25037|     try{ await put('settings',S,'main'); }catch(_){}
+25038|     toast('Отдых поднят до 150 с: '+bumped.map(b=>b.split(' (')[0]).join(', '));
+25039|   }
+25040| }
+25041| /* Тап по «отдых N с» на карточке: 90 → 120 → 150 → 180 по кругу.
+25042|    Пишется в item.rest программы — переживает перерисовку и синк. */
+25043| async function restCycle(name){
+25044|   const P=S.prog; if(!P||!P.plan) return toast('Нет программы');
+25045|   const dw=effDow(vDay||td());
+25046|   const day=P.plan.find(d=>d.dow===dw);
+25047|   const item=day&&day.ex.find(i=>i.n===name);
+25048|   if(!item) return toast('Упражнение не в сегодняшнем плане');
+25049|   const R=[90,120,150,180], cur=item.rest>0?item.rest:exRest(name);
+25050|   item.rest=R[(R.indexOf(cur)+1)%R.length]||120;
+25051|   try{ await put('settings',S,'main'); }catch(_){}
+25052|   rTrain(); toast('Отдых: '+item.rest+' с');
+25053| }
+25054| /* ── ОТДЫХ ЗАВИСИТ ОТ ЦЕЛИ, А НЕ ТОЛЬКО ОТ ДВИЖЕНИЯ ──
+25055|    Аудит 25.08. Отдых считался одинаково для всех схем: и на гипертрофии, и на
+25056|    СИЛОВОЙ человек получал 150 секунд. На четырёх-шести повторах это недобор —
+25057|    тяжёлый подход требует существенно больше, иначе следующий делается не
+25058|    силой, а на остатках. Схема меняла повторы и подходы, а отдых — нет.
+25059|    Второе: «составным» считалось любое движение, у которого в разметке две
+25060|    мышцы. Разведения в наклоне на заднюю дельту получали те же 150 секунд,
+25061|    что жим лёжа, — не потому что это база, а потому что мы перечислили им
+25062|    вторую мышцу. Признак «сколько мышц в списке» — не то же самое, что
+25063|    «тяжёлое многосуставное движение», и путать их нельзя.
+25064|    Числа — консенсус практиков, не измерение: база на силе 3.5 минуты,
+25065|    на гипертрофии 2.5, подсобка 2 и 1.5 соответственно. Строка «передумаем,
+25066|    если» стоит в COUNCIL.md. */
+25067| const REST_G={linear5:{main:210,acc:120},strength:{main:210,acc:120},
+25068|               hyper:{main:150,acc:90},recomp:{main:150,acc:90}};
+25069| /* Отдых по САМОМУ пункту плана, а не по имени: искать упражнение по имени
+25070|    в «сегодняшнем» дне — значит для всех остальных дней найти не то или
+25071|    ничего. Длина дня считается для каждого дня программы, поэтому она обязана
+25072|    спрашивать именно тот пункт, который считает (25.08). */
+25073| function restOfItem(it,P){
+25074|   if(!it) return 90;
+25075|   if(it.rest>0) return it.rest;
+25076|   const g=REST_G[(P&&P.cfg&&P.cfg.goal)||(S.prog&&S.prog.cfg&&S.prog.cfg.goal)||'hyper']||REST_G.hyper;
+25077|   return it.main?g.main:g.acc;
+25078| }
+25079| function exRest(name,PP){
+25080|   const P=PP||S.prog, dw=effDow(vDay||td());
+25081|   const day=P&&P.plan&&(PP?P.plan.find(d=>(d.ex||[]).some(i=>i.n===name))
+25082|                           :P.plan.find(d=>d.dow===dw));
+25083|   const item=day&&day.ex.find(i=>i.n===name);
+25084|   if(item) return restOfItem(item,P);
+25085|   if(item&&item.rest>0) return item.rest;
+25086|   const g=REST_G[(P&&P.cfg&&P.cfg.goal)||'hyper']||REST_G.hyper;
+25087|   /* База — это признак программы (`main`), а не количество мышц в разметке.
+25088|      Когда упражнения нет в плане (каталог, карточка техники), опираемся на
+25089|      роль: базовые роли по построению тяжёлые и многосуставные. */
+25090|   const MAINROLE=new Set(['squat','hinge','hpush','vpush','hpull','vpull']);
+25091|   const isMain=item?!!item.main:MAINROLE.has((EM[name]||{}).role);
+25092|   return isMain?g.main:g.acc;
+25093| }
+25094| function prevSessionBefore(name,D){
+25095|   const past=SETS.filter(s=>s.e===name && s.d<D);
+25096|   if(!past.length) return [];
+25097|   const lastDay=[...past].sort((a,b)=>a.d<b.d?1:-1)[0].d;
+25098|   const day=past.filter(s=>s.d===lastDay).sort((a,b)=>(a.ua||0)-(b.ua||0));
+25099|   // Рабочие ≠ подводящие: подсказка «прошл.» должна показывать рабочие веса.
+25100|   // Пометки в старых записях нет — фильтруем по весу: <60% максимума сессии
+25101|   // при наличии разных весов почти наверняка разминочный/подводящий.
+25102|   const mx=Math.max(...day.map(s=>s.w||0));
+25103|   const work=day.filter(s=>!s.wu && (mx<=0 || s.w>=mx*0.6));
+25104|   return work.length?work:day;
+25105| }
+25106| /* Каким по счёту упражнением идёт движение сегодня (поле 18.08: «было первым,
+25107|    стало четвёртым — организм выдыхается, а мне говорят, что я слабее»).
+25108|    Считаем по журналу дня: сколько РАЗНЫХ упражнений уже сделано до него. */
+25109| function exPosToday(name,D){
+25110|   const seen=[]; SETS.filter(s=>s.d===D).forEach(s=>{ if(!seen.includes(s.e)) seen.push(s.e); });
+25111|   const i=seen.indexOf(name);
+25112|   return (i<0?seen.length:i)+1;
+25113| }
+25114| /* Подводящий подход — обычная запись журнала с флагом wu (поле 18.08:
+25115|    «я каждый раз делаю подводящие, а он их не считает и говорит, что я
+25116|    стартовал без разминки»). Флаг wu исключает подход из прогрессии,
+25117|    объёма и рекордов, но тренировка считается начатой. */
+25118| async function saveWarmSet(name,ei,ri){
+25119|   const wEl=$('wu_kg_'+ei+'_'+ri), rEl=$('wu_rep_'+ei+'_'+ri);
+25120|   if(!wEl||!rEl) return;
+25121|   const _in=setInput(wEl,rEl); if(!_in) return; const w=_in.w, r=_in.r;
+25122|   const D0=(vDay||td());
+25123|   if(dn(D0)>dn(td())){ toast('Завтра ещё не наступило. Скорректировать плановый вес можно по тапу на строку плана',{kind:'error'}); return; }   // v612/v613
+25124|   const _wasOpen=sessOpenNow(D0);   // v609
+25125|   await put('sets',{d:D0,e:name,w,r,rpe:null,wu:1,pos:exPosToday(name,D0)});
+25126|   SETS=await all('sets');
+25127|   await autoSession(D0);            // подводящий = тренировка началась
+25128|   /* Последний ли это подводящий: считаем по плану разминки, а не по номеру
+25129|      строки — человек мог часть ступеней пропустить или дописать свою. */
+25130|   const _план=(function(){ try{
+25131|     const it=(S.prog&&S.prog.plan&&S.prog.plan.find(x=>x.dow===effDow(D0))||{ex:[]})
+25132|       .ex.find(i=>i.n===name);
+25133|     const pw=(function(){ try{ const t=nextTarget(name,it); return (t&&t.w)||0 }catch(e){ return 0 } })();
+25134|     return (it&&rampSets(it,pw))||[];
+25135|   }catch(e){ return []; } })();
+25136|   const _сделано=SETS.filter(x=>x.d===D0&&x.e===name&&x.wu).length;
+25137|   const _последний=!_план.length||_сделано>=_план.length;
+25138|   const _сек=restAfterWarm(name,_последний);
+25139|   if(_сек>0) startRest(_сек,_последний?'перед первым рабочим':'между подводящими');
+25140|   if(_wasOpen&&refreshExCard(name)) return;   // v609: подводящий внутри идущей тренировки — только карточка
+25141|   rNext();
+25142| }
+25143| /* ── ОДНА ЗАПИСЬ ПОДХОДА НА ВСЕ ВХОДЫ ──
+25144|    Записать рабочий подход можно тремя способами кроме кнопки ✓: голосом,
+25145|    через «Добавить подход» и словами тренеру. Полноценно это делал только
+25146|    один путь: остальные не ставили ни порядок упражнения в дне, ни отметку
+25147|    личного рекорда. То есть человек, записавший рекордный подход голосом,
+25148|    не получал ни 🏆 в строке, ни поздравления — а прогрессия теряла знание
+25149|    о том, каким по счёту шло упражнение, и не могла сказать «в прошлый раз
+25150|    это было первым, сегодня четвёртое» (аудит 22.08, та же болезнь, что у
+25151|    инструментов тренера в v353: одно действие — несколько входов). */
+25152| /* ── СНИМОК ПЛАНА ДНЯ ──
+25153|    Прошлый день строится по сделанному — так правка программы перестала
+25154|    переписывать прожитые тренировки (v415). Но у этого была цена, которую
+25155|    владелец назвал сразу: «я вчера молотки не доделал, можно было взять их».
+25156|    Непроделанное из плана исчезало вместе с планом, и день переставал
+25157|    показывать, что человек НЕ закрыл.
+25158|    Показывать текущий план нельзя — это ровно тот дефект, который чинили.
+25159|    Значит нужен снимок: в момент первого подхода дня запоминаем, что было
+25160|    в плане. Дальше программу можно менять сколько угодно — тот день уже
+25161|    записан и не поедет. Снимок делается один раз и не переписывается. */
+25162| function dayPlanSnap(d){
+25163|   S.dayPlan=S.dayPlan||{};
+25164|   if(S.dayPlan[d]) return S.dayPlan[d];
+25165|   const P=S.prog, day=P&&P.plan&&P.plan.find(x=>x.dow===effDow(d));
+25166|   if(!day) return null;
+25167|   S.dayPlan[d]=(day.ex||[]).filter(i=>!i.hidden).map(i=>i.n);
+25168|   /* Старые снимки не копим: полгода назад «что было в плане» уже никому
+25169|      не нужно, а место в настройках не бесконечное. */
+25170|   Object.keys(S.dayPlan).forEach(k=>{ if(dn(td())-dn(k)>180) delete S.dayPlan[k]; });
+25171|   return S.dayPlan[d];
+25172| }
+25173| async function logWorkSet(name,w,r,D,extra){
+25174|   const d=D||vDay||td();
+25175|   if(dn(d)>dn(td())){ toast('Завтра ещё не наступило. Скорректировать плановый вес можно по тапу на строку плана',{kind:'error'}); return; }   // v612/v613: завтра — только просмотр
+25176|   try{ dayPlanSnap(d); }catch(_){}
+25177|   const pr=(d===td())?(function(){ try{ return prInfo(name,w,r); }catch(e){ return null; } })():null;
+25178|   const pos=(function(){ try{ return exPosToday(name,d); }catch(e){ return undefined; } })();
+25179|   /* ФАКТИЧЕСКИЙ отдых перед этим подходом, в секундах. Не украшение:
+25180|      подсказка веса на следующей неделе считается по подходам, а подход после
+25181|      сорока секунд и после трёх минут — это разные подходы. Раньше мы знали
+25182|      только то, сколько отдыхать ПОЛАГАЛОСЬ. Пишем только правдоподобное:
+25183|      больше часа — это не отдых, а «вернулся к снаряду в конце тренировки». */
+25184|   const rst=(function(){ try{
+25185|     const prev=SETS.filter(x=>x.d===d&&x.e===name&&!x.wu&&x.ua>0).sort((a,b)=>b.ua-a.ua)[0];
+25186|     if(!prev) return null;
+25187|     const sec=Math.round((Date.now()-prev.ua)/1000);
+25188|     return (sec>0&&sec<3600)?sec:null;
+25189|   }catch(e){ return null; } })();
+25190|   await put('sets',{d,e:name,w,r,rpe:null,...(pos?{pos}:{}),...(pr?{pr:1}:{}),...(rst?{rst}:{}),...(extra||{})});
+25191|   try{ if(d===td()&&!(extra&&extra.wu)) pushTrainBit(); }catch(_){}
+25192|   SETS=await all('sets');
+25193|   /* Подход записан — запрос «ещё подход» исчерпан (владелец 04.09: «каждый
+25194|      доп. подход нажимается, сделал — заполнил, хочу ещё — добавляю; не хочу —
+25195|      само не добавляется»). И раскрытое сделанное сворачивается само:
+25196|      смысл раскрытия был в этом подходе. */
+25197|   try{ extraSet.delete(d+':'+name); wcKeep.delete(d+':'+name); }catch(e){}
+25198|   try{ await autoSession(d); }catch(e){}
+25199|   if(pr){
+25200|     const was=prText(pr);
+25201|     toast('🏆 Личный рекорд: '+name.slice(0,18)+' · '+(w>0?w+'×'+r:r+' повторов')+(was?' ('+was+')':''));
+25202|     try{ navigator.vibrate&&navigator.vibrate([12,40,12]); }catch(e){}
+25203|   }
+25204|   return pr;
+25205| }
+25206| async function saveInlineSet(name,ei){
+25207|   const wEl=$('wkg_'+ei), rEl=$('wrep_'+ei);
+25208|   const _in=setInput(wEl,rEl); if(!_in) return; const w=_in.w, r=_in.r;
+25209|   const D0=await pastDayAsk(vDay||td());   // v644: подход в прошлую дату при пустом сегодня — один вопрос
+25210|   const _wasOpen=sessOpenNow(D0);   // v609: до записи — открыта ли уже тренировка
+25211|   /* Запись, порядок в дне, рекорд и открытие тренировки — всё в logWorkSet:
+25212|      ровно то же самое делают голос, «Добавить подход» и тренер, и делать это
+25213|      четырьмя копиями значит однажды забыть про одну из них (так и вышло). */
+25214|   await logWorkSet(name,w,r,D0);
+25215|   // внутри суперсета отдых не запускаем — сразу переходим ко второму
+25216|   try{
+25217|     const _d=(S.prog&&S.prog.plan&&S.prog.plan.find(x=>x.dow===effDow(D0)))||null;
+25218|     const _p=ssPartner(_d,name);
+25219|     if(_p&&restAfterSet(name,D0)===0) toast('Суперсет: сразу «'+_p.n.slice(0,20)+'», без отдыха');
+25220|   }catch(e){}
+25221|   wDraftClear(D0,name);   // подход записан — черновик больше не нужен
+25222|   /* ── ЕДИНСТВЕННЫЙ ПРАЗДНИК: ЗАКРЫТАЯ ТРЕНИРОВКА ──
+25223|      28.08 я убрал кольцо-вспышку с КАЖДОГО подхода — правильно: 20–25 раз
+25224|      за тренировку это фон, а не награда. Но перенести его на завершение
+25225|      обещал и не перенёс, то есть просто вычел из приложения единственный
+25226|      момент радости. Роль удержания это и ловит: спокойный экран убирает
+25227|      повод уйти, но не создаёт повода вернуться.
+25228|      Здесь момент один на день и приходит ровно тогда, когда человек
+25229|      закрыл план целиком. */
+25230|   try{ if(dayPlanDone(D0)&&S.wkCheer!==D0){ S.wkCheer=D0; put('settings',S,'main').catch(()=>{});
+25231|     cheerDone(); } }catch(e){}
+25232|   restStart(name,vDay||td());
+25233|   /* v609: подход внутри уже идущей тренировки — меняем только карточку (и ту, куда
+25234|      ушёл фокус) и счёт в шапке. Первый подход дня открывает сессию и переводит
+25235|      шапку в рабочий режим, последний закрывает план — там полный рендер. */
+25236|   if(_wasOpen&&!dayPlanDone(D0)&&refreshExCard(name)) return;
+25237|   rTrain();
+25238| }
+25239| /* План дня закрыт: у каждого запланированного упражнения записано не меньше
+25240|    подходов, чем стоит в цели. Разминочные не считаются. */
+25241| /* Праздник — короткий и один: вспышка вольта по краю экрана и строка о
+25242|    том, что сделано. Не конфетти: человек в зале, а не в игре. */
+25243| function cheerDone(){
+25244|   try{
+25245|     const D=vDay||td();
+25246|     const n=SETS.filter(x=>x.d===D&&!x.wu).length;
+25247|     const tn=SETS.filter(x=>x.d===D&&!x.wu).reduce((a,x)=>a+(+x.w||0)*(+x.r||0),0);
+25248|     const el=document.createElement('div'); el.className='cheer'; document.body.appendChild(el);
+25249|     setTimeout(()=>{ try{ el.remove(); }catch(_){} },900);
+25250|     if(navigator.vibrate) try{ navigator.vibrate([12,40,18]); }catch(_){}
+25251|     toast('Тренировка закрыта · '+n+' подх.'+(tn>0?' · '+r0(tn)+' кг тоннаж':''));
+25252|   }catch(e){}
+25253| }
+25254| function dayPlanDone(D){
+25255|   const P=S.prog, day=P&&P.plan&&P.plan.find(x=>x.dow===effDow(D));
+25256|   const list=(day&&day.ex||[]).filter(e=>!e.hidden);
+25257|   if(!list.length) return false;
+25258|   return list.every(it=>SETS.filter(x=>x.d===D&&x.e===it.n&&!x.wu).length>=(+it.sets||1));
+25259| }
+25260| async function delInlineSet(id){
+25261|   const _s=SETS.find(x=>x.id===id), _n=_s&&_s.e;
+25262|   await del('sets',id); SETS=await all('sets');
+25263|   if(_n&&refreshExCard(_n)) return;   // v609: точечно
+25264|   rTrain();
+25265| }
+25266| /* Открыта ли тренировка дня прямо сейчас (v609): есть сессия со стартом и без конца. */
+25267| function sessOpenNow(D){ try{ const ss=gymSess(D); return !!(ss&&ss.start&&!ss.end); }catch(e){ return false; } }
+25268| /* + Упражнение — простой выбор из базы через модалку (только выбор, без полей) */
+25269| let stPick=false;
+25270| /* Список выбора: сначала сегодняшний план, потом остальная программа, потом
+25271|    база по группам мышц (полевой отчёт: «в первую очередь из программы на
+25272|    сегодня, общие — с разделением „Спина“ и списком на спину»). */
+25273| const exPrimMus=e=>{ const m=Object.entries(e.m||{}).sort((a,b)=>b[1]-a[1])[0]; return m?m[0]:null; };
+25274| function exMusGroups(seen){
+25275|   // В группы мышц идут «рабочие» упражнения; редкие вариации и кондиционка
+25276|   // живут в хвосте, чтобы не мусорить выбор
+25277|   // (аудит базы 02.08: «куча херни, которой никто не делает, — вперемешку с базой»)
+25278|   const g=[];
+25279|   for(const mkey of Object.keys(MUS)){
+25280|     const list=EX.filter(e=>!exRare(e.n)&&!seen.has(e.n)&&!gymOffHas(e.n)&&exPrimMus(e)===mkey).map(e=>e.n);
+25281|     if(list.length) g.push({l:MUS[mkey],items:list});
+25282|   }
+25283|   const offL=EX.filter(e=>!exRare(e.n)&&gymOffHas(e.n)&&!seen.has(e.n)).map(e=>e.n);
+25284|   if(offL.length) g.push({l:'Нет в моём зале',items:offL});
+25285|   const rest=EX.filter(e=>exRare(e.n)&&!seen.has(e.n)).map(e=>e.n);
+25286|   if(rest.length) g.push({l:'Редкие и вариации',items:rest});
+25287|   return g;
+25288| }
+25289| function exGroups(){
+25290|   const D=vDay||td(), dw=effDow(D);
+25291|   const day=S.prog&&S.prog.plan&&S.prog.plan.find(d=>d.dow===dw);
+25292|   const today=day?day.ex.filter(i=>!i.hidden).map(i=>i.n):[];
+25293|   const inProg=new Set((S.prog?S.prog.plan:[]).flatMap(d=>d.ex.map(i=>i.n)));
+25294|   const seen=new Set(today);
+25295|   const prog=EX.filter(e=>inProg.has(e.n)&&!seen.has(e.n)).map(e=>e.n);
+25296|   prog.forEach(n=>seen.add(n));
+25297|   const g=[];
+25298|   if(today.length) g.push({l:'Сегодня в плане',items:today});
+25299|   if(prog.length) g.push({l:'Моя программа',items:prog});
+25300|   return g.concat(exMusGroups(seen));
+25301| }
+25302| function exOptHtml(groups){
+25303|   const mk=n=>`<option>${esc(n)}</option>`;
+25304|   return groups.map(g=>`<optgroup label="${esc(g.l)}">${g.items.map(mk).join('')}</optgroup>`).join('');
+25305| }
+25306| /* Свой экран выбора (полный, с поиском) — вместо системного колеса select.
+25307|    Сам select остаётся скрытым держателем значения: вся логика записи подхода
+25308|    по-прежнему читает $('st_e').value и ничего не знает про экран. */
+25309| let __exG=null;
+25310| function exSetSelect(groups){ __exG=groups; $('st_e').innerHTML=exOptHtml(groups); exSyncBtn(); }
+25311| function exSyncBtn(){ const l=$('st_eLbl'); if(l) l.textContent=$('st_e').value||'Выбрать упражнение'; }
+25312| function exPickRender(q){
+25313|   q=(q||'').trim().toLowerCase();
+25314|   let html='';
+25315|   (__exG||[]).forEach(g=>{
+25316|     const items=g.items.filter(n=>!q||n.toLowerCase().indexOf(q)>=0);
+25317|     if(!items.length) return;
+25318|     html+=`<div class="expick-g">${esc(g.l)}</div>`
+25319|       +items.map(n=>`<div class="expick-r" data-expick="${esc(n)}">${esc(n)}</div>`).join('');
+25320|   });
+25321|   const box=$('exPickList'); if(!box) return;
+25322|   box.innerHTML=html||'<div class="mini" style="padding:24px 0">Не нашёл. Попробуй короче: «жим», «тяга»…</div>';
+25323|   box.querySelectorAll('[data-expick]').forEach(r=>r.onclick=()=>{
+25324|     const n=r.dataset.expick, sel=$('st_e');
+25325|     if(![...sel.options].some(o=>o.value===n)) sel.appendChild(new Option(n,n));
+25326|     sel.value=n; exSyncBtn(); $('exPick').classList.remove('on'); stPrev();
+25327|   });
+25328| }
+25329| function exPickOpen(){ if(!__exG) return; const s=$('exPickQ'); if(s) s.value=''; exPickRender(''); $('exPick').classList.add('on'); }
+25330| $('st_eBtn')&&($('st_eBtn').onclick=exPickOpen);
+25331| $('exPickQ')&&($('exPickQ').oninput=e=>exPickRender(e.target.value));
+25332| $('exPickClose')&&($('exPickClose').onclick=()=>$('exPick').classList.remove('on'));
+25333| function addExercise(o){
+25334|   swapName=null; stPick=true;
+25335|   window._addToProg=(o&&o.prog!=null)?o.prog:null;   // v666: с вкладки «Программа» — в программу дня, с тренировки — в дату
+25336|   exSetSelect(exGroups());
+25337|   const sf=$('stFields'); if(sf) sf.style.display='none';
+25338|   const sp=$('st_prev'); if(sp) sp.style.display='none';
+25339|   $('bStOk').textContent='Добавить в тренировку';
+25340|   sheet('sh-st',true); exPickOpen();
+25341| }
+25342| /* ── ТАЙМЕР ОТДЫХА ── */
+25343| /* Таймер отдыха — от АБСОЛЮТНОГО времени, а не тиков (полевой отчёт 04.08:
+25344|    «отошёл от телефона — таймер остановился»). Экран погас, PWA замер или
+25345|    даже перезагрузился — вернулся, и таймер показывает правду по часам. */
+25346| /* НИЖНИЕ ПОЛОСЫ И НИЖНИЙ ОТСТОЙ СТРАНИЦЫ.
+25347|    Таймер отдыха и строка обновления — единственное, что живёт над навигацией.
+25348|    Отступ страницы снизу их не учитывал (78 px — ровно под навигацию), а сами
+25349|    полосы стоят на фиксированной высоте. Замер в браузере: в самом низу экрана,
+25350|    когда доскроллить уже некуда, последний ряд кнопок оказывался ПОД полосами —
+25351|    нажать его было физически нельзя. И друг друга полосы перекрывали на 50 px:
+25352|    во время тренировки с ожидающим обновлением одна закрывала другую (22.08).
+25353|    Полосы могут переносить текст, поэтому высоты не зашиваем — меряем. */
+25354| function barsSync(){
+25355|   try{
+25356|     const r=document.documentElement;
+25357|     const rest=$('restBar');
+25358|     const rh=(rest&&rest.classList.contains('on'))?Math.round(rest.getBoundingClientRect().height):0;
+25359|     r.style.setProperty('--restb', rh?(rh+8)+'px':'0px');
+25360|     const upd=$('updBar');
+25361|     const uh=upd?Math.round(upd.getBoundingClientRect().height):0;
+25362|     r.style.setProperty('--updb', uh?(uh+22)+'px':'0px');
+25363|     /* Высота панели вкладок больше нигде не зашита числом. Она менялась
+25364|        трижды (плавающая пилюля → прижатая панель), и каждый раз отступы
+25365|        страницы, таймер отдыха, строка обновления и всплывашка расходились
+25366|        с ней по отдельности: приходилось искать четыре числа в CSS. Меряем
+25367|        один раз здесь — и все четыре считаются от одного значения. */
+25368|     /* v620: НОЛЬ НЕ ПИШЕМ. Панель может быть не смонтирована (экран входа,
+25369|        анкета) — тогда замер даёт 0, и все нижние полосы уезжают на самый низ,
+25370|        под полосу хоум-свайпа. Пусть лучше стоит запасное число из CSS. */
+25371|     const nv=document.querySelector('nav');
+25372|     if(nv){ const nh=Math.round(nv.getBoundingClientRect().height); if(nh>0) r.style.setProperty('--navh', nh+'px'); }
+25373|     const hd=document.querySelector('header');   // v611: от неё считается минимальная высота «Зала» (подвал прижат к панели)
+25374|     if(hd){ const hh=Math.round(hd.getBoundingClientRect().height); if(hh>0) r.style.setProperty('--hdrh', hh+'px'); }
+25375|     /* Панель ввода живёт только на «Еде» — на других вкладках место под неё
+25376|        резервировать нельзя, иначе внизу появится пустая полоса. */
+25377|     const fb=$('foodBar');
+25378|     const fh=(fb&&fb.offsetParent!==null)?Math.round(fb.getBoundingClientRect().height):0;
+25379|     r.style.setProperty('--foodb', fh?fh+'px':'0px');
+25380|   }catch(e){}
+25381| }
+25382| addEventListener('resize',()=>{ try{ barsSync(); }catch(e){} });
+25383| /* Поворот экрана меняет и безопасные зоны, и высоту панели. resize на iOS при
+25384|    повороте приходит раньше, чем применяется новый env(), — меряем ещё раз. */
+25385| addEventListener('orientationchange',()=>{ setTimeout(()=>{ try{ barsSync(); }catch(e){} },300); });
+25386| /* ── ЗВУК ТАЙМЕРА ──
+25387|    Ни одного файла: короткий тон собирается осциллятором. Файл — это вес,
+25388|    загрузка и ещё одна вещь, которая может не доехать в офлайне.
+25389|    Контекст создаётся ЛЕНИВО и только из жеста человека (тап «Записать
+25390|    подход») — иначе браузер его не пустит. Дальше он живёт до конца
+25391|    тренировки и звучит, даже когда жеста уже нет. */
+25392| let _actx=null;
+25393| function audioCtx(){
+25394|   try{
+25395|     const C=window.AudioContext||window.webkitAudioContext; if(!C) return null;
+25396|     /* Полевой отчёт владельца 09.09: «пропал звук на таймере». Контекст
+25397|        открывался один раз на первое касание; на iOS после блокировки экрана
+25398|        или звонка он уходит в 'interrupted' (не 'suspended'), а закрытый
+25399|        системой — в 'closed', и звук пропадал до перезапуска. Закрытый —
+25400|        заводим заново, любой не-running — будим на каждом касании. */
+25401|     if(_actx&&_actx.state==='closed') _actx=null;
+25402|     if(!_actx) _actx=new C();
+25403|     if(_actx.state!=='running'){ try{ _actx.resume().catch(()=>{}); }catch(e){} }
+25404|     return _actx;
+25405|   }catch(e){ return null; }
+25406| }
+25407| /* Громкость держим низкой намеренно: сигнал должен быть слышен рядом
+25408|    с телефоном, а не на весь зал. */
+25409| /* Контекст открывается на ПЕРВОМ касании экрана за сессию. К моменту, когда
+25410|    таймер захочет пикнуть, жеста человека уже нет — а без жеста браузер звук
+25411|    не пустит. Один слушатель, снимается сразу после срабатывания. */
+25412| function primeAudio(){ try{ if(!_actx||_actx.state!=='running') audioCtx(); }catch(e){} }
+25413| /* На каждое касание, а не на первое: после блокировки экрана контекст
+25414|    засыпает, и разбудить его без жеста браузер не даёт (v545). */
+25415| try{ addEventListener('pointerdown',primeAudio,{capture:true,passive:true});
+25416|      addEventListener('touchstart',primeAudio,{capture:true,passive:true});
+25417|      document.addEventListener('visibilitychange',()=>{ if(document.visibilityState==='visible') primeAudio(); }); }catch(e){}
+25418| /* Заголовок листа уезжает, крестик остаётся (v557): класс на h3 по прокрутке
+25419|    панели .in — единственного прокручиваемого контейнера листа. */
+25420| try{ addEventListener('scroll',function(e){ const el=e.target; if(!el||!el.classList||!el.classList.contains('in')||!el.parentElement||!el.parentElement.classList.contains('sheet')) return;
+25421|   const h=el.querySelector(':scope>h3'); if(h) h.classList.toggle('scrolled',el.scrollTop>28); },{capture:true,passive:true}); }catch(e){}
+25422| /* ── ГОЛОС В КОНЦЕ ОТДЫХА ──
+25423|    Полевой отчёт владельца 01.09: «экран точно не вибрировал, пуша на часы
+25424|    не было, телефон не моргал». Вибрации на айфоне нет и не будет — Safari
+25425|    её веб-страницам не даёт, это записано в «Справке». Вспышка (v493) видна
+25426|    только тому, кто смотрит на экран, а телефон лежит на скамье в двух
+25427|    метрах экраном вниз. Голос — единственный канал, который до него дойдёт,
+25428|    и он же снимает вопрос «а какой был вес»: называет упражнение и число.
+25429|    По умолчанию ВЫКЛЮЧЕН: заговорить без спроса в зале, где рядом люди, —
+25430|    это не забота, а неловкость.
+25431|    iOS требует, чтобы синтез хоть раз запустился из жеста, иначе он молчит
+25432|    навсегда. Поэтому «разогреваем» его в момент старта отдыха: отдых всегда
+25433|    начинается с тапа по галочке подхода. */
+25434| function sayWarm(){
+25435|   try{ if(!S.restSay||!window.speechSynthesis) return;
+25436|     if(sayWarm._ok) return; sayWarm._ok=1;
+25437|     const u=new SpeechSynthesisUtterance(' '); u.volume=0; u.lang='ru-RU';
+25438|     speechSynthesis.speak(u);
+25439|   }catch(e){}
+25440| }
+25441| function say(text){
+25442|   try{
+25443|     if(!S.restSay||!text||!window.speechSynthesis) return;
+25444|     speechSynthesis.cancel();
+25445|     const u=new SpeechSynthesisUtterance(String(text));
+25446|     u.lang='ru-RU'; u.rate=1; u.pitch=1;
+25447|     /* Голос выбираем русский, если он есть. На части устройств список
+25448|        приходит асинхронно и в первый раз пуст — тогда просто не задаём
+25449|        голос: система возьмёт свой, и это лучше, чем молчание. */
+25450|     try{ const v=(speechSynthesis.getVoices()||[]).find(x=>/^ru/i.test(x.lang||''));
+25451|       if(v) u.voice=v; }catch(_){}
+25452|     speechSynthesis.speak(u);
+25453|   }catch(e){}
+25454| }
+25455| /* Что сказать в конце отдыха: следующий подход своими словами. «80 килограмм,
+25456|    8 повторов» — то, ради чего человек иначе берёт телефон в руки. */
+25457| function sayNext(){
+25458|   try{
+25459|     if(!S.restSay) return;
+25460|     const D=vDay||td(), day=dayToday();
+25461|     const nm=restWhat&&/подводящ/i.test(restWhat)?null:null;
+25462|     const it=(day&&(day.ex||[]).filter(x=>!x.hidden).find(x=>{
+25463|       const done=SETS.filter(s=>s.d===D&&s.e===x.n&&!s.wu).length;
+25464|       return done<(+x.sets||0);
+25465|     }))||null;
+25466|     if(!it) return say('Отдых окончен');
+25467|     const t=(function(){ try{ return nextTarget(it.n,it)||{} }catch(_){ return {} } })();
+25468|     const w=(t.w>0)?t.w:null, r=t.r||it.lo;
+25469|     say('Отдых окончен. '+it.n+(w?', '+r1(w)+' '+(exUnit(it.n)==='кг'?'килограмм':exUnit(it.n)):'')
+25470|       +(r?', '+r+' '+plural(r,'повтор','повтора','повторов'):''));
+25471|   }catch(e){ say('Отдых окончен'); }
+25472| }
+25473| function beep(freq,ms,vol){
+25474|   if(S.restMute) return;
+25475|   const c=audioCtx(); if(!c) return;
+25476|   try{
+25477|     const o=c.createOscillator(), g=c.createGain();
+25478|     o.type='sine'; o.frequency.value=freq||880;
+25479|     const t=c.currentTime;
+25480|     g.gain.setValueAtTime(0,t);
+25481|     g.gain.linearRampToValueAtTime(vol==null?0.22:vol,t+0.012);
+25482|     g.gain.exponentialRampToValueAtTime(0.0001,t+(ms||140)/1000);
+25483|     o.connect(g); g.connect(c.destination);
+25484|     o.start(t); o.stop(t+(ms||140)/1000+0.02);
+25485|   }catch(e){}
+25486| }
+25487| /* ── ЭКРАН НЕ ГАСНЕТ, ПОКА ИДЁТ ОТДЫХ ──
+25488|    Держим блокировку ТОЛЬКО на время отдыха: держать её всю тренировку —
+25489|    это чужая батарея. Уходили в фон — система забирает блокировку сама,
+25490|    поэтому при возврате просим заново. */
+25491| let _wake=null;
+25492| async function wakeOn(){
+25493|   if(S.restNoWake) return;
+25494|   try{
+25495|     if(!navigator.wakeLock||_wake) return;
+25496|     _wake=await navigator.wakeLock.request('screen');
+25497|     _wake.addEventListener('release',()=>{ _wake=null; });
+25498|   }catch(e){ _wake=null; }
+25499| }
+25500| function wakeOff(){ try{ if(_wake){ _wake.release(); _wake=null; } }catch(e){ _wake=null; } }

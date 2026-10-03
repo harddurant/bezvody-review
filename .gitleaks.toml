@@ -1,0 +1,14 @@
+# Наследуем дефолтные правила gitleaks и добавляем allowlist
+# для заведомо ПУБЛИЧНЫХ ключей (publishable/anon), которые by design уходят в браузер.
+[extend]
+useDefault = true
+
+[allowlist]
+description = "Публичные ключи Supabase (publishable/anon) — не секреты, защищены RLS"
+regexes = [
+  '''sb_publishable_[A-Za-z0-9_-]+''',
+]
+paths = [
+  '''\.secrets\.baseline''',
+  '''(^|/)dist/''',
+]

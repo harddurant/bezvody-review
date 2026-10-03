@@ -1,0 +1,268 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<link rel="icon" href="../icons/icon-192.png">
+<meta name="theme-color" content="#08090c">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Без воды — ролик для сторис</title>
+<style>
+@font-face{font-family:Manrope;src:url(../fonts/manrope-cyrillic.woff2) format('woff2');
+  unicode-range:U+0400-04FF;font-weight:400 800;font-display:block}
+@font-face{font-family:Manrope;src:url(../fonts/manrope-latin.woff2) format('woff2');
+  unicode-range:U+0000-024F;font-weight:400 800;font-display:block}
+
+*{margin:0;padding:0;box-sizing:border-box}
+html,body{height:100%;background:#000;overflow:hidden;
+  font-family:Manrope,system-ui,-apple-system,'Segoe UI',Roboto,sans-serif}
+
+/* Сцена всегда 1080x1920 в логических пикселях, масштабируется под экран.
+   Так кадр одинаков на любом мониторе — записывай что угодно. */
+#stage{position:absolute;left:50%;top:50%;width:1080px;height:1920px;
+  transform-origin:50% 50%;background:#08090c;overflow:hidden;
+  color:#f4f6fa;border-radius:0}
+#stage::before{content:'';position:absolute;inset:0;
+  background:radial-gradient(120% 90% at 25% 8%,#161b24 0%,#08090c 62%)}
+#stage::after{content:'';position:absolute;inset:0;pointer-events:none;
+  background:radial-gradient(75% 55% at 50% 50%,transparent 55%,rgba(0,0,0,.55) 100%)}
+
+.sc{position:absolute;inset:0;display:flex;flex-direction:column;
+  justify-content:center;padding:0 108px;opacity:0;visibility:hidden;z-index:2}
+.sc.on{opacity:1;visibility:visible}
+
+/* Появление элементов внутри активной сцены */
+.a{opacity:0}
+.sc.on .a{animation:up .82s cubic-bezier(.16,.9,.3,1) both}
+@keyframes up{from{opacity:0;transform:translateY(38px)}to{opacity:1;transform:none}}
+.d1{animation-delay:.10s!important}.d2{animation-delay:.28s!important}
+.d3{animation-delay:.46s!important}.d4{animation-delay:.64s!important}
+.d5{animation-delay:.82s!important}.d6{animation-delay:1.00s!important}
+
+h1{font-size:104px;line-height:1.05;font-weight:800;letter-spacing:-3px}
+h2{font-size:78px;line-height:1.1;font-weight:800;letter-spacing:-2px}
+.sub{font-size:40px;line-height:1.4;color:#aeb4c0;font-weight:500;margin-top:28px}
+.ac{color:#c3ff36}
+.kick{font-size:30px;letter-spacing:5px;text-transform:uppercase;
+  color:#7d8494;font-weight:700;margin-bottom:44px}
+
+/* --- 2. Адаптивный расход --- */
+.card{background:#121419;border:1px solid #1e232d;border-radius:40px;padding:52px}
+.big{font-size:132px;font-weight:800;letter-spacing:-5px;line-height:1}
+.unit{font-size:44px;color:#7d8494;font-weight:700;margin-left:14px}
+.chart{height:230px;margin-top:40px;position:relative}
+.chart svg{width:100%;height:100%;overflow:visible}
+.ln{stroke:#c3ff36;stroke-width:7;fill:none;stroke-linecap:round;stroke-linejoin:round;
+  stroke-dasharray:1200;stroke-dashoffset:1200}
+.sc.on .ln{animation:draw 1.6s .5s cubic-bezier(.4,0,.2,1) forwards}
+@keyframes draw{to{stroke-dashoffset:0}}
+.dot{fill:#c3ff36;opacity:0}
+.sc.on .dot{animation:pop .4s 1.9s both}
+@keyframes pop{from{opacity:0;r:0}to{opacity:1}}
+
+/* --- 3. Видео --- */
+.grid{display:grid;grid-template-columns:repeat(3,1fr);gap:22px;margin-top:52px}
+.tile{aspect-ratio:1;border-radius:26px;background:#121419;border:1px solid #1e232d;
+  display:flex;align-items:center;justify-content:center;font-size:26px;
+  color:#7d8494;font-weight:700;text-align:center;padding:10px;line-height:1.2}
+.tile.hi{background:linear-gradient(150deg,#1b2410,#121419);border-color:#3c5416;color:#c3ff36}
+.sc.on .tile{animation:tin .5s both cubic-bezier(.16,.9,.3,1)}
+@keyframes tin{from{opacity:0;transform:scale(.86)}to{opacity:1;transform:none}}
+
+/* --- 4. Еда --- */
+.chips{display:flex;flex-wrap:wrap;gap:20px;margin-top:52px}
+.chip{background:#121419;border:1px solid #1e232d;border-radius:999px;
+  padding:22px 40px;font-size:38px;font-weight:700}
+.chip.hi{background:#c3ff36;border-color:#c3ff36;color:#08090c}
+.sc.on .chip{animation:up .6s both cubic-bezier(.16,.9,.3,1)}
+
+/* --- 5. Честность --- */
+.rows{margin-top:12px}
+.row{display:flex;gap:32px;align-items:flex-start;padding:38px 0;
+  border-bottom:1px solid #1e232d;font-size:44px;font-weight:700;line-height:1.25}
+.row:last-child{border-bottom:0}
+.x{color:#ff6b6b;font-size:48px;flex:0 0 auto;line-height:1}
+.v{color:#c3ff36;font-size:48px;flex:0 0 auto;line-height:1}
+
+/* --- 7. Финал --- */
+.fin{align-items:center;text-align:center}
+.logo{width:230px;height:230px;margin-bottom:56px}
+.link{margin-top:64px;font-size:44px;font-weight:800;color:#08090c;
+  background:#c3ff36;border-radius:999px;padding:30px 62px;display:inline-block}
+
+/* Прогресс сверху */
+#bar{position:absolute;top:0;left:0;height:8px;background:#c3ff36;width:0;z-index:9}
+
+/* Подсказка — не попадает в запись, прячется по H */
+#hint{position:fixed;left:0;right:0;bottom:0;background:#111;color:#9aa;
+  font-size:13px;padding:10px 16px;text-align:center;z-index:99;font-family:inherit}
+#hint b{color:#c3ff36}
+body.clean #hint{display:none}
+</style>
+</head>
+<body>
+
+<div id="stage">
+  <div id="bar"></div>
+
+  <!-- 1. Крючок -->
+  <section class="sc">
+    <div class="kick a d1">Без воды</div>
+    <h1 class="a d2">Все приложения<br>считают калории<br>по формуле.</h1>
+    <h1 class="a d4" style="margin-top:44px">Мы считаем<br><span class="ac">по тебе.</span></h1>
+  </section>
+
+  <!-- 2. Адаптивный расход -->
+  <section class="sc">
+    <h2 class="a d1">Расход считается<br>по факту</h2>
+    <div class="sub a d2">Не по росту и весу из справочника,<br>а по тому, как двигался твой вес.</div>
+    <div class="card a d3" style="margin-top:56px">
+      <div><span class="big ac">2 480</span><span class="unit">ккал / день</span></div>
+      <div style="font-size:32px;color:#7d8494;font-weight:600;margin-top:16px">
+        пересчитано по 14 дням наблюдений</div>
+      <div class="chart">
+        <svg viewBox="0 0 900 230" preserveAspectRatio="none">
+          <path class="ln" d="M10 60 C 120 74, 180 52, 250 96 S 400 130, 470 118
+            S 620 152, 700 168 S 830 186, 890 196"/>
+          <circle class="dot" cx="890" cy="196" r="14"/>
+        </svg>
+      </div>
+    </div>
+  </section>
+
+  <!-- 3. Видео -->
+  <section class="sc">
+    <div class="kick a d1">Техника</div>
+    <h2 class="a d1"><span class="ac">206</span> видео<br>вместо человечков</h2>
+    <div class="sub a d2">Видно, где спина, где локти, где обман.</div>
+    <div class="grid">
+      <div class="tile d2">Жим лёжа</div>
+      <div class="tile hi d3">Присед</div>
+      <div class="tile d3">Тяга</div>
+      <div class="tile d4">Гравитрон</div>
+      <div class="tile hi d4">Икры стоя</div>
+      <div class="tile d5">Разводка</div>
+    </div>
+  </section>
+
+  <!-- 4. Русская еда -->
+  <section class="sc">
+    <div class="kick a d1">Еда</div>
+    <h2 class="a d1">Наша кухня,<br>а не чужая</h2>
+    <div class="sub a d2">246 продуктов и 192 блюда, которые<br>реально едят здесь.</div>
+    <div class="chips">
+      <span class="chip hi d2">Борщ</span>
+      <span class="chip d3">Гречка</span>
+      <span class="chip d3">Творог 5%</span>
+      <span class="chip d4">Сырники</span>
+      <span class="chip d4">Лаваш</span>
+      <span class="chip hi d5">Пельмени</span>
+      <span class="chip d5">Селёдка</span>
+    </div>
+  </section>
+
+  <!-- 5. Честность -->
+  <section class="sc">
+    <div class="kick a d1">Честно</div>
+    <h2 class="a d1">Чего мы<br>не делаем</h2>
+    <div class="rows">
+      <div class="row a d2"><span class="x">✕</span><span>Не обещаем минус 10 кг за месяц</span></div>
+      <div class="row a d3"><span class="x">✕</span><span>Не советуем фарму, даже когда спрашивают</span></div>
+      <div class="row a d4"><span class="x">✕</span><span>Не продаём добавки и не берём за рекламу</span></div>
+      <div class="row a d5"><span class="v">✓</span><span>Показываем источники, на которых стоим</span></div>
+    </div>
+  </section>
+
+  <!-- 6. Приватность -->
+  <section class="sc">
+    <div class="kick a d1">Данные</div>
+    <h2 class="a d1">Твоё здоровье —<br><span class="ac">только твоё</span></h2>
+    <div class="sub a d3" style="font-size:44px;color:#f4f6fa;font-weight:600;line-height:1.35;margin-top:44px">
+      Замеры, фото и дневник шифруются
+      прямо на телефоне.<br><br>
+      <span style="color:#aeb4c0;font-weight:500">Мы физически не можем их прочитать.</span>
+    </div>
+  </section>
+
+  <!-- 7. Финал -->
+  <section class="sc fin">
+    <svg class="logo a d1" viewBox="0 0 512 512">
+      <defs>
+        <linearGradient id="g" x1="0" y1="1" x2="1" y2="0">
+          <stop offset="0" stop-color="#9edc1c"/><stop offset="1" stop-color="#d6ff62"/>
+        </linearGradient>
+        <radialGradient id="bgg" cx="0.3" cy="0.15" r="1.2">
+          <stop offset="0" stop-color="#161b24"/><stop offset="1" stop-color="#08090c"/>
+        </radialGradient>
+      </defs>
+      <rect width="512" height="512" rx="116" fill="url(#bgg)"/>
+      <path d="M92 322 L172 322 L212 216 L262 372 L302 254 L334 296 L420 296"
+        stroke="url(#g)" stroke-width="42" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+      <circle cx="420" cy="296" r="25" fill="#d6ff62"/>
+    </svg>
+    <h1 class="a d2" style="font-size:118px">Без воды</h1>
+    <div class="sub a d3" style="font-size:44px">Зал и еда без обещаний чуда.<br>Бесплатно. Без рекламы.</div>
+    <div class="a d5"><span class="link" id="lnk">bezvody.app</span></div>
+  </section>
+</div>
+
+<div id="hint">
+  <b>Пробел</b> — заново · <b>H</b> — спрятать эту полоску перед записью ·
+  ссылку меняй в константе <b>LINK</b> вверху скрипта · длительность ролика ≈ <b id="tt"></b> с
+</div>
+
+<script>
+// ── Что показать в конце. Поменяй на свой адрес, когда будет домен. ──
+const LINK = 'bezvody.app';
+
+// Длительность каждой сцены в миллисекундах
+const T = [3600, 4200, 3800, 3800, 4400, 3600, 4200];
+
+document.getElementById('lnk').textContent = LINK;
+document.getElementById('tt').textContent = (T.reduce((a,b)=>a+b,0)/1000).toFixed(1);
+
+const scenes = [...document.querySelectorAll('.sc')];
+const bar = document.getElementById('bar');
+const stage = document.getElementById('stage');
+const TOTAL = T.reduce((a,b)=>a+b,0);
+
+function fit(){
+  const k = Math.min(innerWidth/1080, innerHeight/1920);
+  stage.style.transform = `translate(-50%,-50%) scale(${k})`;
+}
+addEventListener('resize', fit); fit();
+
+let timers = [], raf = 0;
+function play(){
+  timers.forEach(clearTimeout); timers = []; cancelAnimationFrame(raf);
+  scenes.forEach(s => s.classList.remove('on'));
+  // Перезапуск CSS-анимаций
+  void stage.offsetWidth;
+
+  let t = 0;
+  scenes.forEach((s, i) => {
+    timers.push(setTimeout(() => {
+      scenes.forEach(x => x.classList.remove('on'));
+      s.classList.add('on');
+    }, t));
+    t += T[i];
+  });
+  timers.push(setTimeout(play, TOTAL + 700)); // цикл
+
+  const t0 = performance.now();
+  (function tick(now){
+    const p = Math.min(1, (now - t0) / TOTAL);
+    bar.style.width = (p * 100) + '%';
+    if (p < 1) raf = requestAnimationFrame(tick);
+  })(t0);
+}
+
+addEventListener('keydown', e => {
+  if (e.code === 'Space'){ e.preventDefault(); play(); }
+  if (e.key === 'h' || e.key === 'H' || e.key === 'р' || e.key === 'Р')
+    document.body.classList.toggle('clean');
+});
+
+play();
+</script>
+</body>
+</html>

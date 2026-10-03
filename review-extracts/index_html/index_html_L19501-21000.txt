@@ -1,0 +1,1501 @@
+// ИЗВЛЕЧЕНИЕ ДЛЯ ЧТЕНИЯ: index.html, строки 19501–21000 из 31008. Номера строк совпадают с оригиналом. Код не менялся.
+19501|   };
+19502| }
+19503| 
+19504| /* sets */
+19505| $('bAddSet').onclick=()=>{
+19506|   const day=dayToday();
+19507|   const cur=day&&day.ex.find(i=>SETS.filter(s=>s.d===td()&&s.e===i.n).length<i.sets);
+19508|   openSetSheet(cur||null);
+19509| };
+19510| $('st_e').onchange=stPrev;
+19511| function stPrev(){
+19512|   const e=$('st_e').value, box=$('st_prev');
+19513|   /* Сегодняшний день берём через dayToday (подстройка по готовности), а по
+19514|      остальным дням — как раньше: там подстройки нет и быть не должно. */
+19515|   const item=((dayToday()||{ex:[]}).ex.find(i=>i.n===e))
+19516|     ||(S.prog?S.prog.plan:[]).flatMap(d=>d.ex).find(i=>i.n===e);
+19517|   const todaySets=SETS.filter(s=>s.d===td()&&s.e===e);
+19518|   const prev=[...SETS].filter(s=>s.e===e&&s.d!==td()).sort((a,b)=>a.d<b.d?1:-1);
+19519|   let html='';
+19520|   if(item){
+19521|     const ns=nextSet(item,vDay||td());
+19522|     html=`<b>Подход ${ns.n} из ${item.sets}</b> · цель ${repsTxt(item)} ${exTimed(item.n)?'сек':'повт.'}<br>${ns.msg}`;
+19523|     // подставляем вес и повторы — пользователь подтверждает; RPE оставляем пустым (по желанию)
+19524|     if(ns.w!=null&&ns.w>0) $('st_w').value=ns.w;
+19525|     $('st_r').value=ns.r;
+19526|   }else{
+19527|     $('st_w').value='';$('st_r').value='';$('st_rpe').value='';
+19528|   }
+19529|   if(todaySets.length)
+19530|     html+=`<br><br><b>Сегодня уже:</b> ${todaySets.map(s=>s.w+'×'+s.r).join(', ')}`;
+19531|   if(prev.length){
+19532|     const day=prev[0].d, ss=prev.filter(s=>s.d===day);
+19533|     html+=`<br><b>Прошлый раз (${fd(day)}):</b> ${ss.map(s=>s.w+'×'+s.r).join(', ')}`;
+19534|     if(!item){const best=ss.reduce((a,s)=>s.w*s.r>a.w*a.r?s:a,ss[0]);
+19535|       $('st_w').value=best.w;$('st_r').value=best.r}
+19536|   }
+19537|   box.innerHTML=html||'Первый раз делаешь это упражнение — подбери вес, чтобы последние повторы были тяжёлыми.';
+19538| }
+19539| $('bStOk').onclick=async()=>{
+19540|   if(stPick){                     // режим выбора упражнения (не логируем подход)
+19541|     const name=$('st_e').value;
+19542|     if(swapName){                   // ЗАМЕНА упражнения плана
+19543|       const from=swapName;
+19544|       swapName=null; stPick=false;
+19545|       const sf1=$('stFields'); if(sf1) sf1.style.display='';
+19546|       const sp1=$('st_prev'); if(sp1) sp1.style.display='';
+19547|       $('bStOk').textContent='Добавить подход';
+19548|       sheet('sh-st',false);
+19549|       /* Причина доезжает до замены: «занято» — на сегодня, «больно» — насовсем. */
+19550|       await applySwap(from,name,null,(window.__swapWhy==='busy')?'today':'perm');
+19551|       return;
+19552|     }
+19553|     {const D=vDay||td();
+19554|      /* v666: две двери с одним выбором движения. С вкладки «Программа»
+19555|         (_addToProg — номер дня) движение встаёт в программу дня недели
+19556|         навсегда; с экрана тренировки — в ЭТУ ДАТУ, со схемой, и видно сразу.
+19557|         Полевой отчёт владельца 27.09: «не мог добавить упражнение в свой день» —
+19558|         «+ Упражнение» на дне тренировки писало в программу дня недели (три
+19559|         подхода трицепса на четверг стали упражнением в обоих днях ног), а
+19560|         на прожитом дне, который строится по снимку, не показывалось вовсе. */
+19561|      const _pi=(window._addToProg!=null)?+window._addToProg:null; window._addToProg=null;
+19562|      const P0=S.prog, dw0=effDow(D);
+19563|      const day0=(_pi!=null)?(P0&&P0.plan&&P0.plan[_pi]):(P0&&P0.plan&&P0.plan.find(d=>d.dow===dw0));
+19564|      // добавляют имя, которое было убрано из плана — возвращаем плановую карточку
+19565|      if(day0&&exUnhide(day0,name)){ S.ua=Date.now(); put('settings',S,'main').catch(()=>{}); toast('Вернул на место — со схемой и историей'); }
+19566|      else if(_pi==null&&name&&!(day0&&day0.ex.some(i=>i.n===name&&!i.hidden))){
+19567|        if(!extraEx.some(x=>x.d===D&&x.n===name)){
+19568|          const _m=!!(EM[name]&&EM[name].main), _rg=exRange(name,(P0&&P0.cfg&&P0.cfg.goal),_m);
+19569|          extraEx.push({d:D,n:name,sets:3,lo:_rg[0],hi:_rg[1],rir:exRIR(name,_m),main:_m}); exExtraSave();
+19570|        }
+19571|        toast('В тренировку '+(D===td()?'сегодня':fd(D))+': '+name.slice(0,24)+' · 3×'+extraEx.find(x=>x.d===D&&x.n===name).lo+'–'+extraEx.find(x=>x.d===D&&x.n===name).hi+' · в программу — на вкладке «Программа»');
+19572|      }
+19573|      else if(day0&&name&&!day0.ex.some(i=>i.n===name)){
+19574|        // На плановый день добавляем ПОЛНОЦЕННУЮ карточку программы: со схемой,
+19575|        // стрелкой ↑ и переживающую перезапуск. Разовая догрузка (extraEx) жила
+19576|        // до перезапуска и без схемы — полевой кейс «добавил обратно — ни места,
+19577|        // ни цели» (упражнение было стёрто жёстким удалением до v180).
+19578|        /* Схема — по цели программы, как у всех остальных дверей. Здесь
+19579|           стояло жёсткое 3×10–15: человек на силовой программе получал
+19580|           от этой двери гипертрофийный диапазон, а от соседней — свой
+19581|           (аудит 27.08). */
+19582|        const _sc0=SCHEME[(P0.cfg&&P0.cfg.goal)]||SCHEME.hyper, _a0=_sc0.acc;
+19583|        const _m0=!!(EM[name]&&EM[name].main), _rg0=exRange(name,(P0.cfg&&P0.cfg.goal),_m0);
+19584|        day0.ex.push({n:name,sets:_a0[0],lo:_rg0[0],hi:_rg0[1],rir:exRIR(name,_m0),
+19585|          main:_m0,custom:!EX.find(e=>e.n===name)});
+19586|        S.ua=Date.now(); put('settings',S,'main').catch(()=>{});
+19587|        /* Выбор человека не блокируем — но если рядом уже стоит то же самое
+19588|           движение другим снарядом, он имеет право узнать это сразу, а не
+19589|           на тренировке. */
+19590|        const _dup0=day0.ex.find(i=>i.n!==name&&!i.hidden&&(function(){
+19591|          try{ return sameStimulus(i.n,name,(P0.cfg||{}).equip); }catch(e){ return false; }})());
+19592|        toast('В программу дня «'+day0.n+'»: '+name.slice(0,24)+' · '+_a0[0]+'×'+_rg0[0]+'–'+_rg0[1]
+19593|          +(_dup0?(' · рядом уже «'+_dup0.n.slice(0,20)+'» — то же движение'):''));
+19594|      }
+19595|      else if(_pi!=null&&day0&&name) toast('«'+name.slice(0,24)+'» уже в этом дне');
+19596|     }
+19597|     stPick=false;
+19598|     const sf=$('stFields'); if(sf) sf.style.display='';
+19599|     const sp=$('st_prev'); if(sp) sp.style.display='';
+19600|     $('bStOk').textContent='Добавить подход';
+19601|     sheet('sh-st',false); rTrain(); try{ if(typeof rProg==='function'&&$('progBox')) rProg(); }catch(e){}
+19602|     return;
+19603|   }
+19604|   const e=$('st_e').value, _in=setInput($('st_w'),$('st_r')); if(!_in) return; const w=_in.w, r=_in.r;
+19605|   const rpe=num($('st_rpe'))||null;
+19606|   await logWorkSet(e,w,r,td(),rpe?{rpe}:null);
+19607|   const day=dayToday();
+19608|   const item=day&&day.ex.find(i=>i.n===e);
+19609|   rTrain();
+19610|   if(item){
+19611|     const done=SETS.filter(s=>s.d===td()&&s.e===e).length;
+19612|     if(done<item.sets){
+19613|       stPrev();                                  // тот же тренажёр, следующий подход — остаёмся
+19614|       toast(`Записано · подход ${done}/${item.sets}`);
+19615|       return;
+19616|     }
+19617|     // упражнение закрыто — просто закрываем, БЕЗ прыжка на другое упражнение
+19618|     sheet('sh-st',false);
+19619|     stDraftClear();
+19620|     toast('✓ '+e.slice(0,24)+' — закрыто');
+19621|     return;
+19622|   }
+19623|   stDraftClear();
+19624|   sheet('sh-st',false); toast('Подход записан');
+19625| };
+19626| function ssPrev(){
+19627|   const a=$('ss_start').value,b=$('ss_end').value;
+19628|   const ex=gymSess(window.__ssEditD||td())||{};
+19629|   if(a&&!b){$('ssPrev').innerHTML='Начал в '+a+'. Закончишь — отметишь, минуты посчитаются.';return}
+19630|   if(!a&&b){$('ssPrev').innerHTML=ex.start?('Допишу конец к началу в '+ex.start):'Укажи и время начала';return}
+19631|   /* Закон экрана: было «Отметь начало, когда заходишь в зал — конец допишешь
+19632|      потом» — инструкция по кнопке. Состояние сообщается состоянием. */
+19633|   if(!a&&!b){$('ssPrev').innerHTML='';return}   // «старт при первом подходе» уже говорит ssAuto строкой выше (обход 06.09)
+19634|   /* v678: поля совпадают с записанной сессией — минуты уже стоят в строке ssAuto,
+19635|      второй раз то же число не пишем (одно число на экране ровно один раз). */
+19636|   if(a===(ex.start||'')&&b===(ex.end||'')){$('ssPrev').innerHTML='';return}
+19637|   let m=(hh(b)-hh(a))*60; if(m<0) m+=1440;
+19638|   $('ssPrev').innerHTML=`<b>${r0(m)} мин</b>${m>150?' — длинновато, следи за качеством последних подходов':''}`;
+19639| }
+19640| $('ss_start').oninput=$('ss_end').oninput=ssPrev;
+19641| $('bSess2').onclick=async()=>{
+19642|   const D=td(); const ex=gymSess(D); if(!ex||!ex.end) return;
+19643|   const now=new Date(), hhmm=String(now.getHours()).padStart(2,'0')+':'+String(now.getMinutes()).padStart(2,'0');
+19644|   await put('sess',{d:D,n:(ex.n||1)+1,start:hhmm,end:null,min:null,rpe:null}); SESS=await all('sess');
+19645|   window.__ssEditD=null; rTrain();
+19646|   try{ sheet('sh-sess',false); }catch(_){}
+19647|   toast('Вторая тренировка: начало '+hhmm);
+19648| };
+19649| $('bSessOpen').onclick=async()=>{
+19650|   const D=window.__ssEditD||td(); const ex=gymSess(D); if(!ex||!ex.end) return;
+19651|   await put('sess',{...ex,end:null,min:null}); SESS=await all('sess');
+19652|   window.__ssEditD=null; rTrain();
+19653|   try{ sheet('sh-sess',false); }catch(_){}
+19654|   toast('Тренировка снова открыта');
+19655| };
+19656| $('bSess').onclick=async()=>{
+19657|   const a=$('ss_start').value,b=$('ss_end').value,rpeRaw=$('ss_rpe').value,rpe=parseFloat(rpeRaw);
+19658|   if(!a&&!b&&!rpeRaw) return toast('Заполни хотя бы одно поле');
+19659|   if(rpeRaw&&(!(rpe>=1)||rpe>10)) return toast('RPE от 1 до 10');
+19660|   const D=window.__ssEditD||td();               // правка из истории целится в ТУ сессию
+19661|   const ex=gymSess(D)||{d:D};
+19662|   const start=a||ex.start||null, end=b||ex.end||null;
+19663|   let min=ex.min||null;
+19664|   if(start&&end){ min=Math.round((hh(end)-hh(start))*60); if(min<0) min+=1440;
+19665|     if(min<5||min>300) return toast('Проверь время'); }
+19666|   const rec={...ex,d:D,start,end,min,rpe:rpeRaw?rpe:(ex.rpe||null)};
+19667|   await put('sess',rec);
+19668|   SESS=await all('sess');
+19669|   /* Тренировка закрыта — отдых кончился (v523). Таймер шёл дальше: вибрация
+19670|      и «Отдых закончился» уже в раздевалке, wake-lock держал экран, полоса
+19671|      лежала поверх «Спросить тренера» и в день отдыха. */
+19672|   if(end&&D===td()){ try{ stopRest(); }catch(_){} }
+19673|   window.__ssEditD=null;
+19674|   $('ss_start').value='';$('ss_end').value='';$('ss_rpe').value='';
+19675|   rTrain();
+19676|   try{ sheet('sh-sess',false); }catch(_){}
+19677|   toast((D!==td()?fd(D)+': ':'')+(min?('нагрузка '+(rec.rpe?r0(min*rec.rpe)+' · ':'')+min+' мин'):(start?'начало записано':'записано')));
+19678|   try{ sessDebrief(D); }catch(e){}
+19679|   // раз в неделю двигаем объём по накопленным ощущениям (механика RP)
+19680|   try{
+19681|     if(!S.fbApp||dn(td())-dn(S.fbApp)>=7){
+19682|       S.fbApp=td();
+19683|       fbApply().then(ch=>{ if(ch&&ch.length) toast('Объём подстроен по твоим ощущениям: '+ch.length+' группы'); });
+19684|     }
+19685|   }catch(e){}
+19686| };
+19687| /* РАЗБОР ТРЕНИРОВКИ (поле 18.08: «тренер должен учитывать, что я не сделал»).
+19688|    Локальный, без ИИ и без сети: сравнивает план с журналом и говорит по факту —
+19689|    что пропущено, где просел, где вырос, что убрано из-за боли. Даёт следующий
+19690|    шаг, а не оценку. Показывается сразу после закрытия тренировки. */
+19691| function sessDebrief(D){
+19692|   D=D||td();
+19693|   const P=S.prog, dw=effDow(D); let day=P&&P.plan&&P.plan.find(d=>d.dow===dw);
+19694|   /* Разбор считает по ТОМУ ЖЕ дню, который человек видел. Иначе получается
+19695|      «сам срезал подход по низкой готовности и сам написал: объём недобран» —
+19696|      ровно та болезнь, за которую нас поймали 24.08 на разгрузке. */
+19697|   if(D===td()&&day){ try{ const a=rdShift(day); if(a) day=a.day; }catch(e){} }
+19698|   const _sxS=gymSess(D);
+19699|   const sets=_sxS?sessSets(_sxS):SETS.filter(s=>s.d===D&&!s.wu);
+19700|   if(!sets.length&&!day) return;
+19701|   const L=[];
+19702|   const doneNames=[...new Set(sets.map(s=>s.e))];
+19703|   /* Ни одного рабочего подхода — не разбирать «не сделано: всё семь, подберём
+19704|      замену»: человек сделал разминку и закрыл, менять упражнения тут не при чём. */
+19705|   const _sx0=(typeof gymSess==='function')?gymSess(D):null;
+19706|   if(day&&!sets.length&&_sx0&&_sx0.end){
+19707|     L.push('<b>Подходов нет</b> — тренировка не засчитана. Передумал — «Тяжесть · править» → «Открыть тренировку снова».');
+19708|     $('aiBody').innerHTML='<div class="ib" style="white-space:normal">'+L.join('<br><br>')+'</div>';
+19709|     sheet('sh-ai',true); return;
+19710|   }
+19711|   /* ── v653: РАЗБОР ПО ТОМУ ДНЮ, КОТОРЫЙ БЫЛ, А НЕ ПО СЕГОДНЯШНЕЙ ПРОГРАММЕ ──
+19712|      Живой прогон по аккаунту владельца 25.09: разбор прошлых дней сверял
+19713|      журнал с ТЕКУЩЕЙ программой — «не сделано: Сведение рук на блоке лёжа»
+19714|      в день, когда в плане стояла бабочка и она сделана; замена «жим стоя →
+19715|      жим сидя» читалась как пропуск; «Убрано сегодня» писалось про прошлые
+19716|      даты; каждое упражнение получало своё «рост, так держать», а рост
+19717|      считался по весу без повторов (100×8 → 130×3 — «рост»). Теперь: план —
+19718|      снимок того дня (dayPlanSnap), замены по той же мышце засчитаны,
+19719|      рост — по оценке 1ПМ лучшего подхода, одна строка на вид находки. */
+19720|   const _past=D<td();
+19721|   const planNames=(_past&&S.dayPlan&&Array.isArray(S.dayPlan[D])&&S.dayPlan[D].length)?S.dayPlan[D].slice()
+19722|     :(day?day.ex.filter(i=>!i.hidden).map(i=>i.n):[]);
+19723|   const planItem=n=>(day&&day.ex.find(i=>i.n===n))||null;
+19724|   const topMus=n=>{ const e=EX.find(x=>x.n===n); if(!e||!e.m) return null; return Object.keys(e.m).sort((a,b)=>e.m[b]-e.m[a])[0]; };
+19725|   const missed0=planNames.filter(n=>!doneNames.includes(n));
+19726|   const extra=doneNames.filter(n=>!planNames.includes(n));
+19727|   const swaps=[], missed=[];
+19728|   missed0.forEach(n=>{
+19729|     const k=extra.findIndex(x=>{ try{ if(sameStimulus(n,x,(P&&P.cfg||{}).equip)) return true; }catch(e){} const a=topMus(n); return !!a&&a===topMus(x); });
+19730|     if(k>=0){ swaps.push([n,extra[k]]); extra.splice(k,1); } else missed.push(n);
+19731|   });
+19732|   const doneCnt=planNames.length?planNames.length-missed.length:doneNames.length;
+19733|   { const _ss=gymSess(D), mins=_ss&&_ss.min;
+19734|     L.push('<b>Сделано:</b> '+(planNames.length?doneCnt+' из '+planNames.length+' упражнений':doneNames.length+' упражн.')+' · '+sets.length+' подх.'+(mins?' · '+mins+' мин':'')); }
+19735|   /* v666: день без плана (выходной, движения выбрал сам) — сверять не с чем; тренеру
+19736|      это говорится словами, иначе он выдумывает «из 9 упражнений закрыл 5» (27.09). */
+19737|   if(!planNames.length&&doneNames.length) L.push('<b>День свой:</b> движения выбраны тобой, плана на этот день не было — «не сделано» здесь не бывает.');
+19738|   if(missed.length) L.push('<b>Не сделано:</b> '+missed.map(esc).join(', ')+'.');
+19739|   if(swaps.length) L.push('<b>Замены:</b> '+swaps.map(x=>esc(x[0])+' → '+esc(x[1])).join(' · ')+'.');
+19740|   { const short=planNames.map(n=>{ const it=planItem(n)||(()=>{ const sw=swaps.find(x=>x[0]===n); return sw?planItem(sw[0]):null; })(); const nm=(swaps.find(x=>x[0]===n)||[0,n])[1];
+19741|       const got=sets.filter(s=>s.e===nm).length; return (it&&got&&got<it.sets)?esc(nm)+' '+got+' из '+it.sets:null; }).filter(Boolean);
+19742|     if(short.length) L.push('<b>Недобрано подходов:</b> '+short.join(' · ')+' — в следующий раз начни с них.'); }
+19743|   if(!_past&&day){ const hiddenN=day.ex.filter(i=>i.hidden).map(i=>i.n);
+19744|     if(hiddenN.length) L.push('<b>Убрано сегодня:</b> '+hiddenN.map(esc).join(', ')+(hiddenN.some(n=>painHas(n))?' — помню, что больно: из программы уже убрал.':'.')); }
+19745|   /* рост и просадка — по оценке 1ПМ лучшего подхода, а не по весу: 100×8 и 130×3 — почти одно и то же */
+19746|   const bestOf=arr=>arr.reduce((b,s)=>{ const w=+s.w||0, r=+s.r||0, v=w>0?e1rm(w,r):r; return (!b||v>b.v)?{v,w,r}:b; },null);
+19747|   const setTxt=b=>b.w>0?r1(b.w)+'×'+b.r:b.r+' повт.';
+19748|   const up=[], down=[];   // up: [текст, доля роста] — показываем три самых заметных
+19749|   doneNames.forEach(n=>{
+19750|     const mine=sets.filter(s=>s.e===n), past=SETS.filter(s=>s.e===n&&s.d<D&&!s.wu);
+19751|     if(!mine.length||!past.length) return;
+19752|     const lastD=past.reduce((m,s)=>s.d>m?s.d:m,'');
+19753|     const b=bestOf(mine), pb=bestOf(past.filter(s=>s.d===lastD));
+19754|     if(!b||!pb||!(pb.v>0)) return;
+19755|     if(b.v>pb.v*1.025) up.push([esc(n)+' '+setTxt(b)+' (было '+setTxt(pb)+')',b.v/pb.v]);
+19756|     else if(b.v<pb.v*0.9){ const pos=exPosToday(n,D); down.push(esc(n)+' '+setTxt(b)+' (было '+setTxt(pb)+')'+(pos>2?' — шло '+pos+'-м, это усталость':'')); }
+19757|   });
+19758|   if(up.length){ up.sort((x,y)=>y[1]-x[1]); L.push('<b>Рост:</b> '+up.slice(0,3).map(x=>x[0]).join(' · ')+(up.length>3?' · и ещё '+(up.length-3):'')+'.'); }
+19759|   if(down.length) L.push('<b>Ниже прошлого:</b> '+down.join(' · ')+'. Один раз — норма; повторится дважды подряд — снизим цель.');
+19760|   if(L.length===1) L.push('Всё по плану — менять ничего не надо.');
+19761|   { let hn=''; try{ const ss=gymSess(D), h=(ss&&ss.start&&/^\d{1,2}:/.test(ss.start))?parseInt(ss.start,10):undefined; hn=heavyNote(D,h); }catch(e){}
+19762|     if(hn) L.push('<b>Еда перед залом:</b> '+hn); }   // v642: факт в разборе, а не баннер на «Еде»
+19763|   $('aiT').textContent='Разбор тренировки · '+fd(D);
+19764|   $('aiBody').innerHTML='<div class="ib" style="white-space:normal">'+L.join('<br><br>')+'</div>'
+19765|     +(aiReady()?'<div id="dbgAi" class="wc-sub" style="margin-top:12px;color:var(--t3)"><span class="load"></span>Тренер смотрит тренировку…</div>':'')
+19766| ;
+19767|   sheet('sh-ai',true);
+19768|   // Слово тренера поверх фактов (предложение 18.08): один живой абзац
+19769|   // с учётом боли, еды и сна. Не дошло — экран уже полезен без него.
+19770|   if(aiReady()) coachDebrief(D,L).catch(function(){
+19771|     const el=$('dbgAi'); if(el) el.innerHTML='Тренер не ответил (нет связи) — факты выше не зависят от интернета.';
+19772|   });
+19773| }
+19774| async function coachDebrief(D,facts){
+19775|   const txt=await aiText('Ты тренер, который только что смотрел эту тренировку вживую. Ниже ФАКТЫ тренировки и ДАННЫЕ человека (в них блок «СЕЙЧАС»: час дня и что впереди). '
+19776|     +'Напиши ОДИН абзац, 2–4 предложения, на «ты», как живой человек, а не отчёт: назови одно-два конкретных упражнения с цифрами (вес × повторы) и что поставить в следующий раз. '
+19777|     +'Замена упражнения — засчитана, не пропуск. Если приёмы пищи ещё впереди — калории дня не оценивай вовсе. '
+19778|     +'Не пересказывай факты, не хвали дежурно, не говори «прогрессируешь» без числа. Боль важнее прогресса. '
+19779|     +'Объём недобран из-за времени — скажи, чем пожертвовать в следующий раз.\n\nФАКТЫ:\n'
+19780|     +facts.join('\n').replace(/<[^>]+>/g,'')+'\n\nДАННЫЕ:\n'+coachCtx(), 400, 'analysis');
+19781|   const el=$('dbgAi');
+19782|   if(el&&txt) el.innerHTML='<b style="color:var(--ac2)">Тренер:</b> '+esc(txt);
+19783| }
+19784| /* ── Активность вне зала: бег, падел, вело — что угодно ──
+19785|    Пишется в тот же store сессий с полем act, поэтому автоматически попадает
+19786|    в историю и в ACWR (loads суммирует rpe×min по всем записям дня).
+19787|    Зальные авто-сессии ищутся только через gymSess — записи с act их не ломают. */
+19788| /* ── ДВЕ ТРЕНИРОВКИ В ОДИН ДЕНЬ (полевой отчёт владельца 09.09) ──
+19789|    Сессия была одна на дату: утренняя закрыта, вечерний старт «попадал в
+19790|    первую» — подходы вечера ложились в закрытую сессию, шапка показывала
+19791|    «Сделано», разбор смешивал обе. Теперь у сессии есть номер в дне (n),
+19792|    gymSess отдаёт ОТКРЫТУЮ, а если открытой нет — последнюю; подходы делятся
+19793|    между сессиями по времени записи (ua): от старта этой до старта следующей. */
+19794| function gymSessAll(d){ return SESS.filter(x=>x.d===d&&!x.act).sort((a,b)=>(a.n||1)-(b.n||1)); }
+19795| function gymSess(d){ const a=gymSessAll(d); return a.find(x=>x.start&&!x.end)||a[a.length-1]||undefined; }
+19796| function sessEpoch(D,hhmm){ try{ const [y,m,d]=String(D).split('-').map(Number); const h=hh(hhmm||'00:00'); return new Date(y,m-1,d,Math.floor(h),Math.round((h%1)*60)).getTime(); }catch(e){ return 0; } }
+19797| function sessSets(ses,withWu){
+19798|   const D=ses&&ses.d; if(!D) return [];
+19799|   const day=SETS.filter(x=>x.d===D&&(withWu||!x.wu));
+19800|   const sib=gymSessAll(D); if(sib.length<2||!ses.start) return day;
+19801|   const n=ses.n||1, t0=sessEpoch(D,ses.start);
+19802|   const nx=sib.find(x=>(x.n||1)>n&&x.start), t1=nx?sessEpoch(D,nx.start):Infinity;
+19803|   return day.filter(x=>(x.ua>0)?(x.ua>=t0&&x.ua<t1):n===1);   // подход без метки времени — первой сессии
+19804| }
+19805| function sessPart(hhmm){ const h=hh(hhmm||'12:00'); return h<12?'утро':(h<17?'день':'вечер'); }
+19806| /* Открытая сессия прошлого дня закрывается сама: конец — по последнему подходу
+19807|    того дня (+8 мин на выход). Полевой кейс 02.08: старт 23:06, финиш за полночь —
+19808|    сессия висела «открытой» и мешала новым дням. Полночь учтена: минуты от ua. */
+19809| async function sweepStaleSess(_w){
+19810|   const wr=_w||(async(st,row)=>{ try{ await put(st,row); }catch(_){}});
+19811|   let n=0;
+19812|   for(const ses of SESS){
+19813|     if(ses.act||ses.d>=td()||!ses.start||ses.end||ses.min) continue;
+19814|     let ss=sessSets(ses,true).filter(x=>x.ua>0).sort((a,b)=>a.ua-b.ua), night=false;
+19815|     if(!ss.length&&hh(ses.start)>=20&&!gymSess(ds(dn(ses.d)+1))){
+19816|       // старт 23:06, все подходы легли за полночь со следующей датой (кейс 30.07):
+19817|       // берём «ночные» подходы следующего дня (до 6 утра по часам записи) как хвост этой сессии
+19818|       ss=SETS.filter(x=>x.d===ds(dn(ses.d)+1)&&x.ua>0&&new Date(x.ua).getHours()<6).sort((a,b)=>a.ua-b.ua);
+19819|       night=ss.length>0;
+19820|     }
+19821|     if(!ss.length) continue;
+19822|     let min,end;
+19823|     if(night){
+19824|       const lt=new Date(ss[ss.length-1].ua+8*60000);
+19825|       end=String(lt.getHours()).padStart(2,'0')+':'+String(lt.getMinutes()).padStart(2,'0');
+19826|       min=Math.round((hh(end)-hh(ses.start))*60); if(min<0) min+=1440;
+19827|       min=Math.max(15,Math.min(300,min));
+19828|     }else{
+19829|       min=Math.round((ss[ss.length-1].ua-ss[0].ua)/60000)+8;
+19830|       min=Math.max(15,Math.min(300,min));
+19831|       const m=Math.round(hh(ses.start)*60+min)%1440;
+19832|       end=String(Math.floor(m/60)).padStart(2,'0')+':'+String(m%60).padStart(2,'0');
+19833|     }
+19834|     /* Флаг «закрывать самому» до сих пор не читал никто: во всём приложении
+19835|        он встречался ровно один раз — там, где его ставят. Обещание «буду
+19836|        закрывать сам» само по себе и не помогало: закрытая сессия без оценки
+19837|        тяжести даёт нагрузку rpe×min = 0, то есть ровно то, на что жаловалась
+19838|        карточка («без этого не считается нагрузка и разгрузка»). Раз человек
+19839|        нажал «Включить» — ставим и оценку по его режиму усилия, помечая её
+19840|        как автоматическую: поправить одним тапом в «Закрыть тренировку».
+19841|        Тем, кто не нажимал, ничего не выдумываем (аудит 22.08). */
+19842|     const _rp=(S.autoClose&&!(ses.rpe>0))?({health:6,growth:7.5,hard:8.5}[S.effort||'growth']||7.5):ses.rpe;
+19843|     await wr('sess',{...ses,end,min,rpe:_rp,auto:1,rpeAuto:(S.autoClose&&!(ses.rpe>0))?1:ses.rpeAuto}); n++;
+19844|   }
+19845|   /* ── v654: ЗАКРЫТЬ, ЕСЛИ БОЛЬШЕ НИЧЕГО НЕ НАДО ──
+19846|      Полевой отчёт владельца 24.09: «у меня горит от вторника — закрой
+19847|      тренировку; если ничего не надо, пусть закроется сама». Два дыры:
+19848|      (1) прошлый день с рабочими подходами, но БЕЗ записи тренировки (подходы
+19849|      легли в чужую дату, сессия не завелась) висел незакрытым навсегда —
+19850|      закрываем по времени самих подходов; (2) сегодняшняя тренировка, где
+19851|      последний рабочий подход был больше 90 минут назад, — закрываем по
+19852|      последнему подходу +8 минут. Оценка тяжести — как у остальных
+19853|      автозакрытий: только если человек включал «закрывать самому». */
+19854|   const hm=t=>{ const d=new Date(t); return String(d.getHours()).padStart(2,'0')+':'+String(d.getMinutes()).padStart(2,'0'); };
+19855|   const _rpA=()=>S.autoClose?({health:6,growth:7.5,hard:8.5}[S.effort||'growth']||7.5):null;
+19856|   const _days=[...new Set(SETS.filter(x=>!x.wu&&x.d<td()&&dn(td())-dn(x.d)<=14).map(x=>x.d))];
+19857|   for(const d of _days){
+19858|     if(gymSessAll(d).length) continue;
+19859|     const ss=SETS.filter(x=>x.d===d&&x.ua>0).sort((a,b)=>a.ua-b.ua); if(!ss.length) continue;
+19860|     const t0=ss[0].ua-5*60000, t1=ss[ss.length-1].ua+8*60000;
+19861|     const min=Math.max(15,Math.min(300,Math.round((t1-t0)/60000)));
+19862|     const rp=_rpA();
+19863|     await wr('sess',{d,n:1,start:hm(t0),end:hm(t1),min,rpe:rp,auto:1,fromSets:1,...(rp?{rpeAuto:1}:{})}); n++;
+19864|   }
+19865|   { const ses=gymSess(td());
+19866|     if(ses&&ses.start&&!ses.end){
+19867|       const ss=sessSets(ses,false).filter(x=>x.ua>0).sort((a,b)=>a.ua-b.ua);
+19868|       const last=ss.length?ss[ss.length-1].ua:0;
+19869|       if(last&&Date.now()-last>90*60000){
+19870|         const t1=last+8*60000; let min=Math.round((hh(hm(t1))-hh(ses.start))*60); if(min<0) min+=1440; min=Math.max(15,Math.min(300,min));
+19871|         const rp=(S.autoClose&&!(ses.rpe>0))?_rpA():ses.rpe;
+19872|         await wr('sess',{...ses,end:hm(t1),min,rpe:rp,auto:1,idleClosed:1,rpeAuto:(S.autoClose&&!(ses.rpe>0))?1:ses.rpeAuto}); n++;
+19873|       }
+19874|     }
+19875|   }
+19876|   if(n&&!_w){ SESS=await all('sess'); }
+19877|   return n;
+19878| }
+19879| /* ── Подсказки за кнопкой «?» ──
+19880|    .note скрыта CSS-ом; перед каждой вставляется маленькая «?», тап раскрывает.
+19881|    Работает глобально через MutationObserver — call-sites менять не нужно. */
+19882| /* ── «ПОДРОБНЕЕ» НАД ПУСТОТОЙ ──
+19883|    Полевой отчёт владельца 30.08: «раскрываю подробнее на белках, жирах и
+19884|    углеводах — там ничего, причём неважно, заполнено или нет».
+19885|    Он прав, и это не про эту карточку. Замысел был правильный: объяснение
+19886|    живёт за жестом, а не абзацем под цифрами. Но кнопка вешалась на КАЖДУЮ
+19887|    подсказку без разбора, а часть подсказок заполняется по условию — на
+19888|    карточке БЖУ блок объяснения появляется только тогда, когда раскладку
+19889|    пришлось ужать под дефицит. Всё остальное время человек жал «Подробнее»
+19890|    и получал пустоту: кнопка обещала объяснение, которого нет.
+19891|    Правило: кнопка заводится только над подсказкой, в которой ЕСТЬ ЧТО
+19892|    ПОКАЗАТЬ. Пустая подсказка кнопки не получает, а если её наполнят
+19893|    позже — получит на следующей перерисовке (наблюдатель уже стоит). */
+19894| function hintHasText(n){
+19895|   try{
+19896|     if(n.style&&n.style.display==='none') return false;
+19897|     const t=(n.textContent||'').replace(/\s+/g,' ').trim();
+19898|     if(t.length>1) return true;
+19899|     /* Подсказка может быть не текстом, а содержимым: картинка, график,
+19900|        список кнопок. Пустая — это когда внутри нет ни того, ни другого. */
+19901|     return !!(n.children&&n.children.length);
+19902|   }catch(e){ return true; }
+19903| }
+19904| /* ── ЗАЩЁЛКА ОТ САМОЗАЦИКЛИВАНИЯ ──
+19905|    Найдено мутацией M622 30.08 — и это оказалось хуже самой мутации.
+19906|    collapseHints ДОБАВЛЯЕТ кнопки одним проходом и СНИМАЕТ их другим, а
+19907|    вызывается он наблюдателем за изменениями DOM. Пока оба прохода
+19908|    согласованы (добавляем непустым, снимаем с пустых), всё тихо. Стоит им
+19909|    разойтись — добавили и тут же сняли — наблюдатель видит изменение,
+19910|    зовёт функцию снова, и приложение крутится намертво: браузер не отвечает,
+19911|    человек видит зависший экран. Так и случилось на мутации: прогон встал
+19912|    на четырнадцатой минуте вместо четырёх.
+19913|    Рассогласование — это баг, и его чинят. Но цена бага не должна быть
+19914|    «телефон завис»: защёлка не даёт функции вызвать саму себя через
+19915|    наблюдателя. Худшее, что теперь может случиться, — кнопка на один кадр
+19916|    не там, где надо. */
+19917| let _chBusy=false;
+19918| function collapseHints(){
+19919|   if(typeof document==='undefined'||!document.querySelectorAll) return;
+19920|   if(_chBusy) return;
+19921|   _chBusy=true;
+19922|   try{ _collapseHints(); } finally {
+19923|     /* Отпускаем не сразу: изменения, которые мы сами внесли, доедут до
+19924|        наблюдателя следующим тиком, и без паузы он войдёт сюда снова. */
+19925|     setTimeout(()=>{ _chBusy=false; },0);
+19926|   }
+19927| }
+19928| /* ── СПРАВОЧНИК: КУДА УЕХАЛА ПРОЗА ──
+19929|    Полевой отчёт владельца 31.08, «Тело → Шаги и сон»: «эта вся лишняя вода
+19930|    с "подробнее" и твои тексты — мы о них начинаем забывать на важных экранах,
+19931|    и меня и жену они просто раздражают». Замер подтвердил: 125 блоков,
+19932|    26 798 символов — пятнадцать страниц А4 внутри рабочего приложения,
+19933|    и на одной вкладке «Шаги и сон» три строки «Подробнее» подряд.
+19934|    Объяснение функции читают ОДИН раз, а строка под ним стоит вечно —
+19935|    у неё нет состояния «прочитано». Значит место объяснения не на рабочем
+19936|    экране: рабочий экран — это поле, кнопка и цифра.
+19937|    Правило: подсказка на рабочем экране (внутри section.view) не получает
+19938|    кнопки вообще — её текст уезжает в «Настройки → Справка», где лежит
+19939|    разложенным по экранам и карточкам. В листах (настройки, диалоги) человек
+19940|    уже пришёл разбираться — там «Подробнее» остаётся.
+19941|    Круглую «?» рядом с заголовком не ставим: её уже пробовали 19.08 и она
+19942|    читалась как забытый элемент. Вместо кнопки — одно место, где лежит всё. */
+19943| const HELP=new Map();
+19944| function helpTitle(n){
+19945|   const card=n.closest('.card'), det=n.closest('details');
+19946|   const h=card&&card.querySelector('.hd h2,.hd h3');
+19947|   if(h&&h.textContent.trim()) return h.textContent.trim();
+19948|   const s=det&&det.querySelector('summary');
+19949|   if(s&&s.textContent.trim()) return s.textContent.trim();
+19950|   return '';
+19951| }
+19952| function helpScreen(n){
+19953|   const sh=n.closest('.sheet');
+19954|   if(sh){ const t=sh.querySelector('.in>h3>span');
+19955|     return t&&t.textContent.trim()?t.textContent.trim():'Настройки'; }
+19956|   const v=n.closest('section.view');
+19957|   if(!v) return '';
+19958|   /* Группируем по экрану, а не по подвкладке: подвкладка — это то, что было
+19959|      открыто в момент сбора, и один «Еда» разъезжался на «Еда» и «Еда ·
+19960|      Завтрак». Внутри группы человека ведёт название карточки. */
+19961|   const k=(v.id||'').replace(/^v-/,'');
+19962|   return (typeof TT!=='undefined'&&TT[k])||k;
+19963| }
+19964| function helpCollect(n){
+19965|   const scr=helpScreen(n); if(!scr) return;
+19966|   const ttl=helpTitle(n), html=n.innerHTML;
+19967|   HELP.set(scr+'|'+ttl+'|'+html.slice(0,80),{scr,ttl,html});
+19968| }
+19969| /* Справка собирается из живых подсказок плюс из тех, что уже попадались:
+19970|    часть объяснений появляется только в своём состоянии (цель ужали, разгрузка
+19971|    идёт), и увидеть их списком заранее человек не может. */
+19972| function rHelp(){
+19973|   try{ const cb=$('canBox'); if(cb) cb.innerHTML=canDoHTML(0); }catch(_){}
+19974|   const box=$('helpBox'); if(!box) return;
+19975|   document.querySelectorAll('section.view .note:not(.keep),.sheet .note:not(.keep)').forEach(n=>{ if(hintHasText(n)) helpCollect(n); });
+19976|   const by=new Map();
+19977|   HELP.forEach(v=>{ if(!by.has(v.scr)) by.set(v.scr,[]); by.get(v.scr).push(v); });
+19978|   if(!by.size){ box.innerHTML='<div class="note keep" style="margin-top:0">Пока пусто — справка наполняется теми экранами, которые ты открывал.</div>'; return; }
+19979|   const out=[];
+19980|   by.forEach((list,scr)=>{
+19981|     out.push('<div class="hd" style="margin-top:14px;margin-bottom:8px"><h3>'+esc(scr)+'</h3></div>');
+19982|     list.forEach(v=>{
+19983|       out.push('<div style="margin-bottom:12px">'
+19984|         +(v.ttl?'<div class="mini" style="margin-bottom:2px">'+esc(v.ttl)+'</div>':'')
+19985|         +'<div class="note keep" style="margin-top:0">'+v.html+'</div></div>');
+19986|     });
+19987|   });
+19988|   box.innerHTML=out.join('');
+19989| }
+19990| function _collapseHints(){
+19991|   document.querySelectorAll('.note:not(.keep):not([data-hq])').forEach(n=>{
+19992|     if(!n.parentNode) return;
+19993|     if(!hintHasText(n)) return;                // пустой подсказке кнопка не нужна
+19994|     n.dataset.hq='1';
+19995|     /* Кнопки нет нигде — ни на рабочем экране, ни в листе настроек (решение
+19996|        владельца 31.08: «убери и в настройках тоже, везде»). CSS и так держит
+19997|        .note:not(.open) скрытой — значит на экране не остаётся ни строки,
+19998|        а текст уезжает в «Справку».
+19999|        Кроме одного случая: если внутри подсказки живёт орган управления
+20000|        (поле, кнопка, ссылка), спрятать её значит отрезать человека от
+20001|        функции. Нашлось сразу — поле «Имя команды» в карточке шагов. Такой
+20002|        блок не подсказка, и в «Справку» он не уезжает. */
+20003|     if(helpScreen(n)&&!n.querySelector('input,select,textarea,button,a[href]')){
+20004|       n.dataset.hq='help'; helpCollect(n); return; }
+20005|     const b=document.createElement('button');
+20006|     b.className='hintq'; b.type='button'; b.textContent='Подробнее'; b.setAttribute('aria-label','Подсказка');
+20007|     b.onclick=ev=>{ev.stopPropagation(); const on=n.classList.toggle('open'); b.classList.toggle('on',on); b.textContent=on?'Свернуть':'Подробнее';};
+20008|     n.parentNode.insertBefore(b,n);
+20009|   });
+20010|   /* Обратный ход: подсказку могли ОПУСТОШИТЬ перерисовкой (цель перестали
+20011|      ужимать — объяснению нечего сказать). Кнопка над ней осталась бы жить
+20012|      и обещать пустоту дальше. Снимаем. */
+20013|   document.querySelectorAll('.note[data-hq]').forEach(n=>{
+20014|     if(hintHasText(n)) return;
+20015|     const b=n.previousElementSibling;
+20016|     if(b&&b.classList&&b.classList.contains('hintq')) b.remove();
+20017|     n.classList.remove('open');
+20018|     delete n.dataset.hq;
+20019|   });
+20020| }
+20021| /* ── КЛАВИАТУРА И ЛИСТЫ ──
+20022|    Полевой скриншот 21.08: в настройках при открытой клавиатуре заголовок
+20023|    раздела налез на часы, а поля «Белок» и «Жиры» ушли под панель клавиатуры.
+20024|    Причина одна: iOS не уменьшает высоту окна под клавиатуру, и лист остаётся
+20025|    выше видимой области. Меряем видимую область сами и отдаём в CSS; заодно
+20026|    подкручиваем к активному полю, когда клавиатура доехала. */
+20027| function vvSync(){
+20028|   try{
+20029|     const vv=window.visualViewport;
+20030|     const h=Math.round(vv?vv.height:window.innerHeight);
+20031|     if(!(h>200)) return;                      // мусорный замер игнорируем
+20032|     const r=document.documentElement;
+20033|     r.style.setProperty('--vvh',h+'px');
+20034|     /* Насколько браузер сдвинул видимую область относительно страницы.
+20035|        На iOS при клавиатуре это не ноль, и fixed-оверлеи едут вместе с ней. */
+20036|     r.style.setProperty('--vvt',Math.round((vv&&vv.offsetTop)||0)+'px');
+20037|     r.setAttribute('data-vv','1');
+20038|     /* Клавиатура выехала или спряталась — открытые листы пересчитываются.
+20039|        Иначе лист, открытый на полном экране, остался бы шторкой ровно в тот
+20040|        момент, когда места стало вдвое меньше. */
+20041|     try{ sheetsFit(); }catch(e){}
+20042|   }catch(e){}
+20043| }
+20044| /* Поле, в которое человек тыкнул, обязано остаться на виду. Меряем в
+20045|    координатах ВИДИМОЙ области и двигаем один скроллер — тот, в котором поле
+20046|    лежит. Цель — верхняя треть: выше неудобно, ниже не видно ни следующих
+20047|    полей, ни кнопки. */
+20048| function keepVisible(f){
+20049|   if(!f||!f.getBoundingClientRect) return;
+20050|   const vv=window.visualViewport;
+20051|   const top=Math.round((vv&&vv.offsetTop)||0);
+20052|   const vh=Math.round((vv&&vv.height)||window.innerHeight||0);
+20053|   if(!(vh>200)) return;
+20054|   const лист=f.closest('.sheet.on');
+20055|   let sc=f.parentElement;
+20056|   while(sc&&sc!==document.body){
+20057|     const st=getComputedStyle(sc);
+20058|     if(/(auto|scroll)/.test(st.overflowY)&&sc.scrollHeight>sc.clientHeight+2) break;
+20059|     sc=sc.parentElement;
+20060|   }
+20061|   if(sc===document.body) sc=null;
+20062|   const цель=top+Math.max(12,Math.round(vh*0.28));
+20063|   const d=Math.round(f.getBoundingClientRect().top-цель);
+20064|   if(Math.abs(d)<8) return;
+20065|   if(sc){ sc.scrollTop+=d; return; }
+20066|   /* Своего скроллера нет. Внутри листа документ НЕ трогаем: лист закреплён
+20067|      и прокрутка страницы только увезёт его за экран. */
+20068|   if(лист) return;
+20069|   try{ window.scrollBy({top:d,behavior:'smooth'}); }catch(_){ window.scrollBy(0,d); }
+20070| }
+20071| /* ── ПОРТРЕТ — ОСОЗНАННОЕ РЕШЕНИЕ, НЕ НЕДОДЕЛКА (NAVIGATION.md P3, v595) ──
+20072|    HIG layout велит поддерживать обе ориентации, «unless your experience
+20073|    genuinely requires one». У нас требует: телефон в одной руке между
+20074|    подходами, вторая — на гантели или на снаряде; случайный поворот в
+20075|    кармане или на скамье не должен перестраивать экран с подходами и
+20076|    таймером. Манифест держит portrait в standalone; здесь — та же просьба
+20077|    через Screen Orientation API там, где он есть (Android PWA). Safari API
+20078|    не даёт — там держит манифест. Отказ — тихий, интерфейс не зависит. */
+20079| function lockPortrait(){
+20080|   try{ const o=screen.orientation;
+20081|     if(o&&typeof o.lock==='function'){ const p=o.lock('portrait'); if(p&&p.catch) p.catch(()=>{}); }
+20082|   }catch(e){}
+20083| }
+20084| function startViewportWatch(){
+20085|   vvSync();
+20086|   const vv=window.visualViewport;
+20087|   if(vv){ vv.addEventListener('resize',vvSync); vv.addEventListener('scroll',vvSync); }
+20088|   /* Слушаем и обычный resize: с тех пор как --vvh задаёт ПОЛОЖЕНИЕ оверлея,
+20089|      а не только его высоту, устаревшее значение — это лист, уехавший за
+20090|      экран. Поворот и смена размера окна должны обновлять его наверняка. */
+20091|   addEventListener('resize',vvSync);
+20092|   addEventListener('orientationchange',()=>setTimeout(vvSync,250));
+20093|   /* Поле, в которое человек тыкнул, обязано остаться видимым. Ждём, пока
+20094|      клавиатура доедет: без задержки браузер меряет ещё старую высоту. */
+20095|   document.addEventListener('focusin',e=>{
+20096|     const f=e.target;
+20097|     if(!f||!f.tagName||!/^(INPUT|SELECT|TEXTAREA)$/.test(f.tagName)) return;
+20098|     if(f.type==='file'||f.type==='checkbox'||f.type==='radio') return;
+20099|     /* scrollIntoView({block:'center'}) центрирует в БУМАЖНОМ окне (844 px),
+20100|        а человек видит 400. «Центр» оказывается под клавиатурой, и заодно
+20101|        функция прокручивает ВСЕ родительские скроллеры, включая документ, —
+20102|        после чего fixed-лист уезжает с экрана целиком (полевой скриншот
+20103|        31.08). Считаем сами: двигаем ТОЛЬКО тот скроллер, в котором лежит
+20104|        поле, и ровно настолько, чтобы поле встало в верхнюю треть видимой
+20105|        области. Документ при открытом листе не трогаем вовсе. */
+20106|     setTimeout(()=>{ vvSync(); try{ keepVisible(f); }catch(_){} },330);
+20107|   });
+20108| }
+20109| /* ── ПОЧЕМУ SAFARI ПОКАЗЫВАЛ ЧУЖОЙ GMAIL НАД ЦИФРОВОЙ КЛАВИАТУРОЙ ──
+20110|    Полевой скриншот владельца 31.08: ввод шагов, цифровая клавиатура — и над
+20111|    ней «пароль для этого сайта — [email владельца удалён в публичной копии]».
+20112|    Причина не в поле шагов, а во всём приложении: полей 125, а сказано про
+20113|    них было девяти. Про остальные Safari ничего не знает и ГАДАЕТ — а раз
+20114|    для сайта сохранён пароль, он предлагает его везде, где не запрещено.
+20115|    Настоящие поля входа (почта, пароль) размечены явно и работают как надо.
+20116|    Всем прочим говорим «не автозаполнять» — одним местом, а не 116 правками
+20117|    в разметке, и с запасом на любое будущее поле. */
+20118| function noAutofill(root){
+20119|   try{
+20120|     (root||document).querySelectorAll('input:not([autocomplete]),textarea:not([autocomplete])').forEach(e=>{
+20121|       const t=(e.type||'').toLowerCase();
+20122|       if(t==='password'||t==='email') return;    // это и есть вход, его размечают руками
+20123|       if(t==='checkbox'||t==='radio'||t==='file') return;
+20124|       e.setAttribute('autocomplete','off');
+20125|     });
+20126|   }catch(e){}
+20127| }
+20128| function startHintObserver(){
+20129|   if(typeof MutationObserver==='undefined'||!document.body) return;
+20130|   noAutofill(); credDisarm();
+20131|   new MutationObserver(()=>{ collapseHints(); noAutofill(); }).observe(document.body,{childList:true,subtree:true});
+20132| }
+20133| const ACTS=['Бег','Ходьба','Вело','Плавание','Падел / теннис','Футбол','Йога / растяжка','Другое'];
+20134| let actSel=ACTS[0];
+20135| function rActChips(){
+20136|   const ch=$('actChips'); if(!ch) return;
+20137|   ch.innerHTML=ACTS.map(a=>`<button class="chip ${actSel===a?'on':''}" data-act="${esc(a)}">${esc(a)}</button>`).join('');
+20138|   ch.querySelectorAll('[data-act]').forEach(b=>b.onclick=()=>{actSel=b.dataset.act;rActChips()});
+20139| }
+20140| if($('bAct')) $('bAct').onclick=async()=>{
+20141|   const min=parseInt($('act_min').value,10), rpe=num($('act_rpe'));
+20142|   if(!(min>=5&&min<=600)) return toast('Минуты: от 5 до 600');
+20143|   if(!(rpe>=1&&rpe<=10)) return toast('RPE от 1 до 10');
+20144|   let name=actSel;
+20145|   if(name==='Другое'){ name=((await askText({title:'Что за активность?',label:'Название — до 30 знаков',required:true,ok:'Дальше'}))||'').trim(); if(!name) return; name=name.slice(0,30); }
+20146|   await put('sess',{d:td(),act:name,min,rpe});
+20147|   SESS=await all('sess');
+20148|   $('act_min').value='';$('act_rpe').value='';
+20149|   rTrain(); rBody(); toast(name+' — '+min+' мин · нагрузка '+r0(min*rpe));
+20150| };
+20151| $('bRd').onclick=async()=>{
+20152|   const r={d:td()};
+20153|   RQ.forEach(q=>{
+20154|     if(q.type==='num'){const v=num($('rq_'+q.k)); if(v)r[q.k]=v}
+20155|     else{const on=$('rdForm').querySelector(`[data-rq="${q.k}"] button.on`); if(on)r[q.k]=+on.dataset.val}
+20156|   });
+20157|   const hr=parseInt($('rd_hr').value); if(hr)r.hr=hr;
+20158|   if(Object.keys(r).length<2) return toast('Заполни хоть что-то');
+20159|   // сливаем с тем, что уже есть за сегодня: быстрый ответ из зала не теряется
+20160|   const _exR=(RDY||[]).find(x=>x&&x.d===td())||{};
+20161|   await put('ready',{..._exR,...r}); RDY=await all('ready');
+20162|   rTrain(); try{ rAskStatus(true); }catch(e){} const sc=rdScore(r);   // v615: форма живёт в листе «Тренер»
+20163|   toast(sc!=null?'Готовность: '+sc+'/100':'Сохранено');
+20164| };
+20165| $('bTravelGo')&&($('bTravelGo').onclick=async()=>{
+20166|   await travelStart($('tv_eq').value,parseInt($('tv_min').value)||40);
+20167|   sheet('sh-travel',false);
+20168| });
+20169| $('exSearch').oninput=debounce(rExList,120);   // v602: только список, с задержкой — буквы не теряются
+20170| /* v633: дата в шапке — вход в лист выбора дня. Кнопку внутри строки
+20171|    подзаголовка собирает hSubSync и там же вешает обработчик; здесь —
+20172|    страховка делегированием на случай, если кнопка пересобрана. */
+20173| $('hS')&&($('hS').addEventListener('click',e=>{
+20174|   const b=e.target&&e.target.closest?e.target.closest('.subBtn'):null;
+20175|   if(!b||curV!=='food') return;
+20176|   { const sd=$('sh-day'); if(sd&&sd.classList.contains('on')){ sheet('sh-day',false); return; } }   // v643: второй тап по дате закрывает панель
+20177|   sheet('sh-day',true);
+20178| }));
+20179| $('restMinus')&&($('restMinus').onclick=e=>{e.stopPropagation();bumpRest(-30)});
+20180| $('restPause')&&($('restPause').onclick=e=>{e.stopPropagation();pauseRest()});
+20181| /* v626: цифра взяла на себя «+30» и «Стоп». Тап — добавить тридцать секунд,
+20182|    долгое нажатие (600 мс, тихий хаптик) — закончить отдых совсем.
+20183|    stopPropagation обязателен: без него тот же тап развернул бы полосу на
+20184|    весь экран и накрыл тренировку. */
+20185| $('restBump')&&($('restBump').onclick=e=>{ try{ e&&e.stopPropagation&&e.stopPropagation(); }catch(_e){}
+20186|   if(_restBlocked){ restKeepOn(); return; }        // сперва вернуть сигнал, время потом
+20187|   if(!restEndAt&&!restPause) return;
+20188|   bumpRest(30); restBumpFlash(); });
+20189| $('restBar')&&longPressDelegate($('restBar'),'#restBump',()=>{ if(!restEndAt&&!restPause) return; stopRest(); },600);
+20190| /* v628: та же работа видимой кнопкой. Жест остаётся ускорителем для того,
+20191|    кто его знает, а не единственным путём закончить отдых. */
+20192| $('restSkip')&&($('restSkip').onclick=e=>{ try{ e&&e.stopPropagation&&e.stopPropagation(); }catch(_e){} stopRest(); });
+20193| /* Тап по самой полосе разворачивает её на весь экран и обратно. Автоматически
+20194|    этого не делаем никогда: полный экран прячет следующее упражнение и журнал
+20195|    ровно тогда, когда они нужны. Разворачивает человек, когда ставит телефон
+20196|    на скамью «часами». */
+20197| $('restBar')&&($('restBar').onclick=()=>{ const b=$('restBar'); if(!b) return;
+20198|   if(_restBlocked){ restKeepOn(); return; }              // тап — тот самый жест, которого ждёт iOS после звонка
+20199|   b.classList.toggle('big'); });
+20200| 
+20201| /* План тренера → полноценная ПРОГРАММА.
+20202|    Иначе получались две сущности: чек-лист отдельно, прогрессия отдельно, и человеку
+20203|    пришлось бы дублировать план руками в генератор. Теперь план сразу получает всю
+20204|    механику: подсказку веса, подсчёт объёма, «сегодня/завтра», разбор отстающих. */
+20205| function planToProgram(r){
+20206|   const plan=[], unmatched=[];
+20207|   (r.days||[]).filter(d=>d.type!=='rest'&&(d.ex||[]).length).forEach(d=>{
+20208|     const items=[];
+20209|     (d.ex||[]).forEach(x=>{
+20210|       // сверяем с базой: сначала точное совпадение, потом мягкое
+20211|       let name=x.match&&EX.find(e=>e.n===x.match)?x.match:null;
+20212|       if(!name) name=matchExercise(x.raw||x.match);   // синонимы + нормализация + фаззи
+20213|       // незнакомое упражнение — сохраняем как есть (кастомное), не теряем план тренера
+20214|       const custom=!name;
+20215|       if(!name) name=(x.raw||'Упражнение').trim();
+20216|       if(custom) unmatched.push(name);
+20217|       const sets=Math.max(1,Math.min(8,+x.sets||3));
+20218|       const lo=Math.max(1,+x.lo||8), hi=Math.max(lo,+x.hi||lo+4);
+20219|       const main=!custom&&!!(EM[name]&&EM[name].main);
+20220|       /* Вес из плана берём ТОЛЬКО если он согласуется с ТВОЕЙ историей именно
+20221|          этого упражнения (поле 18.08: 88 кг сгибаний сидя приехали в сгибания
+20222|          лёжа). Нет истории или цифра выше твоего максимума — план даёт схему,
+20223|          а вес подбирается по факту: лучше «подбери рабочий», чем чужие 80 кг. */
+20224|       let wk=Array.isArray(x.weeks)&&x.weeks.length?x.weeks.map(Number).filter(v=>v>0):null;
+20225|       if(wk&&wk.length){
+20226|         const hist=SETS.filter(s=>s.e===name&&s.w>0).map(s=>s.w);
+20227|         const maxOwn=hist.length?Math.max(...hist):null;
+20228|         const ceil=maxOwn!=null?maxOwn*1.2:null;   // нет истории именно этого движения — веса из плана не берём
+20229|         if(ceil==null||wk.some(v=>v>ceil)) wk=null;   // чужая или незаслуженная цифра — не навязываем
+20230|       }
+20231|       items.push({n:name,sets,lo,hi,rir:x.rir!=null?+x.rir:2,main,custom,
+20232|                   rest:(+x.rest>0?Math.round(+x.rest):null),
+20233|                   weeks:wk});
+20234|     });
+20235|     if(items.length){ const dw=+d.dow; plan.push({n:d.name||('День '+(plan.length+1)),ex:items,dow:(dw>=1&&dw<=7)?dw:null}); }
+20236|   });
+20237|   if(!plan.length) return null;
+20238|   // если тренер не проставил дни — раскладываем подряд от понедельника
+20239|   const noDow=plan.filter(d=>!d.dow).length;
+20240|   if(noDow) {
+20241|     const def=DOWDEF[plan.length]||[1,2,3,4,5,6,7];
+20242|     const used=new Set(plan.map(d=>d.dow).filter(Boolean));
+20243|     plan.forEach((d,i)=>{ if(!d.dow){
+20244|       let cand=[...def,1,2,3,4,5,6,7].find(x=>!used.has(x));
+20245|       if(cand==null) cand=((i%7)+1);
+20246|       d.dow=cand; used.add(cand);
+20247|     }});
+20248|   }
+20249|   return {
+20250|     cfg:{days:plan.length,equip:'gym',exp:'int',goal:'hyper',inj:[],
+20251|          dows:plan.map(d=>d.dow),fromCoach:1},
+20252|     split:'План тренера: '+(r.title||'без названия'),
+20253|     plan, created:td(), unmatched
+20254|   };
+20255| }
+20256| 
+20257| /* ── ПЛАН ОТ ТРЕНЕРА ──
+20258|    Приложение НЕ переписывает план тренера молча. Но и не молчит, когда его калораж
+20259|    расходится с тем, что показывают твои весы. Показывает обе цифры — решаешь ты. */
+20260| const DOW=['','Пн','Вт','Ср','Чт','Пт','Сб','Вс'];
+20261| /* Длинная дата для шапки дня: «вторник, 1 сентября». Сокращения «Вт 01.09»
+20262|    годятся строке в списке, но не первой строке экрана — там они читаются как
+20263|    код, а не как день недели. Считаем сами, а не через toLocaleDateString:
+20264|    в вебвью iOS локаль зависит от настроек телефона, и на английской системе
+20265|    человек получал «Tue, September 1» в русском интерфейсе. */
+20266| /* Отдых человек в зале читает как время, а не как число секунд: «150 с» он
+20267|    переводит в уме, «2:30» — нет. Формат тот же, что на самом таймере. */
+20268| function mmss(sec){ sec=Math.max(0,Math.round(+sec||0));
+20269|   return Math.floor(sec/60)+':'+String(sec%60).padStart(2,'0'); }
+20270| const DOW_L=['','понедельник','вторник','среда','четверг','пятница','суббота','воскресенье'];
+20271| const MON_L=['','января','февраля','марта','апреля','мая','июня','июля','августа','сентября','октября','ноября','декабря'];
+20272| function fdLong(d){
+20273|   try{ const p=String(d).split('-'); return DOW_L[dowOf(d)]+', '+(+p[2])+' '+MON_L[+p[1]]; }
+20274|   catch(e){ return fd(d); }
+20275| }
+20276| const dowToday=()=>{const d=new Date().getDay();return d===0?7:d};
+20277| 
+20278| $('bPlanImg').onclick=async()=>{
+20279|   if(!aiReady()){toast(AI_GATE_MSG);return openSet('Key')}
+20280|   const img=await pickImg(); if(!img) return;
+20281|   $('aiT').textContent='Разбор плана';
+20282|   $('aiBody').innerHTML='<div class="ib"><span class="load"></span>Читаю план…</div>';
+20283|   sheet('sh-ai',true);
+20284|   try{
+20285|     const r=await vision(img,planPrompt(),3000);
+20286|     if(r.error){$('aiBody').innerHTML=`<div class="eb">${esc(r.error)}</div>`;return}
+20287|     showPlan(r);
+20288|   }catch(e){$('aiBody').innerHTML=`<div class="eb"><b>Не получилось.</b><br>${esc(e.message)}</div>`}
+20289| };
+20290| $('bPlanTxt').onclick=()=>{$('pt_t').value='';sheet('sh-ptxt',true)};
+20291| $('bPtOk').onclick=async()=>{
+20292|   const t=$('pt_t').value.trim();
+20293|   if(t.length<20) return toast('Слишком коротко');
+20294|   if(!aiReady()){toast(AI_GATE_MSG);return openSet('Key')}
+20295|   sheet('sh-ptxt',false);
+20296|   $('aiT').textContent='Разбор плана';
+20297|   $('aiBody').innerHTML='<div class="ib"><span class="load"></span>Читаю план…</div>';
+20298|   sheet('sh-ai',true);
+20299|   try{
+20300|     const res=await aiFetch({model:'claude-sonnet-5',max_tokens:8000,
+20301|       messages:[{role:'user',content:planPrompt()+'\n\nПЛАН:\n'+t}]});
+20302|     if(!res.ok) throw await aiFail(res);
+20303|     const j=await res.json();
+20304|     const txt=(j.content||[]).filter(c=>c.type==='text').map(c=>c.text).join('');
+20305|     const m=txt.match(/\{[\s\S]*\}/);
+20306|     if(!m) throw new Error('Не разобрал ответ');
+20307|     const r=JSON.parse(m[0]);
+20308|     if(r.error){$('aiBody').innerHTML=`<div class="eb">${esc(r.error)}</div>`;return}
+20309|     showPlan(r);
+20310|   }catch(e){$('aiBody').innerHTML=`<div class="eb"><b>Не получилось.</b><br>${esc(e.message)}</div>`}
+20311| };
+20312| function showPlan(r){
+20313|   const div=planDiverge(r);
+20314|   $('aiBody').innerHTML=`
+20315|     <div class="ob"><b>${esc(r.title||'План')}</b></div>
+20316|     ${r.kcal?`<div class="stat" style="margin-top:12px"><span class="l">Калории по плану</span><span class="v">${num(r.kcal)}</span></div>`:''}
+20317|     ${r.protein?`<div class="stat"><span class="l">Белок</span><span class="v">${num(r.protein)} г</span></div>`:''}
+20318|     ${(r.days||[]).length?`<div style="margin-top:12px"><h2>Неделя</h2>${r.days.map(d=>
+20319|       `<div class="item" style="align-items:flex-start"><div class="g">
+20320|         <div class="t">${DOW[d.dow]||'?'} — ${esc(d.name||(d.type==='rest'?'Отдых':'Тренировка'))}</div>
+20321|         <div class="s" style="white-space:normal;line-height:var(--lhb)">${
+20322|           (d.ex||[]).map(x=>{
+20323|             const known=x.match&&EX.find(e=>e.n===x.match);
+20324|             return known
+20325|               ? `✓ ${esc(x.match)} — ${num(x.sets)}×${num(x.lo)}${x.hi>x.lo?'–'+num(x.hi):''}${Array.isArray(x.weeks)&&x.weeks.length?` · <b style="color:var(--ac)">веса: ${x.weeks.map(num).join('/')} кг</b>`:''}`
+20326|               : `<span style="color:var(--wn)">? ${esc(x.raw||'—')} — не нашёл в базе</span>`;
+20327|           }).join('<br>')||'отдых'}</div></div></div>`).join('')}</div>`:''}
+20328|     ${(r.meals||[]).length?`<div style="margin-top:12px"><h2>Приёмы пищи</h2>${r.meals.map(m=>
+20329|       `<div class="item"><div class="g"><div class="t">${esc(m.time||'')} ${esc(m.name||'')}</div>
+20330|       <div class="s">${esc(m.what||'')}</div></div>${m.kcal?`<div class="k">${num(m.kcal)}</div>`:''}</div>`).join('')}</div>`:''}
+20331|     ${(r.supps||[]).length?`<div style="margin-top:12px"><h2>Добавки</h2>${r.supps.map(x=>
+20332|       `<div class="item"><div class="g"><div class="t">${esc(x.name||'')}</div><div class="s">${esc([x.dose,x.when].filter(Boolean).join(' · '))}</div></div></div>`).join('')}</div>`:''}
+20333|     ${r.water_l?`<div class="stat" style="margin-top:12px"><span class="l">Вода по плану</span><span class="v">${num(r.water_l)} л/день</span></div>`:''}
+20334|     ${(r.checks||[]).length?`<div style="margin-top:12px"><h2>Контроль</h2>${r.checks.map(c=>
+20335|       `<div class="item"><div class="g"><div class="t">${esc(c.what)}</div><div class="s">${
+20336|         ({week:'раз в неделю','2weeks':'раз в 2 недели',month:'раз в месяц'})[c.every]||esc(c.every)}</div></div></div>`).join('')}</div>`:''}
+20337|     ${(r.notes||[]).length?`<div class="note"><b>Указания тренера:</b><br>${r.notes.map(esc).join('<br>')}</div>`:''}
+20338|     ${(r.missing||[]).length?`<div class="wb" style="margin-top:12px"><b>Чего в плане нет:</b><br>${r.missing.map(esc).join('<br>')}<br><br>
+20339|       Это не наезд на тренера — планы часто пишут кратко, а детали проговаривают устно. Но если чего-то из этого ты и правда не знаешь — спроси у него.</div>`:''}
+20340|     ${div}
+20341|     <div class="eb" style="margin-top:12px"><b>Проверь разбор глазами.</b> Распознавание рукописного и криво сфотканного текста ошибается. Если что-то встало не туда — лучше поймать это сейчас, чем тренироваться по кривому плану.</div>
+20342|     <button class="btn" style="margin-top:14px" id="bPlanOk">Принять как программу</button>
+20343|     <div class="note">Упражнения из плана сопоставлены с базой (✓). К ним прицепится техника,
+20344|       подсчёт недельного объёма по мышцам и подсказка веса по двойной прогрессии — то есть план
+20345|       тренера получит всю механику, а не останется просто списком.</div>`;
+20346|   $('bPlanOk').onclick=async()=>{
+20347|     S.plan=r; S.planFrom=td(); trkDaily('program_set');
+20348|     if(r.water_l>=0.5&&r.water_l<=8){ S.waterGoal=Math.round(r.water_l*1000); S.waterManual=1; }
+20349|     const P=planToProgram(r);
+20350|     if(P){
+20351|       progSnap('план тренера','Импортирован план тренера'+(r.name?': '+String(r.name).slice(0,60):''));
+20352|       S.prog=P;
+20353|       const v=progVolume(P);
+20354|       const over=Object.keys(MUS).filter(m=>v[m]>=LM[m][3]);
+20355|       await put('settings',S,'main');
+20356|       sheet('sh-ai',false); rFood(); rCoach(); rTrain();
+20357|       let msg='План стал программой';
+20358|       if(P.unmatched&&P.unmatched.length) msg+=' · '+P.unmatched.length+' упр. не распознано';
+20359|       toast(msg);
+20360|       if(over.length) setTimeout(()=>toast('Внимание: объём выше MRV — '+over.map(m=>MUS[m]).join(', ')),2200);
+20361|     }else{
+20362|       await put('settings',S,'main');
+20363|       sheet('sh-ai',false); rFood(); rCoach();
+20364|       toast('План принят, но упражнений в нём не нашлось — программу собери вручную');
+20365|     }
+20366|   };
+20367| }
+20368| /* Расхождение калоража тренера с фактическим расчётом */
+20369| function planDiverge(r){
+20370|   if(!r.kcal||S.tdee==null) return '';
+20371|   const mine=tg(); if(!mine) return '';
+20372|   const d=r.kcal-mine.k, pct=Math.abs(d)/mine.k*100;
+20373|   if(pct<8) return `<div class="ob" style="margin-top:12px"><b>План сходится с твоими данными.</b>
+20374|     Тренер: ${num(r.kcal)} ккал, расчёт по твоим весам: ${mine.k}. Разница ${r0(Math.abs(d))} — в пределах шума.</div>`;
+20375|   return `<div class="wb" style="margin-top:12px">
+20376|     <b>План расходится с тем, что показывают твои весы.</b><br>
+20377|     Тренер назначил <b>${num(r.kcal)} ккал</b>. По твоему фактическому расходу (${r0(((typeof tdeeSane==='function'&&tdeeSane())||{v:S.tdee}).v)}) для темпа
+20378|     ${S.rate>0?'+':''}${S.rate} кг/нед нужно <b>${mine.k}</b>. Разница ${d>0?'+':''}${r0(d)} ккал (${r0(pct)}%).<br><br>
+20379|     ${d<0
+20380|       ? 'План <b>ниже</b> расчёта. Ты будешь худеть быстрее заданного темпа — а значит терять больше мышц и сильнее ронять восстановление. Иногда это осознанный ход тренера, иногда — формула из головы.'
+20381|       : 'План <b>выше</b> расчёта. При таком калораже ты не выйдешь на заданный темп.'}
+20382|     <br><br>Я не переписываю план тренера — он видит тебя, а я вижу цифры. Но теперь у тебя есть данные,
+20383|     чтобы прийти к нему и спросить: «за три недели тренд веса вот такой, менять ли калораж?». Это разговор
+20384|     по существу, а не «мне кажется, я не худею».`;
+20385| }
+20386| function planAdh7(){
+20387|   const P=S.plan; if(!P) return null;
+20388|   const age=dn(td())-dn(S.planFrom||td());
+20389|   if(age<3) return null;
+20390|   const days=Math.min(age+1,7);
+20391|   let totDone=0,totExp=0,skipDays=0,expDays=0;
+20392|   for(let i=0;i<days;i++){
+20393|     const d=ds(dn(td())-i);
+20394|     const dwd=(new Date(d+'T00:00:00Z').getUTCDay())||7;
+20395|     const day=(P.days||[]).find(x=>x.dow===dwd);
+20396|     let exp=0;
+20397|     if(day&&day.type!=='rest') exp++;
+20398|     exp+=(P.meals||[]).length;
+20399|     if(exp===0) continue;
+20400|     const A=ADH.find(x=>x.d===d);
+20401|     const done=A?(A.done||[]).length:0;
+20402|     totExp+=exp; totDone+=Math.min(done,exp); expDays++;
+20403|     if(done===0) skipDays++;
+20404|   }
+20405|   if(expDays<3||totExp===0) return null;
+20406|   return {pct:r0(totDone/totExp*100),skipDays,expDays};
+20407| }
+20408| function planVoice(){
+20409|   const a=planAdh7(); if(!a) return '';
+20410|   if(a.pct>=85) return `<div class="ob" style="margin-top:12px">Держишь план тренера на <b>${a.pct}%</b> за неделю. Вот так и приходят к результату — не сбавляй.</div>`;
+20411|   if(a.pct>=60) return `<div class="note" style="margin-top:12px">За неделю закрыто <b>${a.pct}%</b> плана. Норм, но тренер писал программу целиком. Дотяни хвосты — на них обычно и сыпется прогресс.</div>`;
+20412|   const sk=a.skipDays>=2?` Из последних дней <b>${a.skipDays}</b> ты пропустил целиком.`:'';
+20413|   return `<div class="wb" style="margin-top:12px">
+20414|     За неделю ты закрываешь только <b>${a.pct}%</b> плана тренера.${sk}<br><br>
+20415|     Скажу прямо, потому что для этого приложение и нужно: <b>в таком режиме ты не добьёшься того, ради чего пришёл.</b>
+20416|     Тренер написал программу под твою цель, и она работает только целиком — не по кусочкам, которые тебе удобны.
+20417|     Либо соблюдаешь, либо честно говоришь тренеру «не тяну такой объём» и он упрощает план. Сам себе поблажки не выписывай — это не сработает.</div>`;
+20418| }
+20419| function safetyNotes(){
+20420|   const P=S.plan||{};
+20421|   const hay=((P.notes||[]).join(' ')+' '+(P.supps||[]).map(x=>[x.name,x.dose,x.when].join(' ')).join(' ')+' '+
+20422|     [...SUBS].slice(0,60).map(x=>[x.n,x.note].join(' ')).join(' ')).toLowerCase();
+20423|   const out=[];
+20424|   if(/кофеин|caffeine|caf\b/.test(hay) && /порош|порошк|powder|чист|навес/.test(hay)){
+20425|     out.push(`<div class="eb" style="margin-top:12px"><b>Порошковый кофеин — вопрос безопасности, а не эффекта.</b><br>
+20426|       Рабочая доза 100–200 мг. Чайная ложка порошка ≈ 3000–5000 мг — это уже зона отравления, и бытовой ложкой её не отмерить.
+20427|       Смертельные случаи были именно от порошка, не от таблеток.<br><br>
+20428|       Правило: <b>весы с точностью 0.01 г</b> — либо перейди на таблетки/капсулы с готовой дозой. «На глаз» тут нельзя.</div>`);
+20429|   }
+20430|   return out.join('');
+20431| }
+20432| function rPlanToday(){
+20433|   const box=$('todayPlan'), P=S.plan;
+20434|   if(!P){box.innerHTML='';return}
+20435|   const dw=dowToday();
+20436|   const day=(P.days||[]).find(d=>d.dow===dw);
+20437|   const A=ADH.find(x=>x.d===td())||{d:td(),done:[]};
+20438|   const items=[];
+20439|   if(day&&day.type!=='rest') items.push({id:'w',t:day.name||'Тренировка',
+20440|     s:(day.ex||[]).map(x=>x.match||x.raw).filter(Boolean).join(' · ')});
+20441|   else if(day) items.push({id:'w',t:'Отдых по плану',s:'Сегодня не тренируешься'});
+20442|   const mealsN=(P.meals||[]).length;
+20443|   (P.meals||[]).forEach((m,i)=>items.push({id:'m'+i,t:`${m.time||''} ${m.name||'Приём'}`.trim(),s:m.what||'',slot:mealSlotOf(i,mealsN),mi:i}));
+20444|   (P.supps||[]).forEach((sp,i)=>items.push({id:'s'+i,t:`Добавка: ${sp.name||''}`.trim(),s:[sp.dose,sp.when].filter(Boolean).join(' · ')}));
+20445|   if(!items.length){box.innerHTML='';return}
+20446|   // Автозаполнение из реальных данных: тренировка — по подходам/активности,
+20447|   // приёмы — по съеденным калориям из дневника. Ручные галочки остаются.
+20448|   const eat=LOG.filter(l=>l.d===td()).reduce((a,l)=>({k:a.k+(+l.k||0),p:a.p+(+l.p||0)}),{k:0,p:0});
+20449|   const t0=tg(), dayK=(t0&&t0.k)||(+P.kcal||0);
+20450|   const auto=new Set();
+20451|   if(SETS.some(s=>s.d===td())||SESS.some(s=>s.d===td()&&s.act)) auto.add('w');
+20452|   items.forEach(it=>{ if(it.mi!=null&&mealAutoDone(it.mi,mealsN,eat.k,dayK)) auto.add(it.id); });
+20453|   const done=new Set([...(A.done||[]),...auto]);
+20454|   const pct=r0(done.size/items.length*100);
+20455|   const voice=planVoice();
+20456|   const wasOpen=(box.querySelector('details')||{}).open||false;
+20457|   box.innerHTML=`<details class="det" ${wasOpen?'open':''} style="margin-bottom:12px">
+20458|     <summary style="gap:8px">
+20459|       <div style="position:relative;width:44px;height:44px;flex:0 0 44px">
+20460|         <svg viewBox="0 0 44 44" style="width:44px;height:44px"><circle cx="22" cy="22" r="18" fill="none" stroke="var(--line)" stroke-width="5"/><circle cx="22" cy="22" r="18" fill="none" stroke="var(--ac)" stroke-width="5" stroke-linecap="round" stroke-dasharray="${2*Math.PI*18}" stroke-dashoffset="${2*Math.PI*18*(1-pct/100)}" transform="rotate(-90 22 22)"/></svg>
+20461|         <div style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:var(--fs1);line-height:var(--lh1);font-weight:var(--fwb);color:var(--tx)">${pct}%</div>
+20462|       </div>
+20463|       <div style="flex:1;min-width:0">
+20464|         <div style="color:var(--tx);font-weight:var(--fwm);font-size:var(--fs2);line-height:var(--lh2)">План на сегодня · ${DOW[dw]}</div>
+20465|         <div style="color:var(--t3);font-size:var(--fs1);line-height:var(--lh1);font-weight:var(--fwm);margin-top:2px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(items.map(it=>it.t).join(' · '))}</div>
+20466|       </div>
+20467|     </summary>
+20468|     <div style="margin-top:8px">
+20469|     ${(mealsN&&dayK)?`<div class="mini" style="margin-bottom:8px;color:var(--t2)">Съедено <b>${r0(eat.k)}</b> из ${r0(dayK)} ккал · Б ${r0(eat.p)}${t0?' из '+r0(t0.p):''} — по твоему дневнику</div>`:''}
+20470|     ${items.map(it=>`<div class="item" data-adh="${it.id}" style="cursor:pointer">
+20471|       <div style="flex:0 0 22px;font-size:var(--fs3);line-height:var(--lh3);color:${done.has(it.id)?'var(--ac)':'var(--t3)'}">${done.has(it.id)?'<svg class="ic"><use href="#i-check"/></svg>':''}</div>
+20472|       <div class="g"><div class="t" style="${done.has(it.id)?'opacity:.5;text-decoration:line-through':''}">${esc(it.t)}${auto.has(it.id)? ' <span class="tag ac">авто</span>':''}</div>
+20473|       ${it.s?`<div class="s" style="white-space:normal">${esc(it.s)}</div>`:''}</div>
+20474|       ${it.slot?`<button class="btn sm" data-mpick="${it.slot}" style="flex:0 0 auto">🍳</button>`:''}</div>`).join('')}
+20475|     ${voice}
+20476|     ${safetyNotes()}
+20477|     ${(P.meals||[]).length?`<div class="note"><b>Про тайминг честно:</b> для состава тела решает суточная сумма, а не часы приёмов. Расписание тренера — это инструмент дисциплины, и в этом качестве оно работает. Но не думай, что съев в 14:05 вместо 14:00, ты что-то сломал.</div>`:''}
+20478|     </div>
+20479|   </details>`;
+20480|   box.querySelectorAll('[data-adh]').forEach(e=>e.onclick=async()=>{
+20481|     const id=e.dataset.adh;
+20482|     if(auto.has(id)) return toast('Отмечено автоматически — по данным дневника');
+20483|     const s=new Set(A.done||[]);
+20484|     s.has(id)?s.delete(id):s.add(id);
+20485|     await put('adh',{d:td(),done:[...s]}); ADH=await all('adh'); rPlanToday();
+20486|   });
+20487|   box.querySelectorAll('[data-mpick]').forEach(b=>b.onclick=ev=>{ev.stopPropagation(); openMealPick(b.dataset.mpick);});
+20488| }
+20489| /* Приём плана i из n → слот подбора блюд (та же схема, что в suggest_day) */
+20490| function mealSlotOf(i,n){ if(i===0) return 'bf'; if(n>=2&&i===n-1) return 'dn'; if(i===1) return 'ln'; return 'sn'; }
+20491| /* Приём считается закрытым, если по дневнику съедено ≥85% его накопленной доли калорий.
+20492|    Это индикатор, не бухгалтерия: ручная галочка всегда доступна. */
+20493| function mealAutoDone(i,n,eatenK,dayK){ return (dayK>0&&n>0)?eatenK>=dayK*((i+1)/n)*0.85:false; }
+20494| /* Открыть подбор блюда под конкретный приём: учитывает остаток дня, аллергии, слот */
+20495| function openMealPick(slot){
+20496|   recMode='kbju'; recSlot=slot; try{ renderRecChips(); }catch(e){}
+20497|   document.querySelectorAll('[data-rcmode]').forEach(x=>x.classList.toggle('on',x.dataset.rcmode==='kbju'));
+20498|   document.querySelectorAll('[data-rcslot]').forEach(x=>x.classList.toggle('on',x.dataset.rcslot===slot));
+20499|   sheet('sh-rec',true); recLoad();
+20500| }
+20501| function rPlanCard(){
+20502|   const box=$('planBox'), P=S.plan;
+20503|   if(!P){box.innerHTML=`<div class="note keep" style="margin-top:0">Пока плана нет.
+20504|     <details class="det" style="margin-top:8px"><summary class="mini">что с ним будет</summary><div class="mini" style="margin-top:8px">Приложение разберёт его на расписание, чек-лист и напоминания и будет считать процент выполнения. Заодно скажет, чего в плане не хватает и сойдётся ли его калораж с твоими весами.</div></details></div>`;return}
+20505|   const days=dn(td())-dn(S.planFrom||td());
+20506|   const last14=[...ADH].filter(x=>dn(x.d)>=dn(td())-13);
+20507|   const adh=last14.length?r0(last14.reduce((a,x)=>a+(x.done||[]).length,0)/last14.length*10)/10:0;
+20508|   box.innerHTML=`<div class="ob"><b>${esc(P.title||'План тренера')}</b> · идёт ${days} дн.</div>
+20509|     ${P.kcal?`<div class="stat" style="margin-top:12px"><span class="l">Калории по плану</span><span class="v">${P.kcal}</span></div>`:''}
+20510|     <div class="stat"><span class="l">Пунктов закрыто (в среднем за день)</span><span class="v">${adh}</span></div>
+20511|     ${planDiverge(P)}
+20512|     <button class="btn gho" style="margin-top:12px" id="bPlanDel">Убрать план</button>`;
+20513|   $('bPlanDel').onclick=async()=>{
+20514|     if(!await ask({title:'Убрать план тренера?',ok:'Убрать',danger:true}))return;
+20515|     S.plan=null;await put('settings',S,'main');rFood();rCoach();toast('План убран');
+20516|   };
+20517| }
+20518| 
+20519| /* ── СОН ── */
+20520| function rSleep(){
+20521|   if($('zPick')&&!$('zPick').value)$('zPick').value=td();
+20522|   const D=($('zPick')&&$('zPick').value)||td();
+20523|   const s=SLP.find(x=>x.d===D);
+20524|   $('z_bed').value=s&&s.bed?s.bed:'';$('z_wake').value=s&&s.wake?s.wake:'';
+20525|   zPrev();
+20526|   const srt=[...SLP].sort((a,b)=>a.d<b.d?1:-1);
+20527|   $('zList').innerHTML=srt.length?srt.slice(0,40).map(x=>`<div class="item">
+20528|     <div class="g" data-zedit="${x.d}" style="cursor:pointer"><div class="t">${x.h!=null?r1(x.h)+' ч':'— открыта'}</div>
+20529|     <div class="s">ночь на ${fd(x.d)} · ${x.bed||'?'} → ${x.wake||'…'}</div></div>
+20530|     <button class="x" data-dz="${x.d}">×</button></div>`).join('')
+20531|     :'<div class="empty">Сон пока не записан.<br>Это самый дешёвый способ ускорить восстановление — и он бесплатный.</div>';
+20532|   bodyDelegate($('zList'));   // v618: история сна — тот же один слушатель, что у веса и замеров
+20533|   const last=srt.filter(x=>dn(x.d)>=dn(td())-29&&x.h!=null);
+20534|   const st=$('zStat');
+20535|   if(last.length>=5){
+20536|     const avg=last.reduce((a,x)=>a+x.h,0)/last.length;
+20537|     const short=last.filter(x=>x.h<7).length;
+20538|     /* Вывод пишем только когда он что-то меняет (31.08). «Норма. Держи так.»
+20539|        не меняет ничего: цифры выше уже сказали всё, а строка стоит вечно. */
+20540|     st.innerHTML=`<div class="${avg>=7?'ob':'wb'}">Средний сон <b>${r1(avg)} ч</b> · меньше 7 часов — ${short} из ${last.length} ночей.${avg<7?' Недосып бьёт по восстановлению сильнее любой добавки.':''}</div>`;
+20541|   } else st.innerHTML='<div class="mini">Нужно минимум 5 ночей</div>';
+20542|   drawSleep(srt.slice().reverse());
+20543| }
+20544| /* v677: график, нарисованный в свёрнутой раскрывашке, пуст — у канваса нет
+20545|    ширины (см. drawSleep/chartSt). Замеры (mDet) перерисовывались с v617, сон
+20546|    и шаги — нет: человек раскрывал «Сон за 30 дней» и видел чёрную плиту.
+20547|    Одно правило на оба: раскрыли — рисуем, форму не трогаем. */
+20548| document.addEventListener('toggle',e=>{ const d=e.target; if(!d||!d.open||!d.querySelector) return;
+20549|   try{ if(d.querySelector('#zCh')) drawSleep([...SLP].sort((a,b)=>a.d<b.d?-1:1));
+20550|        else if(d.querySelector('#stCh')) chartSt([...STEPS].sort((a,b)=>a.d<b.d?-1:1)); }catch(x){} },true);
+20551| function zPrev(){
+20552|   const b=$('z_bed').value, w=$('z_wake').value;
+20553|   if(b&&w){ let h=hh(w)-hh(b); if(h<0) h+=24;
+20554|     $('zPrev').innerHTML=`<b>${r1(h)} ч</b> сна${h<6?' — мало':h<7?' — маловато':h>9.5?' — необычно много':''}`;return}
+20555|   if(b&&!w){ $('zPrev').innerHTML=hh(b)>=18
+20556|     ?'Лёг в '+b+'. Запишу как <b>ночь на завтра</b> — утром отметишь пробуждение, часы посчитаются сами.'
+20557|     :'Лёг в '+b+'. Проснёшься — отметишь утром, часы посчитаются сами.';return}
+20558|   if(!b&&w){ const op=[...SLP].filter(x=>x.bed&&!x.wake&&dn(td())-dn(x.d)<=1).sort((a,b)=>a.d<b.d?1:-1)[0];
+20559|     $('zPrev').innerHTML=op?('Допишу пробуждение к ночи с '+op.bed):'Встал в '+w+'. Укажи и время отбоя.';return}
+20560|   $('zPrev').innerHTML='Отметь во сколько лёг — утром допишешь пробуждение';
+20561| }
+20562| $('z_bed').oninput=$('z_wake').oninput=zPrev;
+20563| $('bZ').onclick=async()=>{
+20564|   const D0=($('zPick')&&$('zPick').value)||td();
+20565|   const b=$('z_bed').value, w=$('z_wake').value;
+20566|   if(!b&&!w) return toast('Укажи время');
+20567|   // Ночь ключуется датой УТРА. Вечерний отбой (>=18:00) — это ночь на следующий день,
+20568|   // иначе он затирал бы уже записанную прошлую ночь этой же даты (лёг в 01:00 — встал в 07:00).
+20569|   // Только пробуждение
+20570|   if(w&&!b){
+20571|     // авто-привязка к открытой ночи — только когда отмечаем за сегодня
+20572|     if(D0===td()){
+20573|       const op=[...SLP].filter(x=>x.bed&&!x.wake&&dn(td())-dn(x.d)<=1).sort((a,b)=>a.d<b.d?1:-1)[0];
+20574|       if(op){
+20575|         let h=hh(w)-hh(op.bed); if(h<0) h+=24;
+20576|         if(h<2||h>16) return toast('Проверь время');
+20577|         // старые открытые ночи с вечерним отбоем перекладываем на дату утра
+20578|         const nd=(hh(op.bed)>=18&&op.d<td())?td():op.d;
+20579|         if(nd!==op.d){
+20580|           try{ await del('sleep',op.d) }catch(_){}
+20581|           const ex2=SLP.find(x=>x.d===nd)||{};
+20582|           await put('sleep',{...ex2,d:nd,bed:op.bed,wake:w,h:r1(h)});
+20583|         }else await put('sleep',{...op,wake:w,h:r1(h)});
+20584|         SLP=await all('sleep'); zReset(); rSleep(); rTrain(); return toast('Сон: '+r1(h)+' ч');
+20585|       }
+20586|     }
+20587|     const ex=SLP.find(x=>x.d===D0)||{};
+20588|     if(ex.bed){ let h=hh(w)-hh(ex.bed); if(h<0)h+=24; if(h<2||h>16) return toast('Проверь время');
+20589|       await put('sleep',{...ex,wake:w,h:r1(h)}); SLP=await all('sleep'); zReset(); rSleep(); rTrain(); return toast('Сон: '+r1(h)+' ч'); }
+20590|     await put('sleep',{d:D0,bed:null,wake:w,h:null});
+20591|     SLP=await all('sleep'); zReset(); rSleep(); return toast('Пробуждение записано');
+20592|   }
+20593|   // Только отбой
+20594|   if(b&&!w){
+20595|     const nowH=new Date().getHours();
+20596|     const D=(hh(b)>=18&&D0===td()&&nowH>=12)?shiftDate(D0,1):D0;   // вечерний отбой = ночь на завтра, но только если сейчас ещё вечер (после полуночи ночь уже «на сегодня»)
+20597|     const ex=SLP.find(x=>x.d===D)||{};
+20598|     let h=null; if(ex.wake){ h=hh(ex.wake)-hh(b); if(h<0)h+=24; h=r1(h); }
+20599|     await put('sleep',{d:D,bed:b,wake:ex.wake||null,h});
+20600|     SLP=await all('sleep'); zReset(); rSleep(); return toast(ex.wake?('Сон: '+h+' ч'):('Отбой записан — ночь на '+fd(D)));
+20601|   }
+20602|   // Оба поля — пишем на выбранную дату (утро)
+20603|   let h=hh(w)-hh(b); if(h<0) h+=24;
+20604|   if(h<2||h>16) return toast('Проверь время');
+20605|   await put('sleep',{d:D0,bed:b,wake:w,h:r1(h)});
+20606|   SLP=await all('sleep'); zReset(); rSleep(); rTrain(); toast('Сон: '+r1(h)+' ч');
+20607| };
+20608| /* после записи форма всегда возвращается на сегодня — липкая прошлая дата тихо писала не туда */
+20609| function zReset(){ const zp=$('zPick'); if(zp) zp.value=td(); }
+20610| /* Тихие автошаги: команда шлёт число в steps_inbox (Supabase) с личным кодом,
+20611|    мы забираем и кладём максимум за день. Дата — локальная дата момента отправки. */
+20612| let __stTs=null;   // когда за сегодня в облако прилетало последнее число
+20613| let __stCloudN=null; // какое число за сегодня лежит в облаке (для честного ответа)
+20614| function stStatus(t){ const e=$('stSyncSt'); if(e) e.innerHTML=t; }
+20615| async function pullStepsInbox(quiet){
+20616|   if(!S.stepsKey){ stStatus('Автошаги не настроены — шаги вносятся вручную карточкой «Шаги» на вкладке «Еда».'); return false; }
+20617|   try{
+20618|     // Чтение только через steps_pull по СВОЕМУ коду: прямой select таблицы
+20619|     // закрыт (security-review 28.07 — иначе читались чужие коды и шаги)
+20620|     const r=await fetch(SB_URL+'/rest/v1/rpc/steps_pull',{method:'POST',
+20621|       headers:{apikey:SB_KEY,authorization:'Bearer '+SB_KEY,'content-type':'application/json'},
+20622|       body:JSON.stringify({p_k:S.stepsKey})});
+20623|     if(!r.ok){ if(!quiet) stStatus('Облако не ответило ('+r.status+') — попробуй ещё раз.'); return false; }
+20624|     const rows=await r.json();
+20625|     const kp='<b>'+esc(String(S.stepsKey).slice(0,6))+'…</b>';
+20626|     if(!rows.length){
+20627|       // Ключевой случай рассинхрона: команда шлёт (и видит 200), а тут пусто —
+20628|       // значит в ссылке команды СТАРЫЙ код. Диагноз должен быть на экране.
+20629|       // Кнопка копирования — ПРЯМО в диагнозе: ссылка в шаге 4 раскрывашки,
+20630|       // владелец её не нашёл (полевой отчёт 30.07 «нет ссылки, не вижу»).
+20631|       // Тихий фоновый pull диагноз не пишет: у не настроивших автошаги строка
+20632|       // «записей нет» висела бы вечным укором (скрин-аудит 01.08)
+20633|       if(quiet) return false;
+20634|       stStatus('Код приложения: '+kp+' — записей в облаке под ним нет за 3 дня.<br>'
+20635|         +'Если команда отрабатывает без ошибок — в её ссылке другой (старый) код.<br>'
+20636|         +'<button class="btn sec sm" data-sturl="1" style="margin-top:8px">Скопировать ссылку для команды</button><br>'
+20637|         +'В «Командах» открой шаг «Получить содержимое URL», замени адрес целиком, и после n= снова тапни переменную «Статистика».');
+20638|       return false;
+20639|     }
+20640|     const byD={};
+20641|     rows.forEach(x=>{ const d=new Date(x.ts).toLocaleDateString('sv-SE'); byD[d]=Math.max(byD[d]||0,+x.n||0); });
+20642|     const tds=rows.filter(x=>new Date(x.ts).toLocaleDateString('sv-SE')===td());
+20643|     if(tds.length){ __stTs=Math.max(...tds.map(x=>+new Date(x.ts))); __stCloudN=byD[td()]||null; }
+20644|     let changed=false;
+20645|     for(const d of Object.keys(byD)){
+20646|       const ex=STEPS.find(t=>t.d===d);
+20647|       if(!ex||byD[d]>(ex.n||0)){ await put('steps',{...(ex||{}),d,n:byD[d]}); changed=true; }
+20648|     }
+20649|     if(changed){ STEPS=await all('steps'); renderAll();
+20650|       if(!quiet) toast('Шаги обновлены'+(byD[td()]!=null?': '+byD[td()].toLocaleString('ru-RU'):'')); }
+20651|     // всё работает — диагностика не нужна, но ссылка остаётся в одном тапе
+20652|     // на случай новых изменений в команде (просьба владельца 30.07)
+20653|     stStatus('Код: '+kp+' · в облаке за 3 дня: '+rows.length+' зап.'
+20654|       +(byD[td()]!=null?' · сегодня '+byD[td()].toLocaleString('ru-RU')+' шагов'
+20655|         +(__stTs?' ('+new Date(__stTs).toTimeString().slice(0,5)+')':''):' · за сегодня пока ничего')
+20656|       +' · <a data-sturl="1" style="color:var(--ac2);cursor:pointer;white-space:nowrap">ссылка для команды</a>');
+20657|     // строки есть, но новее ничего: данные уже актуальны — это НЕ «пусто»
+20658|     return changed?true:'same';
+20659|   }catch(e){ if(!quiet) stStatus('Сеть оборвала запрос к облаку — попробуй ещё раз.'); return false }
+20660| }
+20661| /* приложение вернулось на экран — тихо подбираем, что прислала автоматизация */
+20662| document.addEventListener('visibilitychange',()=>{ if(!document.hidden){ pullStepsInbox(true); pushWaterBit(); } });
+20663| $('bStSync')&&($('bStSync').onclick=async()=>{
+20664|   toast('Проверяю облако…');
+20665|   const got=await pullStepsInbox(false);
+20666|   const ios=/iPhone|iPad|iPod/.test(navigator.userAgent);
+20667|   const n=(STEPS.find(t=>t.d===td())||{}).n;
+20668|   const ageMin=__stTs?Math.round((Date.now()-__stTs)/60000):null;
+20669|   // Облако хранит то, что прислала автоматизация, — к вечеру это утреннее число.
+20670|   // Поэтому на iPhone кнопка не «читает старое», а гоняет команду за СВЕЖИМ числом.
+20671|   if(ios && (got===false || ageMin==null || ageMin>15)){
+20672|     const age=ageMin==null?'':ageMin>=60?Math.floor(ageMin/60)+' ч '+(ageMin%60)+' мин назад':ageMin+' мин назад';
+20673|     if(await ask({title:'Запустить команду «'+(S.stepsSc||'Шаги')+'»?',
+20674|         text:(n?'Записано '+n.toLocaleString('ru-RU')+(age?' (число из облака '+age+')':''):'В облаке пока пусто.')+' Команда пришлёт свежее число — вернись сюда, и оно подтянется само.',
+20675|         ok:'Запустить',cancel:'Не сейчас'}))
+20676|       location.href='shortcuts://run-shortcut?name='+encodeURIComponent((S.stepsSc||'Шаги').trim());
+20677|     return;
+20678|   }
+20679|   if(got===true) return;
+20680|   if(got==='same'){
+20681|     // Команда работает и число дошло — но оно МЕНЬШЕ записанного, и мы его
+20682|     // не затираем. Молчать об этом нельзя: снаружи выглядит как «не работает».
+20683|     if(__stCloudN!=null&&n&&__stCloudN<n)
+20684|       toast('Команда прислала '+__stCloudN.toLocaleString('ru-RU')+', записано '+n.toLocaleString('ru-RU')+' — большее не затираю. Если '+__stCloudN.toLocaleString('ru-RU')+' занижено, проверь в команде фильтр «Источник» (см. настройку ниже).');
+20685|     else toast('Шаги актуальны'+(n?': '+n.toLocaleString('ru-RU'):''));
+20686|     return;
+20687|   }
+20688|   toast('В облаке пусто — проверь команду «Шаги». Свежее число присылает телефон.');
+20689| });
+20690| // Домен свой: vercel.app блокируется в РФ. Старые шорткаты с vercel.app
+20691| // продолжают работать — тот адрес остаётся зеркалом.
+20692| function stepsUrl(){ return 'https://bezvodyfit.ru/api/steps?k='+(S.stepsKey||'')+'&n='; }
+20693| function fillScUrl(){ const e=$('scUrl'); if(e) e.textContent=stepsUrl(); }
+20694| function copyStepsUrl(){
+20695|   (navigator.clipboard?navigator.clipboard.writeText(stepsUrl()):Promise.reject())
+20696|     .then(()=>toast('Ссылка скопирована — вставь в команду'))
+20697|     .catch(()=>{ try{ askText({title:'Скопируй вручную',label:'Ссылка для команды «Шаги»',value:stepsUrl(),ok:'Готово'}); }catch(_){ toast('Скопируй вручную: выдели текст'); } });
+20698| }
+20699| $('bScUrlCopy')&&($('bScUrlCopy').onclick=copyStepsUrl);
+20700| // кнопка живёт и внутри строки статуса (innerHTML) — ловим делегированно
+20701| document.addEventListener('click',e=>{ if(e.target&&e.target.closest&&e.target.closest('[data-sturl]')) copyStepsUrl(); });
+20702| /* Тема: тёмная по умолчанию, светлая — по выбору. Применяется мгновенно. */
+20703| /* ПРОСТОЙ РЕЖИМ. Полевой сигнал 04.08: вторая участница беты отказалась от приложения —
+20704|    «куча всего, не могу разобраться». Продвинутое (объём, ACWR, блоки, замеры,
+20705|    здоровье, закупки) скрыто, пока человек не попросит больше: первые две недели
+20706|    решает удержание, а не полнота панели.
+20707|    Две вещи, которые здесь нельзя сломать:
+20708|    1) Режим не имеет права молча урезать экран тому, кто УЖЕ пользуется. Явного
+20709|       выбора нет → решаем по данным и решение запоминаем, чтобы интерфейс не
+20710|       менялся сам по себе от каждой новой записи.
+20711|    2) Простой режим не тупик: снизу каждого урезанного экрана — «Показать всё».
+20712|    Выбор человека (S.ui) — закон, данные его не перебивают. */
+20713| function uiMode(){
+20714|   if(S.ui==='pro'||S.ui==='simple') return S.ui;
+20715|   const used=(W&&W.length>2)||(LOG&&LOG.length>5)||(SETS&&SETS.length>5);
+20716|   return used?'pro':'simple';
+20717| }
+20718| function applyUI(){
+20719|   const u=uiMode();
+20720|   document.documentElement.dataset.ui=u;
+20721|   // Решение принято один раз и записано: иначе третье взвешивание внезапно
+20722|   // развернуло бы новичку весь интерфейс, которого он и испугался.
+20723|   if(S.ui!=='pro'&&S.ui!=='simple'){ S.ui=u; S.uiAuto=1; put('settings',S,'main').catch(()=>{}); }
+20724|   // Обратная сторона: на новом устройстве данные приезжают ПОСЛЕ первого
+20725|   // рендера, и человек с историей застрял бы в простом. Как только видно
+20726|   // реальную историю — возвращаем полный экран и говорим об этом вслух.
+20727|   else if(S.uiAuto&&S.ui==='simple'&&((W&&W.length>10)||(LOG&&LOG.length>30)||(SETS&&SETS.length>30))){
+20728|     S.ui='pro'; delete S.uiAuto; put('settings',S,'main').catch(()=>{});
+20729|     document.documentElement.dataset.ui='pro';
+20730|     try{ toast('Вижу историю — вернул полный экран. Простой режим остался в настройках'); }catch(e){}
+20731|   }
+20732|   const b=$('uiModeBtn'); if(b) b.textContent=document.documentElement.dataset.ui==='simple'?'Простой режим · включён':'Полный режим · включён';
+20733|   uiLabels();
+20734| }
+20735| /* Ярлыки режима в настройках. Раньше они обновлялись ТОЛЬКО в applyTheme, и
+20736|    после автоматического решения о режиме (v265) строка «Вид приложения»
+20737|    показывала прежнее значение — человек читает «простой», а экран полный
+20738|    (найдено чтением настроек 18.08). */
+20739| function uiLabels(){
+20740|   const cur=document.documentElement.dataset.ui||uiMode();
+20741|   const us=$('uiSt'); if(us) us.textContent=cur==='pro'?'полный':'простой';
+20742|   const useg=$('uiSeg');
+20743|   if(useg) useg.querySelectorAll('[data-ui-set]').forEach(b=>b.classList.toggle('on',b.dataset.uiSet===cur));
+20744| }
+20745| /* «Показать всё» — простой режим не тупик: то, что скрыто, возвращается
+20746|    одной кнопкой снизу любого экрана, а не поиском в настройках. */
+20747| document.addEventListener('click',async e=>{
+20748|   const b=e.target&&e.target.closest&&e.target.closest('[data-ui-full],#bdGoFull'); if(!b) return;
+20749|   S.ui='pro'; delete S.uiAuto; await put('settings',S,'main').catch(()=>{});
+20750|   applyUI(); applyTheme(); renderAll();
+20751|   toast('Полный режим: вернул объём, аналитику, замеры и здоровье');
+20752| });
+20753| function applyTheme(){
+20754|   const t=S.theme==='light'?'light':'dark';
+20755|   document.documentElement.dataset.theme=t;
+20756|   const m=document.querySelector('meta[name="theme-color"]'); if(m) m.content=t==='light'?'#eef1f6':'#000000';
+20757|   const seg=$('themeSeg'); if(seg) seg.querySelectorAll('[data-theme-set]').forEach(b=>b.classList.toggle('on',b.dataset.themeSet===t));
+20758|   const st=$('themeSt'); if(st) st.textContent=t==='light'?'светлая':'тёмная';
+20759|   uiLabels();
+20760|   const useg=$('uiSeg');
+20761|   if(useg){ useg.querySelectorAll('[data-ui-set]').forEach(b=>{
+20762|     if(!b._init){ b._init=1; b.onclick=async()=>{ S.ui=b.dataset.uiSet; delete S.uiAuto;
+20763|       await put('settings',S,'main').catch(()=>{});
+20764|       applyUI(); applyTheme(); renderAll(); toast(S.ui==='pro'?'Полный режим':'Простой режим — лишнее скрыто'); }; }
+20765|   }); }
+20766| }
+20767| document.addEventListener('click',e=>{ const b=e.target.closest&&e.target.closest('[data-theme-set]'); if(!b) return;
+20768|   S.theme=b.dataset.themeSet; put('settings',S,'main').catch(()=>{}); applyTheme(); });
+20769| $('scName')&&($('scName').value=S.stepsSc||'Шаги',
+20770|   $('scName').onchange=async e=>{ S.stepsSc=e.target.value.trim()||'Шаги'; await put('settings',S,'main'); toast('Имя команды: '+S.stepsSc); });
+20771| 
+20772| let _zchSig='';
+20773| function drawSleep(D){
+20774|   const cv=$('zCh'); if(!cv||!cv.clientWidth) return;   // свёрнутая раскрывашка — ширины нет, рисовать нечего
+20775|   const dpr=devicePixelRatio||1,w=cv.clientWidth,h=130;
+20776|   /* v617: подпись по 30 последним ночам — симметрия с весом, замерами и шагами. */
+20777|   const A0=(D||[]).slice(-30);
+20778|   const sig=w+'|'+dpr+'|'+((document.documentElement.dataset||{}).theme||'')+'|'+A0.map(p=>p.d+':'+(p.h==null?'-':Math.round(p.h*10))).join(',');
+20779|   if(sig===_zchSig&&cv.width===Math.round(w*dpr)) return;
+20780|   _zchSig=sig;
+20781|   cv.width=w*dpr;cv.height=h*dpr;cv.style.height=h+'px';
+20782|   const x=cv.getContext('2d');x.scale(dpr,dpr);x.clearRect(0,0,w,h);
+20783|   const A=D.slice(-30); if(A.length<2){x.fillStyle='#8E8E93';x.font='12px Inter,sans-serif';x.textAlign='center';
+20784|     x.fillText('Нужно минимум 2 ночи',w/2,h/2);return}
+20785|   const pad={l:26,r:6,t:10,b:16}, hi=10;
+20786|   const x0=dn(A[0].d),x1=dn(A[A.length-1].d),sp=Math.max(1,x1-x0);
+20787|   const X=d=>pad.l+(dn(d)-x0)/sp*(w-pad.l-pad.r), Y=v=>pad.t+(1-v/hi)*(h-pad.t-pad.b);
+20788|   x.strokeStyle='#2C2C2E';x.fillStyle='#8E8E93';x.font='10px Inter,sans-serif';x.textAlign='right';
+20789|   [0,5,10].forEach(v=>{const y=Y(v);x.beginPath();x.moveTo(pad.l,y);x.lineTo(w-pad.r,y);x.stroke();x.fillText(v,pad.l-4,y+3)});
+20790|   // линия 7 часов — порог
+20791|   x.setLineDash([3,3]);x.strokeStyle=C_WN();x.beginPath();
+20792|   x.moveTo(pad.l,Y(7));x.lineTo(w-pad.r,Y(7));x.stroke();x.setLineDash([]);
+20793|   const bw=Math.max(2,(w-pad.l-pad.r)/A.length*.6);
+20794|   A.forEach(p=>{const y=Y(p.h);x.fillStyle=p.h>=7?C_AC():p.h>=6?C_WN():C_BD();
+20795|     x.fillRect(X(p.d)-bw/2,y,bw,h-pad.b-y)});
+20796| }
+20797| 
+20798| /* ── КОГДА ТЫ ЭФФЕКТИВЕН ── */
+20799| function rLev(){
+20800|   const L=S.lev||{};
+20801|   $('levForm').innerHTML=LEVQ.map(q=>`<div class="field">
+20802|     <label>${q.n} (см)</label>
+20803|     <input type="text" step="0.5" inputmode="decimal" id="lv_${q.k}" value="${L[q.k]||''}">
+20804|     <details style="margin-top:4px"><summary class="mini">как мерить</summary>
+20805|       <div class="mini">${q.hint}</div></details></div>`).join('');
+20806|   const A=leverAdvice(), box=$('levBox'), lv=levers();
+20807|   if(!A){
+20808|     $('levSt').textContent='';
+20809|     box.innerHTML=`<div class="wb">Пока замеров нет — советы усреднённые.</div>`;
+20810|     return;
+20811|   }
+20812|   $('levSt').textContent=`размах ${r2(lv.ape)} · бедро/голень ${r2(lv.ft)}`;
+20813|   box.innerHTML=A.map(a=>`<div class="lev-card">
+20814|     <div style="font-weight:var(--fwm);font-size:var(--fs2);line-height:var(--lh2);color:${a.bad?'var(--wn)':'var(--ac)'}">${a.t} — ${esc(a.v)}</div>
+20815|     <div class="note" style="margin-top:5px">${a.w}</div>
+20816|     ${a.f.length?`<div class="tech" style="margin-top:8px"><b style="color:var(--ac2)">Что делать</b>
+20817|       <ul>${a.f.map(x=>`<li>${esc(x)}</li>`).join('')}</ul></div>`:''}
+20818|   </div>`).join('')
+20819|    +`<div class="note"><b>Границы честности.</b> Пороги (индекс размаха 1.03, бедро/голень 1.12) — это разумные ориентиры, а не жёсткие законы: биомеханика тут работает как непрерывный спектр, а не как переключатель. Если ты у самой границы — оба набора советов частично про тебя. И рулетка врёт на пару сантиметров, так что не лови десятые.</div>`;
+20820| }
+20821| $('bLev').onclick=async()=>{
+20822|   const L={}; let any=0;
+20823|   LEVQ.forEach(q=>{const v=num($('lv_'+q.k)); if(v>0){L[q.k]=v;any=1}});
+20824|   if(!any) return toast('Заполни замеры');
+20825|   if(Object.keys(L).length<4) return toast('Нужны все четыре — иначе не посчитать пропорции');
+20826|   if(L.sit>=S.h) return toast('Высота сидя не может быть больше роста');
+20827|   S.lev=L; await put('settings',S,'main');
+20828|   rLev(); toast('Рычаги посчитаны');
+20829| };
+20830| 
+20831| /* ── ЧТО СЕГОДНЯ И ЧТО ЗАВТРА ── */
+20832| /* Что делать в СЛЕДУЮЩЕМ подходе этого упражнения ПРЯМО СЕЙЧАС.
+20833|    Учитывает, что уже сделано сегодня: если предыдущий подход провалился —
+20834|    предлагает сбросить вес, а не тупо повторять план. */
+20835| /* Текущая неделя программы (1..N) от даты старта плана */
+20836| function progWeek(){
+20837|   if(!S.prog||!S.prog.created) return 1;
+20838|   const start=dn(S.prog.created)-(dowOf(S.prog.created)-1);   // понедельник недели импорта
+20839|   return Math.max(1,Math.floor((dn(td())-start)/7)+1);
+20840| }
+20841| /* Вес по плану тренера на текущую неделю — ПРИОРИТЕТ над историей. null если понедельных весов нет */
+20842| /* История упражнения прямо в карточке (поле 18.08: «хочу видеть, что делал
+20843|    в прошлый раз и позапрошлый, а не одну строчку "было"»). Раскрывашка —
+20844|    принцип «всё нужное во время подхода живёт внутри карточки», но без
+20845|    стены: свёрнуто по умолчанию, тап — последние 5 тренировок и рекорд. */
+20846| const histOpen=new Set();
+20847| const whyOpen=new Set();
+20848| /* Раскрытые «⋯» в шапке упражнения. Живут в памяти сессии и переживают
+20849|    перерисовку: записал подход — панель не схлопнулась (правило владельца). */
+20850| const exMore=new Set();
+20851| function exHistHTML(name,D){
+20852|   const all=SETS.filter(s=>s.e===name&&(!D||s.d!==D));
+20853|   if(!all.length) return '';
+20854|   const byDay={};
+20855|   all.forEach(s=>{ (byDay[s.d]=byDay[s.d]||[]).push(s); });
+20856|   const days=Object.keys(byDay).sort((a,b)=>a<b?1:-1).slice(0,5);
+20857|   const open=histOpen.has(name);
+20858|   const u=exUnit(name), st=exStatic(name);
+20859|   const best=(function(){try{return bestLift(name)}catch(e){return null}})();
+20860|   const top=all.filter(s=>s.w>0).reduce((a,s)=>!a||s.w>a.w?s:a,null);
+20861|   return `<div class="wc-sub"><a class="tog${open?' op':''}" data-histtog="${esc(name)}">${open?'Свернуть историю':'История: '+days.length+' послед. трен.'}</a></div>`
+20862|    +(open?`<div class="wc-sub" style="white-space:normal;color:var(--t2)">
+20863|       ${days.map(d=>{
+20864|         const ss=byDay[d].map(s=>(s.w>0?r1(s.w)+' ':'')+'×'+s.r).join(' · ');
+20865|         return `<div style="margin:2px 0"><b style="color:var(--t3)">${fd(d)}</b> — ${esc(ss)}${st?' сек':''}</div>`;
+20866|       }).join('')}
+20867|       ${exChartHTML(name)}
+20868|       ${top?`<div style="margin-top:8px;color:var(--ac2)">Лучший подход: ${r1(top.w)} ${u}×${top.r}${best?` · оценка 1ПМ ~${r0(best)} ${u}`:''}</div>`:''}
+20869|     </div>`:'');
+20870| }
+20871| /* «Почему такой совет» (предложение 18.08 после аудита): любую цифру можно
+20872|    развернуть и увидеть, из чего она сложилась. Доверие строится на
+20873|    проверяемости — человек должен ловить ошибку сразу, а не через неделю. */
+20874| /* ══════════ САНИТАР: приложение проверяет САМО СЕБЯ ══════════
+20875|    Запрос владельца 18.08: «мы должны сами искать ошибки, а не идти через
+20876|    них». Раньше несуразицу ловил только человек в зале — и каждая стоила
+20877|    ему тренировки. Теперь перед показом плана прогоняются правила
+20878|    здравого смысла и профессиональной практики. Что можно — чиним молча,
+20879|    о чём нужно знать — говорим, и ВСЁ пишем в телеметрию: так ошибки
+20880|    находят нас, а не мы их через полевые отчёты.
+20881|    Правила — не выдумка: частота 2×/нед на группу и база в начале
+20882|    (Schoenfeld), объём в MEV–MRV (Israetel), не больше ~5 рабочих
+20883|    подходов на упражнение за сессию, вес не выше личного максимума. */
+20884| /* ══════════ НАБЛЮДАТЕЛЬ: приложение смотрит, как им пользуются ══════════
+20885|    Запрос владельца 18.08: «идеально, чтоб он анализировал поведение и сам
+20886|    предлагал новые функции и работу текущих». Санитар ловит ошибки в плане,
+20887|    наблюдатель — трение в жизни: что человек делает руками каждый раз, что
+20888|    бросает на полпути, что игнорирует. Каждое наблюдение — с готовым
+20889|    действием: приложение не жалуется, а предлагает себя починить.
+20890|    Считается локально по журналу; обезличенная сводка (только коды находок)
+20891|    уходит в телеметрию — так продуктовые решения принимаются по фактам,
+20892|    а не по догадкам. */
+20893| /* ВАЖНОСТЬ НАБЛЮДЕНИЙ. Правила срабатывают в порядке написания, и человек,
+20894|    у которого «всё понемногу не так», получал стену: пять упрёков разом, сверху
+20895|    «поменяй упражнение», а внизу «еда записана 7 дней из 14» — хотя второе
+20896|    решает результат, а первое нет (аудит 20.08). Показываем два самых важных:
+20897|    два дела человек сделает, пять — закроет приложение. Остальные никуда не
+20898|    деваются и придут, когда эти будут закрыты. */
+20899| /* «dense» стоит выше «overeat» намеренно: переедание — следствие, плотность
+20900|    рациона — причина. Сказать человеку «ты съел на 300 больше» после того, как
+20901|    он всю неделю ел 2000 ккал в 750 граммах, — значит назвать симптом. */
+20902| const INS_W={goalhit:100, undereat:90, dense:89, overeat:88, food:80, foodgap:78, protein:70, deload:64, compact:60, prehab:48, swap:46, stall:44, range:42, subgap:33,
+20903|   weigh:66, close:60, watersync:52, water:40, dow:34, add:30, bf:18, ln:18, dn:18, sn:18};   // v671: старый дубль swap:20 перекрывал 46 из v669 — ключ в объекте один
+20904| function insightHTML(){
+20905|   let list=[]; try{ list=behaviorInsights(); }catch(e){}
+20906|   const hid=new Set(S.insHid||[]);
+20907|   list=list.filter(x=>!hid.has(x.code+':'+(x.act||'')));
+20908|   // Один совет на тему: два «ты часто меняешь это упражнение» подряд — это шум.
+20909|   const seen=new Set();
+20910|   list=list.filter(x=>{ if(seen.has(x.code)) return false; seen.add(x.code); return true; });
+20911|   list=list.slice().sort((a,b)=>(INS_W[b.code]||50)-(INS_W[a.code]||50));
+20912|   if(!list.length) return '';
+20913|   return `<div class="card"><div class="hd"><h2>Что я заметил</h2><span class="mini">по твоим действиям</span></div>`
+20914|     /* Две РАВНЫЕ кнопки во всю ширину вместо мелких пилюль (замечание
+20915|        владельца 11.09). Выбор здесь всегда из двух и они равнозначны:
+20916|        «сделать» и «не надо». Мелкая пилюля рядом с контурной читалась как
+20917|        «одна главная, вторая отмена», хотя отказ — такой же законный ответ. */
+20918|     +list.slice(0,2).map(x=>`<div class="ib" style="white-space:normal;margin-bottom:8px">${esc(x.text)}
+20919|       <div class="insacts">
+20920|         ${x.btn?`<button class="insb y" data-ins="${esc(x.act||'')}">${esc(x.btn)}</button>`:''}
+20921|         <button class="insb n" data-insno="${esc(x.code+':'+(x.act||''))}">Не надо</button>
+20922|       </div></div>`).join('')
+20923|     +`<div class="note">Наблюдения считаются на твоём телефоне. Если совет мимо — жми «не надо», больше не покажу.</div></div>`;
+20924| }
+20925| async function insightAct(act){
+20926|   try{
+20927|     if(act.startsWith('pain:')){ const n=act.slice(5); S.pain=S.pain||{}; S.pain[n]={d:td(),n}; await put('settings',S,'main'); await painRebuild(n); toast('Убрал из программы'); }
+20928|     else if(act==='autoclose'){ S.autoClose=1; await put('settings',S,'main');
+20929|       try{ await sweepStaleSess(); }catch(e){}
+20930|       toast('Буду закрывать сам по последнему подходу и ставить тяжесть по твоему режиму — поправить можно в «Закрыть тренировку»'); }
+20931|     else if(act.startsWith('remind:')){ toast('Включи напоминания в Настройках — я подготовил нужный тип'); openSet&&openSet('Notif'); }
+20932|     else if(act==='waterauto'){
+20933|       delete S.waterManual; await put('settings',S,'main');
+20934|       toast('Цель по воде теперь считается от веса — сейчас '+waterGoalOf()+' мл'+(waterTrainDay()?' (день с залом, +'+WATER_TRAIN+')':''));
+20935|       rCoach&&rCoach(); rWater&&rWater();
+20936|     }
+20937|     else if(act==='watergoal'){
+20938|       /* Ровно то же окно и та же жидкость, что в самом наблюдении. Раньше
+20939|          здесь стояло «последние 14 ключей объекта» — не последние 14 ДНЕЙ:
+20940|          порядок ключей после слияния с другого устройства произвольный, и
+20941|          человек, согласившись «снизить цель до реального среднего», получал
+20942|          среднее не за те дни, о которых ему только что сказали. */
+20943|       const days=[];
+20944|       for(let x=dn(td())-13;x<=dn(td());x++){ const v=fluidToday(ds(x)); if(v>0) days.push(v); }
+20945|       if(days.length){ const avg=Math.round(days.reduce((a,b)=>a+b,0)/days.length/100)*100;
+20946|         S.waterGoal=Math.max(1500,avg); S.waterManual=1; await put('settings',S,'main'); toast('Цель по воде — '+S.waterGoal+' мл'); }
+20947|     }
+20948|     else if(act.startsWith('swapex:')){
+20949|       const [from,to]=act.slice(7).split('>');
+20950|       const dayF=(S.prog&&S.prog.plan||[]).find(d=>(d.ex||[]).some(i=>!i.hidden&&i.n===from));
+20951|       if(from&&to&&dayF) await applySwap(from,to,null,'perm',dayF.dow);
+20952|       else toast('Не нашёл «'+String(from).slice(0,20)+'» в программе');
+20953|     }
+20954|     else if(act.startsWith('hideex:')){
+20955|       /* v669: «убрать» — не «больно»: движение прячется в своём дне, строка «Убрано» вернёт */
+20956|       const n=act.slice(7); let k=0;
+20957|       (S.prog&&S.prog.plan||[]).forEach(d=>(d.ex||[]).forEach(it=>{ if(it.n===n&&!it.hidden){ it.hidden=1; k++; } }));
+20958|       if(k){ S.ua=Date.now(); await put('settings',S,'main'); toast('Убрал «'+n.slice(0,24)+'» из программы — вернуть можно в дне, строкой «Убрано»'); try{ rTrain(); rCoach&&rCoach(); }catch(e){} }
+20959|       else toast('Не нашёл «'+n.slice(0,20)+'» в программе');
+20960|     }
+20961|     else if(act.startsWith('range:')){
+20962|       /* v669: коридор под человека — руками, поэтому миграции его больше не трогают */
+20963|       const [n,lo,hi]=act.slice(6).split('>'); let k=0;
+20964|       if(+lo>0&&+hi>=+lo) (S.prog&&S.prog.plan||[]).forEach(d=>(d.ex||[]).forEach(it=>{ if(it.n===n&&!it.hidden){ it.lo=+lo; it.hi=+hi; k++; } }));
+20965|       if(k){ S.ua=Date.now(); await put('settings',S,'main'); toast('«'+n.slice(0,24)+'»: коридор '+lo+'–'+hi+' под тебя'); try{ rTrain(); rCoach&&rCoach(); }catch(e){} }
+20966|       else toast('Не нашёл «'+n.slice(0,20)+'» в программе');
+20967|     }
+20968|     else if(act==='prehab'){
+20969|       /* v671: работа на слабые звенья в уже собранную программу — та же функция, что при сборке */
+20970|       const P=S.prog; if(!P||!P.plan) return;
+20971|       const r=applyPrehab(P).filter(x=>x.added); P.prehab=applyPrehab(P);
+20972|       S.ua=Date.now(); await put('settings',S,'main');
+20973|       toast(r.length?('Поставил: '+r.map(x=>x.n+' → '+x.d).join(' · ')):'В программе это уже есть');
+20974|       try{ rTrain(); rProg&&rProg(); rCoach&&rCoach(); }catch(e){}
+20975|     }
+20976|     else if(act==='deload'){
+20977|       /* v670: разгрузка по признакам — та же, что закрывает цикл: объём пополам, веса те же */
+20978|       const sg=deloadSigns(); await signsDeload(sg.signs.map(s=>s.txt).join('; ')||'по признакам усталости');
+20979|       try{ rProg&&rProg(); rCoach&&rCoach(); }catch(e){}
+20980|     }
+20981|     else if(act==='compact'){
+20982|       /* v668: собрать дни под факт — 5–6 движений по 3–4 подхода вместо 8–9 по два */
+20983|       const P=S.prog; if(!P||!P.plan) return;
+20984|       const r=compactProgram(P); S.ua=Date.now(); await put('settings',S,'main');
+20985|       toast('Пересобрал: '+r.map(x=>x.n+' '+x.exWas+'→'+x.ex+' движ., '+x.min+' мин').join(' · '));
+20986|       try{ rTrain(); rProg&&rProg(); rCoach&&rCoach(); }catch(e){}
+20987|     }
+20988|     else if(act.startsWith('addex:')){
+20989|       const n=act.slice(6), P=S.prog;
+20990|       if(P&&P.plan&&P.plan.length){
+20991|         /* День выбирался по ОДНОМУ признаку — где меньше упражнений. Так жим
+20992|            лёжа и приехал в день, где уже стоял жим гантелей: коротким днём
+20993|            оказался как раз жимовой. Выбираем день, которому движение
+20994|            подходит и который его выдержит:
+20995|            · без того же стимула (иначе это дубль, а не добавка);
+20996|            · где уже живёт та же роль — там ему место по смыслу;
+20997|            · где есть запас по потолку упражнений.
+20998|            Если такого дня нет — молчим и говорим почему, а не суём куда-нибудь. */
+20999|         const eqk2=(P.cfg&&P.cfg.equip)||'gym', role=(EM[n]||{}).role;
+21000|         const vis=d=>(d.ex||[]).filter(i=>!i.hidden);

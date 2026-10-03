@@ -1,0 +1,1501 @@
+// ИЗВЛЕЧЕНИЕ ДЛЯ ЧТЕНИЯ: index.html, строки 1501–3000 из 31008. Номера строк совпадают с оригиналом. Код не менялся.
+ 1501| /* 4. Смарт-баннеры: подложка карточки, r20, сетка 8 — иконка слева, текст справа */
+ 1502| #v-train .sb{background:var(--card);border-radius:20px;padding:16px;display:flex;gap:12px;align-items:flex-start;color:var(--tx);white-space:normal}
+ 1503| #v-train .card .sb{background:var(--gym-in)}   /* внутри карточки того же цвета баннер невидим — берёт подложку поля */
+ 1504| #v-train .sb .sb-i{flex:0 0 auto;width:20px;height:20px;margin-top:2px}
+ 1505| #v-train .sb-info .sb-i{color:var(--ac2)}
+ 1506| #v-train .sb-ok .sb-i{color:var(--gym-ok)}
+ 1507| #v-train .sb-warn .sb-i{color:var(--gym-warn)}
+ 1508| #v-train details.sb{display:block;padding:8px 16px}
+ 1509| #v-train details.sb summary{display:flex;align-items:center;gap:12px;min-height:44px;padding:4px 0;color:var(--tx);font-weight:600;font-size:var(--fs2);line-height:var(--lh2)}
+ 1510| #v-train details.sb summary::before{display:none}
+ 1511| #v-train details.sb summary::after,#v-train .det.progday>summary::after{content:'';margin-left:auto;width:14px;height:14px;flex:0 0 auto;color:var(--gym-chev);background:currentColor;
+ 1512|   -webkit-mask:var(--chev) center/contain no-repeat;mask:var(--chev) center/contain no-repeat;transition:transform .24s cubic-bezier(.32,.72,0,1)}
+ 1513| #v-train details.sb[open]>summary::after,#v-train .det.progday[open]>summary::after{transform:rotate(90deg)}
+ 1514| #v-train details.sb[open]>summary{margin-bottom:0}
+ 1515| #v-train .sb-t{flex:1 1 auto;min-width:0}
+ 1516| #v-train .sb-list{margin:4px 0 12px}
+ 1517| #v-train .sb-row{padding:8px 0;border-bottom:1px solid var(--gym-sep);font-size:var(--fs1);line-height:var(--lhb);color:var(--t2)}
+ 1518| #v-train .sb-row:last-child{border-bottom:0}
+ 1519| #v-train .btn.sb-fix{width:100%;height:50px;min-height:50px;border-radius:14px;background:var(--gym-ok);color:var(--gym-fixt);font-weight:700;font-size:var(--fs2);box-shadow:none;margin:0 0 8px;transition:transform .12s var(--ez)}
+ 1520| #v-train .btn.sb-fix:active{transform:scale(.97)}
+ 1521| /* 5. «Моя программа»: карточка-обёртка плоская, дни — крупные аккордеоны, упражнения — карточки */
+ 1522| #v-train .card:has(>.pcard-hd){background:transparent;padding:0 0 8px;box-shadow:none}
+ 1523| #v-train .pcard-hd{padding:0 4px}
+ 1524| #v-train .det.progday{background:transparent;padding:0;margin:0;border-radius:0;border-bottom:1px solid var(--gym-sep)}
+ 1525| #v-train .det.progday:last-of-type{border-bottom:0}
+ 1526| #v-train .det.progday>summary{min-height:56px;padding:8px 4px;gap:12px}
+ 1527| #v-train .det.progday>summary::before{display:none}
+ 1528| #v-train .det.progday[open]>summary{margin-bottom:0}
+ 1529| #v-train .pd-n{flex:1 1 auto;min-width:0;font-weight:700;font-size:var(--fs3);line-height:var(--lh3);color:var(--tx);letter-spacing:-.3px}
+ 1530| #v-train .pd-c{flex:0 0 auto;color:var(--gym-sub);font-weight:500;font-size:var(--fs1);line-height:var(--lh1);font-variant-numeric:tabular-nums;white-space:nowrap}
+ 1531| #v-train .pd-body{padding:4px 0 12px}
+ 1532| #v-train .pd-note{margin:0 4px 12px;color:var(--gym-sub);font-size:var(--fs1);line-height:var(--lhb)}
+ 1533| #v-train .program-ex-card{background:var(--card);border-radius:16px;padding:16px;margin:0 0 12px}
+ 1534| #v-train .pex-h{display:flex;align-items:center;gap:8px;min-width:0}
+ 1535| #v-train .pex-n{font-weight:600;color:var(--tx);cursor:pointer;letter-spacing:-.2px;min-width:0;overflow-wrap:anywhere}
+ 1536| #v-train .tag.base{flex:0 0 auto;margin:0;background:transparent;border:1px solid rgba(48,209,88,.55);color:var(--gym-ok);padding:0 8px;line-height:var(--lh1);font-weight:600;letter-spacing:.02em}
+ 1537| [data-theme="light"] #v-train .tag.base{border-color:rgba(27,127,59,.55)}
+ 1538| #v-train .pex-s{margin-top:4px;color:var(--gym-sub);font-size:var(--fs1);line-height:var(--lh1);font-weight:500;font-variant-numeric:tabular-nums}
+ 1539| #v-train .pex-l{margin-top:8px;color:var(--t2);font-size:var(--fs1);line-height:var(--lhb)}
+ 1540| /* 6. Боль — красным, щит слева, полоса на всю высоту блока: видно с гантелей в руке */
+ 1541| #v-train .pex-pain{display:flex;gap:8px;margin-top:12px;padding:4px 0 4px 12px;border-left:3px solid var(--gym-pain);color:var(--gym-pain);font-size:var(--fs1);line-height:var(--lhb);font-weight:500}
+ 1542| #v-train .pex-pain .ic{flex:0 0 auto;width:16px;height:16px;margin-top:2px}
+ 1543| #v-train .pex-pain b{color:var(--gym-pain);font-weight:700}
+ 1544| /* 7. Совет тренера — жёлтым, в своём блоке */
+ 1545| #v-train .pex-tip{margin-top:12px;padding:12px;border-radius:12px;background:var(--gym-tipbg);color:var(--gym-tip);font-size:var(--fs1);line-height:var(--lhb)}
+ 1546| #v-train .pex-tip-h{font-weight:700;font-size:var(--fs0);line-height:var(--lh0);letter-spacing:.04em;text-transform:uppercase;margin-bottom:4px;opacity:.9}
+ 1547| #v-train .pex-tip b{color:var(--gym-tip);font-weight:700}
+ 1548| /* ── «ЗАЛ» v606: боль и совет в боевой карточке; «Техника» и «Разбор» — карточки ──
+ 1549|    Один блок боли/совета на всю вкладку (.pex-pain/.pex-tip из v605): в карточке
+ 1550|    тренировки боль стоит над таблицей подходов, совет — под ней. */
+ 1551| #v-train .wc .pex-pain{margin:8px 0 4px}
+ 1552| #v-train .wc .pex-tip{margin:12px 0 4px}
+ 1553| /* 8. «Техника»: строки справочника — карточки r16 без сплошных разделителей; группы мышц — 700 */
+ 1554| #exList .item.exrow{background:var(--card);border-radius:16px;padding:12px 16px;margin:0 0 8px;border-bottom:0;min-height:56px;transition:transform .12s var(--ez),background .15s var(--ez)}
+ 1555| #exList .item.exrow:active{transform:scale(.98);background:var(--gym-in)}
+ 1556| #exList .exrow .t{font-weight:600;color:var(--tx);letter-spacing:-.2px}
+ 1557| #exList .exrow[data-exmus2] .t{font-family:-apple-system,BlinkMacSystemFont,"SF Pro Display","Inter",sans-serif;font-weight:700;font-size:var(--fs3);line-height:var(--lh3);letter-spacing:-.3px}
+ 1558| #exList .exrow .s{color:var(--gym-sub)}
+ 1559| #exList .exth{border-radius:10px;background:var(--gym-in)}
+ 1560| #kbCard #exList .item.exrow{background:var(--gym-in)}   /* v615: внутри раскрывашки «Коуча» строки — на подложке поля, а не карточка на карточке */
+ 1561| #kbCard #exList .item.exrow:active{background:var(--gym-sep)}
+ 1562| /* 9. v615: группы объёма (теперь в «Коуче») и рычаги (теперь в «Тело → Замеры») — карточки r16 на подложке поля */
+ 1563| #volBox .vol{background:var(--gym-in);border-radius:16px;padding:12px 16px;margin:0 0 8px}
+ 1564| #volBox .vol .h .n .wc-del{min-height:44px}
+ 1565| .lev-card{background:var(--gym-in);border-radius:16px;padding:12px 16px;margin:0 0 8px}
+ 1566| .lev-card .tech{margin-top:8px}
+ 1567| /* ── ЛИСТ «ТРЕНЕР» v615: «Моё состояние» — опросник готовности и график над уведомлениями ── */
+ 1568| .ask-status{margin:0 0 12px;padding:12px 16px;border-radius:16px;background:rgba(255,255,255,.06)}
+ 1569| .ask-status-h{display:flex;align-items:center;justify-content:space-between;gap:8px;font-size:var(--fs1);line-height:var(--lh1);font-weight:600;letter-spacing:.02em;text-transform:uppercase;color:var(--t3);margin-bottom:8px}
+ 1570| .ask-status .field{margin-bottom:8px}
+ 1571| .ask-status .btn{width:100%}
+ 1572| [data-theme="light"] .ask-status{background:rgba(0,0,0,.04)}
+ 1573| /* ── «ЕДА» — НИЖНЯЯ ГРАНИЦА СЕТКИ 8pt (v597, закон двух экранов) ──
+ 1574|    Замер 14.09: 1473 px при пределе 1418 (2.05 экрана). Крупное на экране
+ 1575|    нужно, а отступы между блоками — нет: карточки 16 px внутри и 12 px между,
+ 1576|    раскрывашки 12 px внутри. Только «Еда» — остальные вкладки в законе. */
+ 1577| #v-food .card{padding:16px;margin-bottom:12px}
+ 1578| #v-food .card .hd{margin-bottom:12px}
+ 1579| #v-food .det{padding:12px 16px;margin-bottom:12px}
+ 1580| #v-food .det summary{padding:0}
+ 1581| #v-food .mgrid .wcard{padding:12px 16px}
+ 1582| /* ── v634: ВОДА И ШАГИ — КОМПАКТНО, БЕЗ ПОТЕРИ ФУНКЦИИ ──
+ 1583|    Две карточки занимали ~250 px на две цифры. Решение автора: визуально
+ 1584|    меньше, функция та же. Что осталось ровно тем же: запись воды в один тап
+ 1585|    (+250/+500 с data-rapid), тап по шагам раскрывает поле, «последняя +250
+ 1586|    в 16:06» против двойной записи. Что ужато: кегль числа на ступень (fs3 →
+ 1587|    fs2), заголовок на ступень (fs2 → fs1), воздух между строками 12 → 4 и
+ 1588|    6 px, паддинг 12/16 → 10/12. Пилюли остались 44 px — закон потного пальца
+ 1589|    выше закона компактности. */
+ 1590| #v-food .mgrid.mini2 .wcard{padding:10px 12px}
+ 1591| /* ── v634, вариант V3 из пяти (выбор агента по поручению автора) ──
+ 1592|    Вода и шаги — две строки во всю ширину, а не две плитки в ряд: слева
+ 1593|    показание и полоса, справа пилюли. Замер 21.09 на 390 px: строка 78 px
+ 1594|    против плитки 140, ни одного пустого угла, полоса в три раза шире; на
+ 1595|    320 px плитки складывались в столбик на ~240 px, строки остаются 164. */
+ 1596| #v-food .mini2{grid-template-columns:minmax(0,1fr);gap:8px;margin-bottom:12px}
+ 1597| #v-food .mini2>.card{margin-bottom:0}
+ 1598| #v-food .mini2 .wcard{display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:center;column-gap:12px}
+ 1599| #v-food .mini2 .wcard-main{grid-column:1}
+ 1600| #v-food .mini2 #stInline{grid-column:1/-1}
+ 1601| #v-food .mini2 .wcard-h>span:first-child{font-size:var(--fs1);line-height:var(--lh1)}
+ 1602| #v-food .mini2 .wcard-h .ic{width:14px;height:14px}
+ 1603| #v-food .mini2 .mrow{margin-top:4px;gap:4px}
+ 1604| #v-food .mini2 .mval{font-size:var(--fs2);line-height:var(--lh2)}
+ 1605| /* Число и цель — ОДИН кегль (решение владельца 31.08, стережёт браузерный
+ 1606|    прогон): ужимаем обе части вместе, а не число отдельно от цели. */
+ 1607| #v-food .mini2 .mrow .mtgt{font-size:var(--fs2);line-height:var(--lh2)}
+ 1608| #v-food .mini2 .bar{margin-top:8px}
+ 1609| #v-food .mini2 .mgoal{margin-top:4px!important;font-size:var(--fs0);line-height:var(--lh0)}
+ 1610| #v-food .mini2 .wcard-acts{grid-column:2;margin-top:0;display:flex;gap:6px}
+ 1611| #v-food .mini2 .wcard-acts .btn{width:auto;padding:0 14px;font-size:var(--fs1);line-height:var(--lh1);white-space:nowrap}
+ 1612| /* На 320 px «+500» ломалось внутри пилюли на «+50 / 0» (замер 21.09):
+ 1613|    пилюля не переносит текст, а на узком экране чуть уже. */
+ 1614| @media (max-width:360px){ #v-food .mini2 .wcard-acts .btn{padding:0 12px} #v-food .mini2 .wcard{column-gap:8px} }
+ 1615| #v-food .mini2 #stInline input{margin-top:8px!important}
+ 1616| #v-food .mini2 #stInline .btn{margin-top:8px!important}
+ 1617| #v-food #tSrc{margin-top:12px}
+ 1618| #v-food #qList{margin-top:8px}
+ 1619| #v-food .det.pro{padding:8px 16px}
+ 1620| /* ── «ЕДА» v600: нативные плюсы, шевроны справа, один раскрытый контекст ──
+ 1621|    apple-springs.md §1.1 · ios-accessibility.md §2 · micro-interactions.md §2/§4/§5 */
+ 1622| #v-food{--food-ok:#30D158;--food-in:rgba(255,255,255,.06);--food-ico:rgba(255,255,255,.56)}
+ 1623| [data-theme="light"] #v-food{--food-ok:#1B7F3B;--food-in:rgba(0,0,0,.05);--food-ico:rgba(0,0,0,.56)}
+ 1624| /* Плюс: тонкий серый 36 px, зона нажатия 44 псевдоэлементом; Done — галочка */
+ 1625| #v-food .qrow .qadd2{position:relative;width:36px;height:36px;border-radius:12px;background:var(--food-in);color:var(--food-ico);line-height:1;
+ 1626|   display:inline-flex;align-items:center;justify-content:center;transition:transform .24s cubic-bezier(.32,.72,0,1),background .18s var(--ez),color .18s var(--ez)}
+ 1627| #v-food .qrow .qadd2::before{content:'';position:absolute;inset:-4px;border-radius:16px}
+ 1628| #v-food .qrow .qadd2 .ic{position:absolute;width:18px;height:18px;transition:opacity .24s cubic-bezier(.32,.72,0,1),transform .24s cubic-bezier(.32,.72,0,1)}
+ 1629| #v-food .qrow .qadd2 .ik{opacity:0;transform:scale(.6)}
+ 1630| #v-food .qrow .qadd2.on{color:var(--food-ok);background:transparent}
+ 1631| #v-food .qrow .qadd2.on .ip{opacity:0;transform:scale(.6)}
+ 1632| #v-food .qrow .qadd2.on .ik{opacity:1;transform:none}
+ 1633| #v-food .qrow .qadd2:active{transform:scale(.88)}
+ 1634| /* Шеврон раскрывашек — справа (chevron.right), поворот вниз при раскрытии */
+ 1635| #v-food .det>summary::before{display:none}
+ 1636| #v-food .det summary{justify-content:space-between}
+ 1637| #v-food .det summary .mini[style*="margin-left:auto"],#v-food .dgrp summary .s{margin-left:auto}
+ 1638| /* ── v634: ИМЯ ПРИЁМА НЕ ПЕРЕНОСИТСЯ — НАЙДЕНО НА ЖИВЫХ ДАННЫХ ──
+ 1639|    Первый живой прогон (tests/live.js --wrap): «Завтрак» в две строки, 55×40 px
+ 1640|    при слове в 60. Причина не в имени, а в соседе: 1282 ккал и Б 107 в одном
+ 1641|    приёме дают значение шириной 233 px, и оно сжимало имя (flex:1). Выдуманные
+ 1642|    фикстуры были короче, и ни один стенд этого не видел. Правка класса: имя
+ 1643|    никогда не переносится, а длинное значение переносится в СВОЕЙ ячейке —
+ 1644|    числа остаются целыми. */
+ 1645| #v-food .dgrp summary>span:first-child{flex:0 0 auto;white-space:nowrap}
+ 1646| #v-food .dgrp summary .s{flex:1 1 auto;min-width:0;text-align:right;white-space:normal}
+ 1647| /* На 320 px четыре числа в строку не встают и на 15 px — на ступень мельче,
+ 1648|    зато одной строкой и целиком (замер 21.09). */
+ 1649| @media (max-width:360px){ #v-food .dgrp summary .s{font-size:var(--fs0);line-height:var(--lh0)} }
+ 1650| #v-food .det summary::after{content:'';flex:0 0 auto;width:14px;height:14px;margin-left:8px;color:var(--food-ico);background:currentColor;
+ 1651|   -webkit-mask:var(--chev) center/contain no-repeat;mask:var(--chev) center/contain no-repeat;transition:transform .24s cubic-bezier(.32,.72,0,1)}
+ 1652| #v-food .det[open]>summary::after{transform:rotate(90deg)}
+ 1653| #v-food .dgrp{border:0;box-shadow:none;background:transparent;padding:0}
+ 1654| #v-food .dgrp summary{padding:0;min-height:44px}
+ 1655| /* ── «ТЕЛО» v601 — премиум-карточки, поля с табличными цифрами, iOS List Group ──
+ 1656|    apple-springs.md §1.3 · ios-accessibility.md §2 · micro-interactions.md §2/§4/§5.
+ 1657|    Логика, id и data-атрибуты прежние; всё через переменные вкладки. */
+ 1658| #v-body{--body-in:rgba(255,255,255,.06);--body-sep:rgba(255,255,255,.08);--body-sub:rgba(255,255,255,.5);--body-hi:rgba(255,255,255,.05)}
+ 1659| [data-theme="light"] #v-body{--body-in:rgba(0,0,0,.05);--body-sep:rgba(0,0,0,.08);--body-sub:rgba(0,0,0,.5);--body-hi:rgba(0,0,0,.05)}
+ 1660| #v-body .card{--cpad:16px;border-radius:24px;padding:16px;margin-bottom:16px}
+ 1661| #v-body .card .hd{margin-bottom:12px}
+ 1662| #v-body .card .hd .mini,#v-body .mini{color:var(--body-sub)}
+ 1663| #v-body .det{border-radius:24px;padding:12px 16px;margin-bottom:16px}
+ 1664| /* v674: раскрывашка ВНУТРИ карточки — не вторая плита того же цвета (читалась
+ 1665|    обрезанным окном), а строка-подвал карточки на волосяной линии. */
+ 1666| #v-body .card .det{background:transparent;border-radius:0;padding:0;margin:12px 0 -6px;border-top:1px solid var(--line)}
+ 1667| #v-body .card .det>summary{min-height:52px;padding:6px 0;color:var(--tx);font-size:var(--fsb);line-height:var(--lhb);font-weight:var(--fwm)}
+ 1668| #v-body .card .det[open]>summary{margin-bottom:4px}
+ 1669| #v-body .card>.det:first-child{border-top:0;margin-top:-6px}   /* v677: раскрывашка первой в карточке — без висящей черты сверху */
+ 1670| #v-body .field{margin-bottom:12px}
+ 1671| #v-body .field label{font-size:var(--fs1);line-height:var(--lh1);font-weight:500;color:var(--body-sub)}
+ 1672| /* Поля сливаются с подложкой; цифры табличные — 79.9 → 80.0 не двигает соседей */
+ 1673| #v-body input[type=number],#v-body input[inputmode="decimal"],#v-body input[type=date]{background:var(--body-in);border-radius:12px;font-weight:600;
+ 1674|   font-variant-numeric:tabular-nums;font-feature-settings:"tnum";transition:box-shadow .15s var(--ez),background .15s var(--ez)}
+ 1675| #v-body #trV,#v-body .dl.nu,#v-body .mval,#v-body #wList .t,#v-body #mList .s b{font-variant-numeric:tabular-nums;font-feature-settings:"tnum"}
+ 1676| /* История веса и замеров — iOS List Group: строки 52 px, тонкие разделители, отклик */
+ 1677| #v-body #wList .item,#v-body #mList .item{min-height:52px;padding:8px 0;border-bottom:1px solid var(--body-sep);border-radius:10px;margin:0 -8px;padding-left:8px;padding-right:8px;transition:background .15s var(--ez),transform .12s var(--ez)}
+ 1678| #v-body #wList .item:last-child,#v-body #mList .item:last-child{border-bottom:0}
+ 1679| #v-body #wList .item:active,#v-body #mList .item:active{background:var(--body-hi);transform:scale(.98)}
+ 1680| #v-body #wList .item .s,#v-body #mList .item .s{color:var(--body-sub)}
+ 1681| #v-body .item .x{width:var(--tap);height:var(--tap);transition:transform .12s var(--ez)}
+ 1682| #v-body .item .x:active{transform:scale(.88)}
+ 1683| /* Кнопки записи: сжатие при нажатии, Done — пружина bounce */
+ 1684| #v-body .btn{transition:transform .12s var(--ez),background .15s var(--ez)}
+ 1685| #v-body .btn:active{transform:scale(.96)}
+ 1686| #v-body .btn.done-pop{animation:donePop .26s cubic-bezier(.34,1.56,.64,1)}
+ 1687| /* Шеврон раскрывашек «Тела» — справа, как на «Еде» (v600), поворот по iOS-кривой */
+ 1688| #v-body .det>summary::before,#v-health .det>summary::before{display:none}
+ 1689| #v-body .det summary,#v-health .det summary{justify-content:space-between}
+ 1690| #v-body .det summary .mini,#v-health .det summary .mini{margin-left:auto}
+ 1691| #v-body .det summary::after,#v-health .det summary::after{content:'';flex:0 0 auto;width:14px;height:14px;margin-left:8px;color:var(--body-sub);background:currentColor;
+ 1692|   -webkit-mask:var(--chev) center/contain no-repeat;mask:var(--chev) center/contain no-repeat;transition:transform .24s cubic-bezier(.32,.72,0,1)}
+ 1693| #v-body .det[open]>summary::after,#v-health .det[open]>summary::after{transform:rotate(90deg)}   /* v677: «Здоровье» — тот же шеврон справа, что «Тело» и «Еда» */
+ 1694| @keyframes donePop{0%{transform:scale(.96)}55%{transform:scale(1.06)}100%{transform:scale(1)}}
+ 1695| @media (prefers-reduced-motion:reduce){#v-body .btn.done-pop{animation:none}}
+ 1696| /* ── «РАСХОД И ЦЕЛЬ» — НАТИВНЫЙ ЛИСТ (v596, задание владельца 14.09) ──
+ 1697|    Всё через свои переменные листа: в светлой теме те же роли получают тёмные
+ 1698|    значения, и лист не ломается. Закон поверхностей вкладок не задет — он
+ 1699|    меряет экраны, а не листы. Цели касания: кнопка визуально 36 px, но
+ 1700|    область нажатия 44 px (псевдоэлемент), строки-переходы — 48 px. */
+ 1701| #sh-tdee{--td-sep:rgba(255,255,255,.08);--td-sub:rgba(255,255,255,.5);--td-hi:rgba(255,255,255,.05);
+ 1702|   --td-chev:rgba(255,255,255,.3);--td-btn:rgba(255,255,255,.08);--td-fg:#fff;--p:#FF453A;--f:#FFD60A;--cb:#0A84FF}
+ 1703| [data-theme="light"] #sh-tdee{--td-sep:rgba(0,0,0,.08);--td-sub:rgba(0,0,0,.5);--td-hi:rgba(0,0,0,.05);
+ 1704|   --td-chev:rgba(0,0,0,.3);--td-btn:rgba(0,0,0,.06);--td-fg:var(--tx);--p:#B3123C;--f:#8A6400;--cb:#0B57C7}
+ 1705| #sh-tdee .card.tdee{background:var(--card);border-radius:24px;padding:20px;font-family:-apple-system,BlinkMacSystemFont,"SF Pro Display","SF Pro Text","Inter",sans-serif}
+ 1706| #sh-tdee .tdee-sec{padding:0 0 16px;margin-bottom:16px;border-bottom:1px solid var(--td-sep)}
+ 1707| #sh-tdee .tdee-hero{display:flex;flex-direction:column;align-items:flex-start;gap:4px}   /* подпись ПОД цифрой, не рядом */
+ 1708| #sh-tdee .tdee-hero .bn{font-size:var(--fs4);line-height:var(--lh4);font-weight:800;letter-spacing:-0.5px;font-variant-numeric:tabular-nums}
+ 1709| #sh-tdee .tdee-hero .bnu{font-size:var(--fs1);line-height:var(--lh1);font-weight:500;color:var(--td-sub);letter-spacing:0}
+ 1710| #sh-tdee .tdee-sec .mini,#sh-tdee #gSrc,#sh-tdee #gETA{font-size:var(--fs1);line-height:var(--lh1);font-weight:400;color:var(--td-sub)}
+ 1711| #sh-tdee #gETA{margin:8px 0 0}
+ 1712| #sh-tdee .tdee-macro{display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;margin-bottom:12px}
+ 1713| #sh-tdee .tdee-macro .tile{background:transparent;border-radius:0;padding:0;text-align:left}
+ 1714| #sh-tdee .tdee-macro .tv{font-size:var(--fs5);line-height:var(--lh5);font-weight:700;letter-spacing:-0.3px;font-variant-numeric:tabular-nums}
+ 1715| #sh-tdee .tdee-macro .mini{font-size:var(--fs1);line-height:var(--lh1);font-weight:500;color:var(--td-sub);margin-top:4px}
+ 1716| /* «Пересчитать»: тихая нативная кнопка с микро-откликом; область нажатия 44 px */
+ 1717| #sh-tdee #bRe{position:relative;min-height:36px;height:36px;padding:0 16px;border-radius:12px;background:var(--td-btn);color:var(--td-fg);
+ 1718|   font-size:var(--fs2);line-height:var(--lh2);font-weight:600;transition:transform .12s var(--ez),background .12s var(--ez)}
+ 1719| #sh-tdee #bRe::before{content:'';position:absolute;inset:-4px;border-radius:16px}
+ 1720| #sh-tdee #bRe:active{transform:scale(.96);background:var(--td-hi)}
+ 1721| /* Строки темпа: подпись 13/400 приглушена, значение — табличные цифры по правому краю */
+ 1722| #sh-tdee .tdee-rows .stat{min-height:44px;padding:10px 0;border-bottom:1px solid var(--td-sep);align-items:center}
+ 1723| #sh-tdee .tdee-rows .stat .l{font-size:var(--fs1);line-height:var(--lh1);font-weight:400;color:var(--td-sub)}
+ 1724| #sh-tdee .tdee-rows .stat .v{font-size:var(--fs2);line-height:var(--lh2);font-weight:600;color:var(--td-fg);font-variant-numeric:tabular-nums;font-feature-settings:"tnum"}
+ 1725| #sh-tdee .tdee-rows .stat:last-child{border-bottom:0}
+ 1726| #sh-tdee #gWrow{transition:background .15s var(--ez);margin:0 -8px;padding-left:8px;padding-right:8px;border-radius:10px}
+ 1727| #sh-tdee #gWrow:active{background:var(--td-hi)}
+ 1728| /* Строки-переходы «что менялось и почему» и «Как посчитано»: 48 px, заголовок 600, шеврон справа */
+ 1729| #sh-tdee .det{background:transparent;box-shadow:none;border:0;border-radius:0;padding:0;margin:0}
+ 1730| #sh-tdee #gKcalLog .det{border-bottom:1px solid var(--td-sep);margin-bottom:4px}
+ 1731| #sh-tdee summary{min-height:48px;padding:0 8px;margin:0 -8px;font-size:var(--fs2);line-height:var(--lh2);font-weight:600;color:var(--td-fg);
+ 1732|   border-radius:10px;transition:background .15s var(--ez)}
+ 1733| #sh-tdee summary .mini{font-size:var(--fs1);font-weight:500;color:var(--td-sub)}
+ 1734| #sh-tdee summary::before{display:none}
+ 1735| #sh-tdee summary::after{content:'';width:14px;height:14px;flex:0 0 auto;margin-left:auto;color:var(--td-chev);background:currentColor;
+ 1736|   -webkit-mask:var(--chev) center/contain no-repeat;mask:var(--chev) center/contain no-repeat;transition:transform .18s var(--ez)}
+ 1737| #sh-tdee summary .mini[style*="margin-left:auto"]{margin-left:auto!important;margin-right:8px}
+ 1738| #sh-tdee .det[open]>summary::after{transform:rotate(90deg)}
+ 1739| #sh-tdee summary:active{background:var(--td-hi)}
+ 1740| #sh-tdee .det[open]>summary{margin-bottom:4px}
+ 1741| #sh-tdee #tdDet{margin-top:12px}
+ 1742| #sh-tdee #tdDet .note{font-size:var(--fs1);line-height:var(--lh1)}
+ 1743| /* ── ОТЧЁТ ЗА НЕДЕЛЮ: ТЕКСТ ПЕРЕНОСИТСЯ, ПОЛЕ ВО ВСЮ ВЫСОТУ (11.09) ──
+ 1744|    Замер на 375: поле было 343 px шириной при содержимом 2234 — текст уезжал
+ 1745|    вбок на шесть с половиной экранов, и читать его можно было только
+ 1746|    горизонтальной прокруткой. По высоте видно было половину (342 из 702), а
+ 1747|    под кнопками пустовало 326 px. Три беды от одной причины: фиксированные
+ 1748|    rows и white-space:pre. Теперь перенос по словам, поле тянется на всю
+ 1749|    свободную высоту листа со своим вертикальным скроллом, кнопки под ним. */
+ 1750| /* v574. Лист берёт высоту по содержимому, поэтому «flex:1» полю ничего не
+ 1751|    давал: перезамер на проде показал 160 px поля при 1742 px текста — видно
+ 1752|    меньше десятой части, а сам лист занимал половину экрана. Листу отчёта
+ 1753|    задаём высоту явно: он существует ради чтения длинного текста. */
+ 1754| #sh-rep>.in{display:flex;flex-direction:column;height:88vh;height:88dvh}
+ 1755| html[data-vv] #sh-rep>.in{height:calc(var(--vvh) * .88)}
+ 1756| #repT{flex:1 1 auto;min-height:0;resize:none;
+ 1757|   font-size:var(--fs2);line-height:var(--lh2);
+ 1758|   white-space:pre-wrap;overflow-wrap:anywhere;word-break:normal;
+ 1759|   overflow-x:hidden;overflow-y:auto}
+ 1760| #sh-rep>.in>.row{flex:0 0 auto;margin-top:12px}
+ 1761| #sh-rep>.in>.note{flex:0 0 auto;margin-bottom:0}
+ 1762| .hd h2{margin:0}
+ 1763| .mini{font-size:var(--fs2);line-height:var(--lh2);color:var(--t3)}
+ 1764| /* Кнопка отметки приёма: нейтральная, выполненная — галочка статусным
+ 1765|    цветом. Акцент на этом экране не нужен: отметить надо каждую строку,
+ 1766|    и лайм, повторённый пять раз, перестаёт значить «главное». */
+ 1767| .subtake{min-width:var(--tap);min-height:var(--tap);padding:0}
+ 1768| .subtake.on{background:color-mix(in srgb,var(--wt) 18%,transparent);color:var(--wt)}
+ 1769| .subtake .ic{width:18px;height:18px}
+ 1770| /* Раскрывашка мелким кеглем — всё равно кнопка: её открывают пальцем.
+ 1771|    Замер 12.09: «как мерить» и ещё семнадцать таких были 20 px. */
+ 1772| summary.mini{min-height:var(--tap);display:flex;align-items:center;gap:var(--s2)}
+ 1773| /* Переключатель — одна строка с горизонтальным скроллом. Перенос на вторую
+ 1774|    строку (было) съедал пол-экрана и выглядел как сломанная вёрстка. */
+ 1775| /* Кегль и боковые поля кнопок ряда — переменные: ряд подгоняет их под экран
+ 1776|    сам (segFit), иначе «Разбор» уезжал за край и его приходилось листать. */
+ 1777| /* Ряд подвкладок — отдельные пилюли, выбранная белая. Это ряд из Fitness+
+ 1778|    («Для Вас · Просмотр · Планы»), а не серый ползунок из Настроек: я взял
+ 1779|    образец не с того экрана. Пилюли читаются как выбор, ползунок — как
+ 1780|    переключатель режима. */
+ 1781| /* ── СЕГМЕНТИРОВАННЫЙ КОНТРОЛ ВМЕСТО РЯДА ПИЛЮЛЬ (v496) ──
+ 1782|    Было: белая пилюля активной вкладки и серые пилюли рядом — четыре
+ 1783|    отдельных объекта, и белое пятно спорило по громкости с названием дня.
+ 1784|    Стало: одна дорожка, внутри неё подсвечен текущий сегмент. Ровно так
+ 1785|    устроены переключатели в Настройках, Здоровье и Fitness: группа читается
+ 1786|    как ОДИН элемент управления, а не как четыре кнопки. */
+ 1787| .seg{display:flex;flex-wrap:nowrap;overflow-x:auto;scrollbar-width:none;background:var(--c2);border:0;
+ 1788| padding:var(--s1);border-radius:12px;gap:var(--s1);margin-bottom:var(--s4);--segf:var(--fs2);--segp:var(--s4)}
+ 1789| /* Обрезанное на полуслове название вкладки читается как поломка вёрстки.
+ 1790|    Затухание у правого края говорит «листни» — и гаснет, когда листать нечего.
+ 1791|    Маской это не сделать: у прокручиваемого блока область маскирования равна
+ 1792|    всей прокручиваемой ширине, и градиент уезжает за пределы видимого.
+ 1793|    Липкий псевдоэлемент нулевой ширины держится у правого края и растушёвывает
+ 1794|    фоном то, что под него заезжает. */
+ 1795| /* Чипы подгрупп в «Технике» (владелец 05.09: «чётко в одну линию до конца
+ 1796|    или в две — в зависимости от слов»): ряд переносится, и каждый чип
+ 1797|    растягивается, чтобы строка была заполнена до края, а не рвалась на
+ 1798|    «Низ груди» в одиночестве. */
+ 1799| #exSubChips{display:flex;flex-wrap:wrap;overflow:visible;gap:8px}
+ 1800| #exSubChips>.chip{flex:1 1 auto}
+ 1801| .scr.row.ovf::after{content:'';flex:0 0 auto;width:0;align-self:stretch;position:sticky;right:0;
+ 1802| box-shadow:0 0 20px 15px var(--bg);z-index:2;pointer-events:none}
+ 1803| /* Ряд чипов живёт внутри карточки — растушёвывать надо её фоном, не фоном страницы. */
+ 1804| .scr.row.ovf::after{box-shadow:0 0 20px 15px var(--card)}
+ 1805| /* Внутренний отступ раскрывашки был 14px против 20px у карточки: заголовок
+ 1806|    «Дневник» стоял на 30px, а соседний «Жидкость» — на 36px. Шесть пикселей
+ 1807|    человек не назовёт, но увидит как «криво» — это и есть та сдвинутость, про
+ 1808|    которую сказал владелец 27.08. Один гуттер на все контейнеры. */
+ 1809| /* ── ЗАКОН ОДНОЙ ПОВЕРХНОСТИ (решение владельца 03.09 по отрисованным кадрам) ──
+ 1810|    Всё, что лежит на фоне страницы, — один цвет и один радиус: карточка,
+ 1811|    раскрывашка, группа строк, сообщение. Замер 03.09 до правки: шесть разных
+ 1812|    пар фон+радиус на пяти экранах, пять радиусов. Раскрывашка получила свой
+ 1813|    тусклый фон 28.08 как «фон в фоне», группа строк — свой радиус 14, плашка
+ 1814|    предупреждения — янтарную заливку; каждая в свой день по своей причине,
+ 1815|    и ни одно правило не считало поверхности. Теперь считает (browser.js). */
+ 1816| .det{margin-bottom:var(--s4);border:0;border-radius:var(--r);padding:var(--s4) 20px;background:var(--card)}
+ 1817| /* Раскрывашка ВНУТРИ плашки — не отдельная плашка: фон в фоне читается как
+ 1818|    вложенная коробка и ломает ряд (полевой отчёт владельца 28.08). */
+ 1819| .wb>.det,.ob>.det,.ib>.det,.eb>.det,.wc>.det{background:none;padding:0;margin:6px 0 0}
+ 1820| /* ── ЦЕЛЬ КАСАНИЯ У РАСКРЫВАШЕК — 44 px (замер владельца 11.09) ──
+ 1821|    Все восемь раскрывашек приложения («Как посчитано», «что менялось и
+ 1822|    почему», «что с ним будет», «История веса», «История сдач», «Сообщения
+ 1823|    тренера», «Что смотреть в первую очередь», «Почему еда — главный рычаг»)
+ 1824|    были высотой 28 px. Палец — не курсор: в 28 px он попадает через раз, и
+ 1825|    промах читается как «приложение не отвечает». Высоту добираем минимумом
+ 1826|    и центрируем содержимое, отступы внутри раскрытого блока не трогаем. */
+ 1827| .det>summary{cursor:pointer;font-size:var(--fs2);line-height:var(--lh2);color:var(--t2);font-weight:var(--fwm);list-style:none;display:flex;align-items:center;gap:8px;min-height:44px;padding:4px 0;-webkit-tap-highlight-color:transparent}
+ 1828| .det>summary::-webkit-details-marker{display:none}
+ 1829| /* Строка раскрывашки — ОДНА строка. Заголовок ужимается многоточием, мета
+ 1830|    справа не переносится: две многострочные колонки в одной строке и дают то
+ 1831|    «ничего не выровнено», о котором сказал владелец. */
+ 1832| .det>summary{min-width:0}
+ 1833| .det>summary>span:first-of-type,.det>summary>b{white-space:normal;overflow-wrap:anywhere;min-width:0}
+ 1834| .det>summary .mini{flex:0 1 auto;white-space:normal;overflow-wrap:anywhere}
+ 1835| .det>summary::before{content:'';width:13px;height:13px;flex:0 0 auto;display:inline-block;transition:transform .18s var(--ez);color:var(--t3);background:currentColor;
+ 1836|   -webkit-mask:var(--chev) center/contain no-repeat;mask:var(--chev) center/contain no-repeat;transform:rotate(0deg)}
+ 1837| .det[open]>summary::before{transform:rotate(90deg);color:var(--ac)}
+ 1838| .det[open]>summary{margin-bottom:4px}
+ 1839| /* Раскрывашка проявляет содержимое, а не выбрасывает его кадром.
+ 1840|    Намеренно НЕ трогаем раскрывашки внутри карточки упражнения (.wc): там
+ 1841|    раскрытое состояние обязано переживать перерисовку после записи подхода,
+ 1842|    и повторная анимация мигала бы на каждый подход. */
+ 1843| @media (prefers-reduced-motion:no-preference){
+ 1844| .sheet .det[open]>*:not(summary),.view>.det[open]>*:not(summary),
+ 1845| .card>.det[open]>*:not(summary){animation:fi .2s ease}
+ 1846| }
+ 1847| nav button:active{transform:scale(.96)}
+ 1848| .seg button:active{transform:scale(.96)}
+ 1849| .wc-del:active,.hintq:active{transform:scale(.96)}
+ 1850| .seg button,nav button,.wc-del,.hintq{transition:transform .12s,color .15s,background .2s}
+ 1851| /* Настройки и другие шторки-меню: не россыпь отдельных плашек с зазорами, а
+ 1852|    один сгруппированный список с разделителями — как в системных настройках
+ 1853|    телефона. Шеврон там уезжает вправо: слева он читается маркером списка,
+ 1854|    справа — «здесь можно раскрыть». */
+ 1855| .sheet .det{margin-bottom:0;border-radius:0;padding:var(--s4) var(--s4);background:var(--card)}
+ 1856| .sheet .det+.det{border-top:1px solid var(--line)}
+ 1857| .sheet .det:first-of-type{border-top-left-radius:var(--r);border-top-right-radius:var(--r)}
+ 1858| .sheet .det:last-of-type{border-bottom-left-radius:var(--r);border-bottom-right-radius:var(--r);margin-bottom:var(--s4)}
+ 1859| .sheet .det>summary{font-size:var(--fs3);line-height:var(--lh3);color:var(--tx);font-weight:var(--fwm);padding:0;min-height:44px}
+ 1860| .sheet .det>summary::before{content:none}
+ 1861| .sheet .det>summary::after{content:'';width:14px;height:14px;background:currentColor;-webkit-mask:var(--chev) center/contain no-repeat;mask:var(--chev) center/contain no-repeat;display:inline-block;color:var(--t3);
+ 1862| transition:transform .18s;flex:0 0 auto;margin-left:8px}
+ 1863| /* space-between разносит анонимный текстовый узел и шеврон по краям строки
+ 1864|    без :has() — правило с ним целиком игнорируется старым WebView. */
+ 1865| .sheet .det>summary{justify-content:space-between}
+ 1866| .sheet .det>summary>.mini{margin-left:auto}
+ 1867| .sheet .det[open]>summary::after{transform:rotate(90deg);color:var(--ac)}
+ 1868| .sheet .det[open]>summary{margin-bottom:12px}
+ 1869| /* Группы настроек: вложенный раздел — строка на волосяной линии внутри
+ 1870|    группы, а не вторая плита (закон одной поверхности). */
+ 1871| /* Страница настроек: разделы — плиты с заголовком, без плюсиков и без тапа
+ 1872|    (страница уже открыта, второй уровень раскрывашек запрещён). */
+ 1873| .setpg>details.det>summary{pointer-events:none}
+ 1874| .setpg>details.det>summary::after{display:none}
+ 1875| .setpg.one>details.det>summary{display:none}
+ 1876| .setpg>details.det:first-of-type{border-top-left-radius:var(--r);border-top-right-radius:var(--r)}
+ 1877| .setpg>details.det:last-of-type{border-bottom-left-radius:var(--r);border-bottom-right-radius:var(--r);margin-bottom:var(--s4)}
+ 1878| /* Раскрывашка внутри раздела листа («Подробнее о подписке») — строка на
+ 1879|    линии, а не вторая плита: .sheet .det:first-of-type скруглял ей верх, а
+ 1880|    .sheet .det>summary делал заголовок крупным. */
+ 1881| .sheet .det .det{border-radius:0;background:none;padding:12px 0 0;margin:8px 0 0;border-top:1px solid var(--line)}
+ 1882| .sheet .det .det>summary{font-size:var(--fs2);line-height:var(--lh2);min-height:44px;color:var(--t2);font-weight:var(--fwm)}
+ 1883| .sheet .det .det[open]>summary{margin-bottom:8px}
+ 1884| #sh-s h3 #setBack{padding:6px;border-radius:50%}
+ 1885| #sh-s h3 #setBack[hidden]{display:none}
+ 1886| .setpg>details.det.same>summary{display:none}
+ 1887| #sh-s h3 #setBack .ic{width:17px;height:17px}
+ 1888| .seg::-webkit-scrollbar{display:none}
+ 1889| /* flex:1 — кнопки делят ряд поровну по остатку, а не жмутся слева с дырой
+ 1890|    справа: ряд выглядит цельным переключателем, а не обрезком. */
+ 1891| /* Без min-width:0 — иначе кнопка ужимается ниже своей подписи и режет её
+ 1892|    внутри себя. Пусть лучше ряд «не помещается»: этим займётся segFit,
+ 1893|    ужав кегль, а подпись останется целой. */
+ 1894| /* Строка тут задана в пикселях, а не коэффициентом: --segf ужимается сам
+ 1895|    (ступени 14 · 12 · 11 px), и на узком экране 11 × 1.5 давало 16.5 —
+ 1896|    дробную строку в ряду вкладок, который стоит на каждом экране. */
+ 1897| /* ── РЯД ВКЛАДОК ЗАНИМАЕТ ВСЮ ШИРИНУ ──
+ 1898|    Полевой отчёт владельца 29.08: «Тело: Вес, Прогресс, Режим — опять в одной
+ 1899|    стороне, а должны быть по всей длине, как в других вкладках». Замер: на
+ 1900|    «Еде» и в «Зале» по четыре вкладки, и ряд заполнялся сам собой; на «Теле»
+ 1901|    три коротких слова оставляли 104 px пустоты справа. Одинаковые по смыслу
+ 1902|    ряды выглядели по-разному — не потому, что так задумано, а потому, что
+ 1903|    слова разной длины. Когда ряд помещается, кнопки делят свободное место
+ 1904|    между собой (класс .fit ставит segFit после подгонки кегля); когда не
+ 1905|    помещается — всё как было, прокрутка с затуханием у края.
+ 1906|    Растём, но не сжимаемся (1 0 auto): иначе на узком экране подпись
+ 1907|    ужалась бы под собственный текст и снова обрезалась. */
+ 1908| .seg.fit>button{flex:1 0 auto}
+ 1909| .seg button{flex:1 1 auto;background:none;border:0;padding:var(--s3) var(--segp);min-height:var(--tap);border-radius:10px;font-size:var(--segf);line-height:16px;font-weight:var(--fwm);white-space:nowrap;
+ 1910| color:var(--t3);cursor:pointer;transition:color .15s,background .15s}
+ 1911| .seg button.on{background:#3A3A3C;color:var(--tx);box-shadow:0 1px 3px rgba(0,0,0,.4);font-weight:var(--fwb)}
+ 1912| /* Строка обновления: над навигацией И над таймером отдыха, если он идёт.
+ 1913|    Раньше обе полосы стояли на фиксированной высоте и накладывались друг на
+ 1914|    друга на 50 px (замер в браузере 22.08). */
+ 1915| #updBar{position:fixed;left:12px;right:12px;bottom:calc(var(--navh,62px) + 14px + var(--restb,0px));z-index:350;
+ 1916| background:var(--card);border-radius:var(--r);box-shadow:var(--shadow);padding:12px 14px;
+ 1917| display:flex;align-items:center;gap:12px;font-size:var(--fs2);line-height:var(--lh2);font-weight:var(--fwm);color:var(--tx);
+ 1918| animation:up .22s var(--ez)}
+ 1919| #updBar span{flex:1;min-width:0}
+ 1920| #updBar .btn{width:auto;flex:0 0 auto;min-height:38px;padding:8px 16px}
+ 1921| .toast{position:fixed;bottom:calc(var(--navh,62px) + 12px + var(--restb,0px) + var(--updb,0px));left:50%;transform:translateX(-50%) translateY(20px) scale(.95);
+ 1922| background:var(--ac-fill);color:var(--on-ac);padding:12px 20px;border-radius:22px;font-weight:var(--fwb);font-size:var(--fs2);line-height:var(--lh2);z-index:500;
+ 1923| box-shadow:0 10px 30px rgba(0,0,0,.55);opacity:0;transition:.28s var(--ez);pointer-events:none;max-width:88%;text-align:center}
+ 1924| .toast.on{opacity:1;transform:translateX(-50%) translateY(0) scale(1)}
+ 1925| /* ── v602: тост с видом, поле с ошибкой, диалог ask() ── */
+ 1926| .toast{display:flex;align-items:center;gap:8px;justify-content:center}
+ 1927| .toast::before{content:'';flex:0 0 auto;width:16px;height:16px;background:currentColor;display:none;
+ 1928|   -webkit-mask:var(--i-ok) center/contain no-repeat;mask:var(--i-ok) center/contain no-repeat}
+ 1929| .toast.ok,.toast.error,.toast.info{font-weight:var(--fwm)}
+ 1930| .toast.ok{background:rgba(48,209,88,.18);color:#30D158}
+ 1931| .toast.error{background:rgba(255,69,58,.18);color:#FF453A}
+ 1932| .toast.info{background:rgba(255,159,10,.18);color:#FF9F0A}
+ 1933| [data-theme="light"] .toast.ok{background:rgba(27,127,59,.14);color:#1B7F3B}
+ 1934| [data-theme="light"] .toast.error{background:rgba(200,40,30,.12);color:#C5281E}
+ 1935| [data-theme="light"] .toast.info{background:rgba(179,94,0,.12);color:#B35E00}
+ 1936| .toast.ok::before,.toast.error::before,.toast.info::before{display:block}
+ 1937| .toast.error::before{-webkit-mask-image:var(--i-err);mask-image:var(--i-err)}
+ 1938| .toast.info::before{-webkit-mask-image:var(--i-inf);mask-image:var(--i-inf)}
+ 1939| input.field-error,textarea.field-error,select.field-error{box-shadow:inset 0 0 0 1.5px #FF453A!important;animation:fieldShake .3s var(--ez)}
+ 1940| @keyframes fieldShake{0%,100%{transform:none}25%{transform:translateX(-4px)}75%{transform:translateX(4px)}}
+ 1941| /* v607: строка причины под полем — появляется с рамкой, уходит вместе с ней */
+ 1942| .field-msg{display:block;max-height:0;opacity:0;overflow:hidden;margin:0;color:#FF453A;font-size:var(--fs1);line-height:var(--lh1);font-weight:500;
+ 1943|   transform:translateY(-4px);transition:opacity .2s var(--ez),max-height .2s var(--ez),transform .2s var(--ez),margin .2s var(--ez)}
+ 1944| .field-msg.on{max-height:48px;opacity:1;margin:4px 0 8px;transform:none}
+ 1945| /* Поле в flex-ряду (вес + кнопка): строка причины уходит в конец ряда своей строкой (order), поле и кнопка остаются вместе; погашенная — не занимает ширины */
+ 1946| .field-msg{order:99;flex:0 0 0;width:0}
+ 1947| .field-msg.on{flex:1 0 100%;width:100%}
+ 1948| *:has(>.field-msg.on){flex-wrap:wrap}
+ 1949| /* Поле в сетке подходов (.wrow — grid): строка причины на все колонки, под рядом */
+ 1950| .wrow>.field-msg{grid-column:1/-1;margin:0}
+ 1951| .wrow>.field-msg.on{margin:0 0 8px}
+ 1952| .field+.field-msg.on{margin-top:-8px}
+ 1953| [data-theme="light"] .field-msg{color:#C5281E}
+ 1954| @media (prefers-reduced-motion:reduce){input.field-error,textarea.field-error,select.field-error{animation:none}}
+ 1955| #sh-dlg .in,#sh-prompt .in{max-width:420px}
+ 1956| #sh-prompt #prL{display:block;font-size:var(--fs2);line-height:var(--lh2);color:var(--t2);white-space:normal;margin-bottom:8px}
+ 1957| #sh-prompt #prIn{width:100%;font-variant-numeric:tabular-nums;font-feature-settings:"tnum"}
+ 1958| #sh-dlg #dlgX{font-size:var(--fs2);line-height:var(--lh2);color:var(--t2);white-space:normal}
+ 1959| .dlg-acts{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+ 1960| .dlg-acts .btn{min-height:52px;border-radius:16px;transition:transform .12s var(--ez),background .15s var(--ez)}
+ 1961| .dlg-acts .btn:active{transform:scale(.98)}
+ 1962| .dlg-acts .btn.danger{background:rgba(255,69,58,.16);color:#FF453A}
+ 1963| [data-theme="light"] .dlg-acts .btn.danger{background:rgba(200,40,30,.12);color:#C5281E}
+ 1964| .vol{margin-bottom:18px}
+ 1965| .vol .h{display:flex;justify-content:space-between;gap:var(--s3);font-size:var(--fs2);line-height:var(--lh2);margin-bottom:8px}
+ 1966| .vol .h .v{text-align:right}
+ 1967| /* Кнопка «поменьше» жила внутри span с именем мышцы и на узком экране
+ 1968|    вываливалась второй строкой, наезжая на чип «отстаёт» (скриншот 19.08).
+ 1969|    Строка заголовка стала настоящим flex-рядом. */
+ 1970| .vol .h{align-items:flex-start}
+ 1971| .vol .h .n{font-weight:var(--fwm);display:flex;align-items:center;gap:6px;flex-wrap:wrap;min-width:0}
+ 1972| /* Кнопка «держать на минимуме» стояла в одной строке с тегами «отстаёт» и
+ 1973|    «приоритет» и выглядела как сломанный тег с одним прочерком (скриншот
+ 1974|    23.08). Делаем её явной круглой кнопкой с обводкой — читается как
+ 1975|    управление, а не как ошибка, — и доводим до нормальной цели пальца. */
+ 1976| .vol .h .n .wc-del{min-width:44px;min-height:44px;width:44px;height:44px;padding:0;
+ 1977|   font-size:var(--fs2);line-height:1;border-radius:50%;margin-left:2px!important;
+ 1978|   background:none;box-shadow:inset 0 0 0 1.5px var(--line);color:var(--t3);
+ 1979|   display:inline-flex;align-items:center;justify-content:center;vertical-align:middle}
+ 1980| .vol .h .n .wc-del:active{background:var(--c2);color:var(--tx)}
+ 1981| /* Ряд выровнен по верху осознанно (19.08: иначе кнопка вываливалась второй
+ 1982|    строкой), но из-за этого число садилось на 4.2 px выше названия мышцы — и
+ 1983|    так все десять строк подряд (аудит 23.08). Центрируем само число. */
+ 1984| .vol .h .v{font-variant-numeric:tabular-nums;color:var(--t3);align-self:center}
+ 1985| .vt{position:relative;height:6px;background:var(--c2);border-radius:3px;overflow:hidden}
+ 1986| .vt .zone{position:absolute;top:0;bottom:0;background:var(--acw)}
+ 1987| .vt .fill{position:absolute;top:0;bottom:0;left:0;width:100%;transform-origin:left center;transform:scaleX(var(--fill,0));border-radius:3px;background:var(--ac);transition:transform .28s var(--ez)}
+ 1988| .vt .mrv{position:absolute;top:-2px;bottom:-2px;width:2px;background:var(--bd);opacity:.6}
+ 1989| .rp{display:flex;gap:4px;margin-top:4px}
+ 1990| /* Три варианта ответа — три равные колонки, а не чипы «как лягут»: разной
+ 1991|    ширины кнопки в две строки владелец назвал «очень некрасивой таблицей». */
+ 1992| .fbrow{display:grid;grid-template-columns:repeat(3,1fr);gap:6px}
+ 1993| .fbrow .chip{width:100%;text-align:center;white-space:normal;line-height:18px;padding:var(--s2) var(--s1);min-height:var(--tap)}
+ 1994| /* Ряд СЛОВАМИ, а не цифрами: пять слов в одну строку на 375 px не влезают,
+ 1995|    поэтому сетка в две колонки на узком и одна строка на широком (24.08). */
+ 1996| .rp-w{display:grid;grid-template-columns:repeat(5,1fr);gap:4px}
+ 1997| .rp-w button{padding:var(--s2) var(--s1);min-height:var(--tap);font-size:var(--fs1);line-height:16px;white-space:normal}
+ 1998| @media (max-width:400px){.rp-w{grid-template-columns:repeat(3,1fr)}}
+ 1999| /* Компактный ряд — для вопроса ВНУТРИ карточки упражнения. Обычный ряд на
+ 2000|    390 px переключается на три колонки и встаёт в два этажа крупных плашек:
+ 2001|    на отдельной карточке это было нормально, а внутри упражнения он отжимал
+ 2002|    подходы вниз и занимал полкарточки (снимок 28.08). Здесь пять колонок
+ 2003|    всегда, мельче шрифт и плотнее трекинг — вопрос отвечается одним тапом
+ 2004|    и не спорит с тем, ради чего человек открыл карточку. */
+ 2005| .rp-w.rp-c{grid-template-columns:repeat(5,1fr);gap:3px}
+ 2006| .rp-w.rp-c button{padding:var(--s2) 0;min-height:var(--tap);font-size:var(--fs0);line-height:15px;letter-spacing:-.02em;border-radius:8px}
+ 2007| @media (max-width:400px){.rp-w.rp-c{grid-template-columns:repeat(5,1fr)}}
+ 2008| .rp button{flex:1;background:var(--c2);border:1px solid var(--line);border-radius:8px;padding:var(--s3) 0;min-height:var(--tap);font-size:var(--fs2);line-height:var(--lh2);
+ 2009| font-weight:var(--fwm);cursor:pointer;color:var(--t2)}
+ 2010| .rp button.on{background:var(--ac-fill);color:var(--on-ac);border-color:var(--ac)}
+ 2011| .mk{display:flex;align-items:center;gap:8px;padding:8px 0;border-bottom:1px solid var(--line)}
+ 2012| .mk:last-child{border-bottom:0}
+ 2013| .mk .g{flex:1;min-width:0}
+ 2014| .mk .n{font-size:var(--fs2);line-height:var(--lh2);font-weight:var(--fwm)}
+ 2015| .mk .r{font-size:var(--fs0);line-height:var(--lh0);color:var(--t3);margin-top:2px}
+ 2016| .mk .v{font-weight:var(--fwm);font-variant-numeric:tabular-nums;font-size:var(--fs3);line-height:var(--lh3);text-align:right}
+ 2017| .mk .v small{display:block;font-size:var(--fs0);line-height:var(--lh0);font-weight:var(--fwm);margin-top:2px;letter-spacing:.4px}
+ 2018| .ok{color:var(--ac)}.hi{color:var(--bd)}.lo{color:var(--wn)}
+ 2019| /* «Ключевой» помечен чипом — вертикальная рейка дублировала его и при этом
+ 2020|    кричала тревожным цветом у показателей, которые в норме (19.08). */
+ 2021| .crit{padding-left:0;margin-left:0}
+ 2022| /* Норма — ожидаемое состояние, её не подсвечиваем: десять зелёных «в норме»
+ 2023|    подряд превращают экран в светофор, и настоящее отклонение в нём тонет.
+ 2024|    Цветом говорит только то, что вышло за референс. */
+ 2025| .mk .v.ok{color:var(--tx)}
+ 2026| .mk .v.ok small{color:var(--t3);font-weight:var(--fwm)}
+ 2027| /* ── Показатель анализа (.lb) ──
+ 2028|    Было: три строки текста слева («имя», «норма 40–52 %», «с прошлой сдачи −1»)
+ 2029|    и две справа. Пятнадцать показателей превращались в простыню на пять экранов,
+ 2030|    где «в норме» повторялось тринадцать раз, а лаймовая строка дельты кричала
+ 2031|    громче самого значения — иерархия наизнанку. Норма — это шкала, а не текст:
+ 2032|    точка на полосе читается мгновенно и не требует считать в уме. */
+ 2033| .lb{padding:var(--s3) 0;border-bottom:1px solid var(--line)}
+ 2034| .lb:last-child{border-bottom:0}
+ 2035| .lbh{display:flex;align-items:baseline;gap:var(--s3)}
+ 2036| .lbh .n{flex:1;min-width:0;font-size:var(--fs2);line-height:var(--lh2);font-weight:var(--fwm)}
+ 2037| .lbh .v{font-weight:var(--fwb);font-variant-numeric:tabular-nums;font-size:var(--fs3);line-height:var(--lh3);text-align:right;white-space:nowrap;letter-spacing:-.01em}
+ 2038| .lbh .v u{text-decoration:none;font-size:var(--fs1);line-height:var(--lh1);font-weight:var(--fwm);color:var(--t3);margin-left:3px}
+ 2039| .lbb{position:relative;height:6px;border-radius:3px;background:var(--c2);margin:9px 0 7px}
+ 2040| /* Зона нормы — единственное, что показывает, ГДЕ норма: подпись под шкалой
+ 2041|    называет числа, а положение точки относительно зоны читается только
+ 2042|    глазом. При 12% чёрного по светло-серому зона почти не отличалась от
+ 2043|    трека, и шкала выглядела артефактом вёрстки, а не смыслом (24.08). */
+ 2044| .lbb i{position:absolute;top:0;bottom:0;border-radius:3px;background:rgba(255,255,255,.22)}
+ 2045| [data-theme="light"] .lbb i{background:rgba(20,26,38,.20)}
+ 2046| .lbb b{position:absolute;top:50%;width:10px;height:10px;margin:-5px 0 0 -5px;border-radius:50%;
+ 2047| background:var(--tx);box-shadow:0 0 0 3px var(--card)}
+ 2048| .lbf{display:flex;gap:var(--s3);font-size:var(--fs1);line-height:var(--lh1);color:var(--t3)}
+ 2049| .lbf .r{flex:1;min-width:0}
+ 2050| .lbf .d{white-space:nowrap;text-align:right}
+ 2051| /* Победу отмечаем стрелкой в акценте, а не крашеной фразой: акцент на
+ 2052|    вспомогательной строке перебивал значение, ради которого сюда пришли. */
+ 2053| .lbf .d em{font-style:normal;color:var(--ac);font-weight:var(--fwb);margin-right:2px}
+ 2054| /* Дотянул до норматива — единственное место, где здесь есть цвет. */
+ 2055| .lb.win .lbh .v,.lb.win .lbh .v s{color:var(--ac)}
+ 2056| .lb.win .lbb b{background:var(--ac)}
+ 2057| .lb.hiOut .lbh .v,.lb.hiOut .lbh .v s{color:var(--bd)}
+ 2058| .lb.loOut .lbh .v,.lb.loOut .lbh .v s{color:var(--wn)}
+ 2059| .lb.hiOut .lbb{background:color-mix(in srgb,var(--bd) 18%,transparent)}
+ 2060| .lb.loOut .lbb{background:color-mix(in srgb,var(--wn) 18%,transparent)}
+ 2061| .lb.hiOut .lbb b{background:var(--bd)}
+ 2062| .lb.loOut .lbb b{background:var(--wn)}
+ 2063| .lbh .v s{text-decoration:none;display:block;font-size:var(--fs0);line-height:var(--lh0);font-weight:var(--fwm);letter-spacing:.3px;margin-top:1px}
+ 2064| /* Чип «ключевой» повторялся у шести показателей подряд и переставал что-либо
+ 2065|    значить. Важность — это порядок и заголовок группы, а не бейдж у каждого. */
+ 2066| .lbg{font-size:var(--fs0);line-height:var(--lh0);text-transform:uppercase;letter-spacing:.09em;color:var(--t3);
+ 2067| font-weight:var(--fwb);margin:18px 0 2px}
+ 2068| .lbg:first-child{margin-top:8px}
+ 2069| .tech b{color:var(--tx);display:block;margin:12px 0 8px;font-size:var(--fs1);line-height:var(--lh1);text-transform:uppercase;letter-spacing:.08em}
+ 2070| .tech ol{margin:0;padding:0;list-style:none;counter-reset:st;font-size:var(--fs2);line-height:var(--lh2);color:var(--t2);line-height:var(--lhb)}
+ 2071| .tech ol li{counter-increment:st;display:flex;gap:10px;margin-bottom:8px}
+ 2072| .tech ol li::before{content:counter(st);flex:0 0 22px;height:22px;border-radius:50%;background:rgba(216,255,0,.12);
+ 2073| color:var(--ac);font-size:var(--fs0);line-height:var(--lh0);font-weight:var(--fwb);display:flex;align-items:center;justify-content:center;margin-top:1px}
+ 2074| .tech ul{margin:0;padding:0;list-style:none;font-size:var(--fs2);line-height:var(--lh2);color:var(--t2);line-height:var(--lhb)}
+ 2075| .tech ul li{display:flex;gap:10px;margin-bottom:8px;padding-left:2px}
+ 2076| .tech ul li::before{content:'✕';flex:0 0 20px;color:var(--bd);font-size:var(--fs0);line-height:var(--lh0);font-weight:var(--fwb);margin-top:2px;text-align:center}
+ 2077| /* Строки данных в листе упражнения: подпись слева, значение справа,
+ 2078|    волосяная линия между. Ни рамок, ни плашек — как в Настройках iOS. */
+ 2079| /* Строка справочника: миниатюра 44, название, шеврон. */
+ 2080| .exrow{gap:var(--s3)}
+ 2081| .exth{flex:0 0 auto;width:44px;height:44px;border-radius:8px;overflow:hidden;display:flex;align-items:center;justify-content:center}
+ 2082| .exth img{width:100%;height:100%;object-fit:contain}
+ 2083| .exmeta{margin:0 0 16px}
+ 2084| .exmeta>div{display:flex;align-items:baseline;gap:var(--s3);padding:9px 0;border-top:1px solid var(--line)}
+ 2085| .exmeta>div:first-child{border-top:0}
+ 2086| .exmeta .l{flex:0 0 auto;font-size:var(--fs2);color:var(--t3)}
+ 2087| .exmeta .v{flex:1 1 auto;text-align:right;font-size:var(--fs2);font-weight:var(--fwm);color:var(--tx)}
+ 2088| /* ── БЕЛЫЙ ФОН ИЛЛЮСТРАЦИИ — НЕ CSS-ЗАДАЧА ──
+ 2089|    Светлый прямоугольник вокруг рисунка — это фон САМОГО ФАЙЛА: ассеты
+ 2090|    нарисованы на бумаге и залиты непрозрачным светлым. Плашку, рамку и тень
+ 2091|    мы сняли, но белое поле останется, пока не будет прозрачного ассета.
+ 2092|    Инверсия тут не годится и не ставится: на этих кадрах красным помечена
+ 2093|    рабочая мышца, а инверсия крутит цвет — пометка перестанет читаться.
+ 2094|    Проверить фильтр не на чем (медиа ходит через прокси, из контейнера
+ 2095|    недоступно), а необратимый фильтр на весь справочник вслепую — не правка,
+ 2096|    а лотерея. Настоящая починка — перевыгрузить спрайты с прозрачностью. */
+ 2097| .muschips{display:flex;flex-wrap:wrap;gap:6px;margin:0 0 12px}
+ 2098| .muschips span{font-size:var(--fs1);line-height:var(--lh1);font-weight:var(--fwm);padding:5px 11px;border-radius:14px;background:rgba(216,255,0,.1);color:var(--ac);border:1px solid rgba(216,255,0,.25)}
+ 2099| .muschips span.sec{background:var(--c2);color:var(--t2);border-color:var(--line)}
+ 2100| .load{display:inline-block;width:14px;height:14px;border:2px solid rgba(255,255,255,.3);border-top-color:#fff;
+ 2101| border-radius:50%;animation:sp .7s linear infinite;vertical-align:-2px;margin-right:6px}
+ 2102| @keyframes sp{to{transform:rotate(360deg)}}
+ 2103| 
+ 2104| /* ── тренировка в стиле Hevy: строки подходов ── */
+ 2105| /* ── УПРАЖНЕНИЕ — РАЗДЕЛ, А НЕ ПРЯМОУГОЛЬНИК (v496) ──
+ 2106|    Решение владельца 01.09 по отрисованной странице: «сделай один в один».
+ 2107|    Восемь скруглённых плит подряд на чёрном — это восемь рамок, и глазу
+ 2108|    приходится на каждой заново искать, где начинается работа. У Apple и Nike
+ 2109|    раздел держат ВОЗДУХ и волосяная линия, а не контур: тогда самое заметное
+ 2110|    на экране — название движения и числа, а не границы блоков.
+ 2111|    Плита осталась ровно там, где несёт смысл (лист, шторка, предупреждение). */
+ 2112| .wc{background:none;border:0;border-radius:0;box-shadow:none;
+ 2113|   padding:30px 20px 0;margin:0;border-top:1px solid var(--line)}
+ 2114| .wc:first-of-type{border-top:0}
+ 2115| /* Карточка не рисует внутри себя ещё одну карточку (полевое замечание
+ 2116|    владельца 19.08: «серые блоки внутри каждой карточки»). Уровень фона в
+ 2117|    интерфейсе ровно один: фон страницы → карточка → содержимое. Внутри
+ 2118|    карточки блоки разделяет воздух и тонкая линия, а не второй прямоугольник.
+ 2119|    Фон сохраняют только те вложения, у которых он несёт смысл: элементы
+ 2120|    управления и настоящие предупреждения. */
+ 2121| .card.flat{background:none;box-shadow:none;padding:0;margin-bottom:0}
+ 2122| /* Плоская карточка — не карточка, а контейнер: своего фона и отступа у неё
+ 2123|    нет, поэтому её собственный текст прилипал к краю экрана на 16 px, тогда
+ 2124|    как весь текст внутри вложенных карточек стоит на 36. Разница в 20 px —
+ 2125|    ровно то, что владелец видит как «ничего не выровнено», и назвать её он
+ 2126|    не обязан. Одно правило на все прямые текстовые дети, а не правка каждой
+ 2127|    строки по месту. */
+ 2128| 
+ 2129| /* ── ВВОД ЕДЫ ЖИВЁТ ПОД БОЛЬШИМ ПАЛЬЦЕМ ──
+ 2130|    Полевой отчёт владельца 27.08: «тот ввод, который внизу сейчас, точно не
+ 2131|    будет использоваться, он не удобен». Замер подтвердил: после того как
+ 2132|    дневник переехал наверх, поле поиска оказалось на 1031-й точке страницы —
+ 2133|    до главного ежедневного действия надо было ПРОКРУТИТЬ 263 px. Экран
+ 2134|    открывают, чтобы записать еду, а запись оказалась дальше всего.
+ 2135|    Панель закреплена над нижним меню: поиск, голос и камера — три входа,
+ 2136|    которыми еда и записывается, всегда на месте и в зоне большого пальца. */
+ 2137| /* Панель ввода стоит ВПЛОТНУЮ на панели вкладок. Отступ был зашит числом
+ 2138|    (77 px — «плавающая пилюля 8 + 70»), и когда 29.08 панель вкладок прижали
+ 2139|    к нижнему краю, между ними осталась полоса на всю ширину экрана, сквозь
+ 2140|    которую просвечивал текст страницы. Полевой скриншот владельца 30.08:
+ 2141|    «пробел под "Записать еду" через весь экран». Решение это не принимал
+ 2142|    никто — это мой недосмотр: четыре отступа я перевёл на измеренную высоту
+ 2143|    панели вкладок, а пятый, здесь, пропустил. Теперь и он считается от неё. */
+ 2144| /* ПЯТЫЙ ОТСТУП, И СНОВА ОН.
+ 2145|    Полоса ввода еды уже один раз отстала от остальных (23.08, зашитые 77 px).
+ 2146|    Теперь она отстала снова: таймер отдыха встал на то же место и накрыл
+ 2147|    «Записать еду» целиком — полевой отчёт владельца 31.08, «при экране
+ 2148|    таймера еду вообще ввести невозможно». Это моя регрессия того же дня.
+ 2149|    Все нижние полосы считаются от --navh и складываются друг над другом;
+ 2150|    правило гейта теперь требует, чтобы они не перекрывались (31.08). */
+ 2151| .fbar{position:fixed;left:0;right:0;bottom:calc(var(--navh,62px) + var(--restb,0px));z-index:55;
+ 2152|   display:flex;gap:8px;padding:12px 16px 8px;max-width:660px;margin:0 auto;pointer-events:none;
+ 2153|   background:linear-gradient(to top,var(--bg) 55%,transparent)}
+ 2154| .fbar>*{pointer-events:auto}
+ 2155| .fbar-q{flex:1 1 auto;min-width:0;display:flex;align-items:center;gap:8px;background:var(--card);
+ 2156|   border:1px solid var(--line);border-radius:999px;padding:var(--s3) var(--s5);color:var(--t2);
+ 2157|   font-size:var(--fs2);line-height:var(--lh2);font-weight:var(--fwm);text-align:left;box-shadow:var(--shadow-sm);
+ 2158|   white-space:nowrap;overflow:hidden;text-overflow:ellipsis;cursor:pointer}
+ 2159| .fbar-i{flex:0 0 auto;width:48px;height:48px;border-radius:50%;background:var(--card);
+ 2160|   border:1px solid var(--line);color:var(--tx);display:flex;align-items:center;justify-content:center;
+ 2161|   box-shadow:var(--shadow-sm);cursor:pointer;padding:0}
+ 2162| .fbar-i .ic{width:19px;height:19px}
+ 2163| /* Плоская карточка — контейнер дня: сами карточки внутри держат свой отступ,
+ 2164|    а вот её собственные строки (название дня, заметки) стояли у края экрана,
+ 2165|    на 16px, тогда как весь текст в приложении живёт на 36px. Двадцать
+ 2166|    пикселей разницы между заголовком «Верх B» и всем, что под ним, — это и
+ 2167|    есть «кривой сдвиг», про который сказал владелец (27.08). */
+ 2168| .card.flat>.hd,.card.flat>.note,.card.flat>.mini,.card.flat>.wc-sub{padding-left:20px;padding-right:20px}
+ 2169| 
+ 2170| .mcell{padding:12px 0}
+ 2171| .g3 .mcell{border-top:1px solid var(--line)}
+ 2172| .g3 .mcell:nth-child(-n+3){border-top:0}
+ 2173| /* Плашка внутри карточки или раскрывашки не добавляет СВОЙ отступ поверх
+ 2174|    родительского: 16 у карточки + 20 у раскрывашки + 20 у плашки давали
+ 2175|    первую строку на 56 px там, где весь остальной текст стоит на 36.
+ 2176|    Фон и отступ несёт контейнер, плашка — только цвет и роль.
+ 2177|    Раньше правило перечисляло .ob и .ib и пропускало .wb и .eb — а именно
+ 2178|    .wb стоит на «Коуче» под расчётом ккал (поймано правилом гуттера). */
+ 2179| .card .ob,.card .ib,.wc .ob,.wc .ib,.det .ob,.det .ib{background:none;padding:0;font-size:var(--fs2);line-height:var(--lh2)}
+ 2180| /* У предупреждения и ошибки фон СНИМАТЬ НЕЛЬЗЯ — янтарный и красный несут
+ 2181|    смысл, а не украшают. Снимается только боковой отступ, чтобы первая
+ 2182|    строка встала на общий гуттер; вертикальный остаётся, иначе цветная
+ 2183|    плашка прилипнет к тексту вокруг. */
+ 2184| .card .wb,.card .eb,.wc .wb,.wc .eb,.det .wb,.det .eb{padding:12px 0;font-size:var(--fs2);line-height:var(--lh2)}
+ 2185| /* Плоская карточка дня своих отступов не даёт — значит плашка внутри неё
+ 2186|    обязана держать гуттер сама, иначе её текст стоит на 16px, а всё соседнее
+ 2187|    на 36 (полевой отчёт владельца 28.08: «ничего не выровнено»). */
+ 2188| .card.flat .ob,.card.flat .ib,.card.flat .wb,.card.flat .eb{padding-left:20px;padding-right:20px}
+ 2189| /* Разминка — тоже раскрывашка, но с классом .wc: правила строки summary до
+ 2190|    неё не доезжали, и маркер ▶ вставал ОТДЕЛЬНОЙ строкой над заголовком. */
+ 2191| .wc>summary{cursor:pointer;list-style:none;display:flex;align-items:center;gap:8px;min-width:0}
+ 2192| .wc>summary::-webkit-details-marker{display:none}
+ 2193| /* Шеврон раскрывашки стоит СПРАВА, как у строки группы. Слева он спорил
+ 2194|    с новым порядком: у одних строк стрелка справа, у других слева, и
+ 2195|    экран читался как собранный из двух разных приложений. */
+ 2196| .wc>summary::after{content:'';width:14px;height:14px;margin-left:auto;background:currentColor;-webkit-mask:var(--chev) center/contain no-repeat;mask:var(--chev) center/contain no-repeat;display:inline-block;transition:transform .15s var(--ez);color:var(--t3);flex:0 0 auto}
+ 2197| .wc[open]>summary::after{transform:rotate(90deg)}
+ 2198| .wc[open]>summary::before{transform:rotate(90deg)}
+ 2199| .wc>summary .wc-n{white-space:normal;overflow-wrap:anywhere;min-width:0}
+ 2200| /* Вложенная раскрывашка — на ЛЮБОМ уровне: в карточке, в секции упражнения
+ 2201|    и в другой раскрывашке. Приём пищи внутри «Дневника» после закона одной
+ 2202|    поверхности лежал плитой на плите того же цвета — невидимая коробка с
+ 2203|    отступом 20 px, то самое «тон в тон», которое закон запрещает. */
+ 2204| .card .det,.wc .det,.det .det{background:none;padding:12px 0 0;border-top:1px solid var(--line);border-radius:0;margin-bottom:0}
+ 2205| /* Линия — разделитель между контентом и раскрывашкой. Когда раскрывашка стоит
+ 2206|    первой, разделять нечего: на «Технике» карточка начиналась с висящей
+ 2207|    черты над «Моё оборудование» (19.08). */
+ 2208| .card>.det:first-child,.wc>.det:first-child{border-top:0;padding-top:0}
+ 2209| .card .tile,.wc .tile{background:none;padding:var(--s3) 0;text-align:left}
+ 2210| .card .tech,.wc .tech{background:none!important;border:0!important;padding:0!important}
+ 2211| /* Имя — крупное во всю ширину (не конкурирует с кнопками за 259px),
+ 2212|    кнопки действий — осязаемые, с фоном и рамкой, своим рядом справа
+ 2213|    (полевой отзыв 01.08: «текст в воздухе» после чрезмерной компакции) */
+ 2214| /* Название слева, кнопки — прижаты вправо. Без этого они переносились на
+ 2215|    вторую строку и вставали посередине, не выровненные ни с чем: ряд из
+ 2216|    четырёх иконок висел сам по себе (скриншот 23.08).
+ 2217|    Перенос запрещён специально: с wrap длинное название («Отжимания на брусьях»)
+ 2218|    выталкивало всю группу кнопок на отдельную строку, и соседние карточки
+ 2219|    выглядели по-разному — у одной кнопки на строке заголовка, у другой под ним.
+ 2220|    Теперь переносится САМО НАЗВАНИЕ (min-width:0 разрешает ему сжаться), а
+ 2221|    кнопки всегда стоят в правом верхнем углу карточки. */
+ 2222| .wc-h{display:flex;flex-wrap:nowrap;align-items:center;gap:var(--s1);margin-bottom:2px}
+ 2223| .wc-h>.wc-n{flex:1 1 auto;min-width:0;white-space:normal}
+ 2224| /* Ниже 380px четыре кнопки съедают 164px из ~248px строки, и на оставшиеся 84
+ 2225|    не влезает даже одно слово: «Подтягивания» вылезало на кнопки (замер 23.08).
+ 2226|    Поэтому на узких экранах название занимает свою строку, кнопки — свою.
+ 2227|    Важно, что это одинаково для ВСЕХ карточек: ровно на любой ширине. */
+ 2228| @media (max-width:380px){
+ 2229|   .wc-h{flex-wrap:wrap}
+ 2230|   .wc-h>.wc-n{flex:1 1 100%}
+ 2231| }
+ 2232| /* Кнопки — одной группой: поодиночке они переносились по одной и ряд
+ 2233|    разрывался (первая уезжала вправо, три оставшихся вставали слева). */
+ 2234| .wc-acts{display:flex;align-items:center;gap:2px;flex:0 0 auto;margin-left:auto}
+ 2235| /* Трекинг у крупного жирного — не украшение: ступень выросла с 17 до 18 (чтобы
+ 2236|    интерлиньяж был целым), и самое длинное слово справочника, «Концентрированный»,
+ 2237|    стало 194 px при колонке 192 — оно полезло бы на кнопки. Отрицательный трекинг
+ 2238|    на крупном жирном — то, что шкала уже делает на h1 (-.03em) и на числе (-.04em);
+ 2239|    здесь он и выглядит правильнее, и возвращает 6 px, не трогая ни палец, ни строку. */
+ 2240| /* Заголовок строки в системе — это Body 17 полужирным, а не Title3 20:
+ 2241|    Title3 стоит над ГРУППОЙ, а не внутри неё. С двадцатым самое длинное
+ 2242|    название справочника («Концентрированный») давало 210 px при колонке 192
+ 2243|    и полезло бы на кнопки — правило поймало это в тот же прогон. */
+ 2244| /* Название движения — заголовок РАЗДЕЛА, и теперь оно им и выглядит: 21 px.
+ 2245|    Раньше стояло Body 17, потому что над ним была ещё и рамка карточки; без
+ 2246|    рамки заголовок обязан держать раздел сам. Интерлиньяж целым числом. */
+ 2247| .wc-n{flex:1 1 100%;font-weight:var(--fwb);font-size:var(--fs3);line-height:25px;letter-spacing:-.024em;cursor:pointer;min-width:0}
+ 2248| /* Сделанное упражнение — строка: гаснет до .55 (закон цвета 01.09: сделанное
+ 2249|    гаснет), счёт справа, галочка. Высота под палец. */
+ 2250| .wc.wc-done{padding:6px 20px;opacity:.55;cursor:pointer}
+ 2251| .wc.wc-done .wc-h{margin:0;min-height:44px;align-items:center}
+ 2252| .wc.wc-done .wc-n{font-size:var(--fsb);line-height:var(--lhb);font-weight:var(--fwm);letter-spacing:-.014em;white-space:normal;overflow-wrap:anywhere;flex:1 1 auto}
+ 2253| .wc-c{margin-left:auto;flex:0 0 auto;display:flex;align-items:center;gap:6px;color:var(--t2);font-size:var(--fs2);font-variant-numeric:tabular-nums}
+ 2254| .wc-c .ic{width:15px;height:15px;color:var(--ac)}
+ 2255| .wc.wc-done:active{opacity:.8}
+ 2256| /* Несделанное после закрытия: та же строка, счёт тихий, галочки нет. */
+ 2257| .wc.wc-done.wc-miss .wc-c{color:var(--t3)}
+ 2258| .wc-h .wc-del:first-of-type{margin-left:auto}
+ 2259| /* Кнопки упражнения — тихие глифы без плашек. Три серых прямоугольника над
+ 2260|    каждым из восьми упражнений и были той «панелью», которую владелец назвал
+ 2261|    колхозом: они кричали ровно так же громко, как название движения. */
+ 2262| .wc-del{background:none;border:0;color:var(--t3);font-size:var(--fs2);line-height:1;cursor:pointer;flex:0 0 auto;border-radius:10px;
+ 2263| min-width:var(--tap);min-height:var(--tap);display:inline-flex;align-items:center;justify-content:center}
+ 2264| .wc-del:active{background:var(--c2);color:var(--tx)}
+ 2265| .wc-sub{font-size:var(--fs2);line-height:var(--lh2);color:var(--t3);margin:0 0 var(--s2)}
+ 2266| .wc-sub b{color:var(--t2);font-weight:var(--fwm)}
+ 2267| /* ХВОСТ ТРЕНИРОВКИ: три кнопки после последнего упражнения. Раньше у каждой
+ 2268|    стоял margin-top:8px, а последняя упиралась в следующую карточку ВПЛОТНУЮ —
+ 2269|    0 px, при том что выше на том же экране шаги 22 и 16 (аудит 23.08). Ровный
+ 2270|    шаг и честный отступ снизу. */
+ 2271| .wc-tail{display:flex;flex-direction:column;gap:var(--s2);margin:var(--s4) 0}
+ 2272| 
+ 2273| /* Раскрывашки внутри карточки упражнения («почему такой совет», «Суть и техника»,
+ 2274|    «История») — один стиль на все. До 23.08 две были лаймовые, одна серая пунктирная:
+ 2275|    одинаковые по роли ссылки читались как разные по важности. Лайм оставлен действиям
+ 2276|    (кнопки, «вес ИИ»), пунктир — тапу, который меняет ЗНАЧЕНИЕ (отдых, кг/lb).
+ 2277|    Раскрывашке хватает треугольника ▸/▾ — так делают Hevy и Apple Fitness. */
+ 2278| /* Стрелка у ссылки-раскрывашки — рисованная и поворачивается, а не два
+ 2279|    разных символа ▸/▾ в тексте: у них своя толщина от шрифта и свой
+ 2280|    оптический центр, рядом с иконками спрайта это видно. */
+ 2281| /* Тумблер внутри карточки — такая же строка, как в группе: во всю ширину,
+ 2282|    шеврон справа, поворот при раскрытии. Слева стрелка спорила с новым
+ 2283|    порядком и делала карточку похожей на список ссылок. */
+ 2284| .wc-sub a.tog{color:var(--t2);text-decoration:none;cursor:pointer;display:flex;width:100%;align-items:center;gap:8px;padding:9px 0;min-height:40px}
+ 2285| .wc-sub a.tog::after{content:'';width:13px;height:13px;flex:0 0 auto;margin-left:auto;background:currentColor;
+ 2286|   -webkit-mask:var(--chev) center/contain no-repeat;mask:var(--chev) center/contain no-repeat;transition:transform .15s var(--ez)}
+ 2287| .wc-sub a.tog.op::after{transform:rotate(90deg)}
+ 2288| .wc-sub a.tog:active{color:var(--tx)}
+ 2289| /* «+ подводящие подходы» — ДЕЙСТВИЕ, а не раскрывашка. До 23.08 оно стояло
+ 2290|    бледной ссылкой посреди стопки раскрывашек и читалось как четвёртая, только
+ 2291|    сломанная: без треугольника и ещё тусклее соседей. Теперь это компактная
+ 2292|    кнопка со своим контуром — видно, что на неё жмут, а не разворачивают. */
+ 2293| .wc-add{display:inline-flex;align-items:center;background:none;border:1px solid var(--line);color:var(--t2);
+ 2294| font-size:var(--fs1);line-height:1;border-radius:999px;padding:8px 14px;margin:0 0 var(--s2);cursor:pointer;
+ 2295| min-height:34px}
+ 2296| .wc-add:active{background:var(--c2);color:var(--tx)}
+ 2297| /* Убрать упражнение — за «⋯» и помечено цветом опасности: там же лежат фото,
+ 2298|    заметка и суперсет, и промахнуться пальцем по соседней кнопке нельзя. */
+ 2299| .wc-danger{color:var(--bd)}
+ 2300| /* ── СТРОКИ ПОДХОДОВ НА ВОЛОСЯНЫХ ЛИНИЯХ ──
+ 2301|    Одна линия между строками вместо обведённых полей и плиты вокруг всего.
+ 2302|    Высота строки фиксирована, чтобы таблица читалась как таблица, а не как
+ 2303|    стопка разной высоты: попал пальцем не глядя. */
+ 2304| .wrow{display:grid;grid-template-columns:22px 1fr 66px 52px var(--tap);gap:6px;align-items:center;
+ 2305|   min-height:52px;padding:0;border-top:1px solid var(--line)}
+ 2306| .wrow-h{min-height:0;padding:0 0 9px;border-top:0}
+ 2307| /* На 320 px фиксированные колонки съедали 224 из 248, и на колонку «было»
+ 2308|    оставалось 24 px: заголовок превращался в «Б…», прошлый подход в «62…»
+ 2309|    (аудит 23.08). А эта колонка существует ровно для одного — показать, сколько
+ 2310|    ты поднял в прошлый раз; человек с гантелей в руке смотрит именно в неё.
+ 2311|    На узких экранах поджимаем всё остальное: номер, поля и галочку. */
+ 2312| @media (max-width:380px){
+ 2313|   /* На 320 px колонке «было» оставалось 40 px, и «разминка 45 с» обрезалась
+ 2314|      на 57 px. Резать подпись нельзя — она отвечает на вопрос «через сколько
+ 2315|      подводящие между собой». Отдаём ей две строки вместо многоточия и
+ 2316|      подбираем ширину соседей: цифры влезают и в 60/48. */
+ 2317|   .wrow{grid-template-columns:18px minmax(56px,1fr) 60px 48px var(--tap);gap:5px}
+ 2318|   /* !important здесь не украшение: базовое правило .wrow>.wprev стоит НИЖЕ
+ 2319|      по файлу и при равной специфичности выигрывает — перенос молча не
+ 2320|      включался, и подпись продолжала обрезаться. */
+ 2321|   .wrow>.wprev{white-space:normal!important;line-height:15px!important;font-size:12px!important}
+ 2322| }
+ 2323| .wrow-h>span{font-size:11px;line-height:14px;color:var(--t3);text-transform:uppercase;letter-spacing:.7px;font-weight:var(--fwm)}
+ 2324| .wrow-h>span:nth-child(3),.wrow-h>span:nth-child(4){text-align:center}
+ 2325| .wrow>span{font-size:var(--fs2);line-height:var(--lh2);color:var(--t2);text-align:center}
+ 2326| .wrow>span:first-child{font-weight:var(--fwm);color:var(--t3);text-align:left}
+ 2327| /* Первая редакция шапки (.wnav: «‹ название дня · микрофон ›») удалена
+ 2328|    вместе с разметкой — ниже вторая. */
+ 2329| /* ── ШАПКА ДНЯ, ВТОРАЯ РЕДАКЦИЯ (v495) ──
+ 2330|    Полевой отчёт владельца 01.09 со скриншотом: «большие нелепые кнопки
+ 2331|    листания по бокам, кнопка микрофона несуразная, ниже всё просто набор
+ 2332|    чертежей». Замер того же экрана: 434 px до первого упражнения при экране
+ 2333|    844 и СЕМЬ независимых блоков в шапке (стрелки, микрофон, строка даты и
+ 2334|    цикла, «Спросить тренера», пять чипов готовности, разминка). Каждый
+ 2335|    добавлялся в свой месяц по своей причине, и ни один не знал про остальные.
+ 2336| 
+ 2337|    Строчками это не чинится: чинить надо не блоки, а отсутствие закона, по
+ 2338|    которому блок выбирает себе место и громкость. Закон принят владельцем
+ 2339|    01.09 по трём отрисованным экранам:
+ 2340| 
+ 2341|    ВРЕМЯ. У дня три состояния, и видно только то, что состоянию принадлежит:
+ 2342|      до — старт и подготовка · во время — упражнения и веса · после — итог.
+ 2343|    ГРОМКОСТЬ. Четыре размера шрифта на экран. Крупное одно — название дня.
+ 2344|    ЦВЕТ. Лайм ровно в трёх ролях: главная кнопка, полоса прогресса,
+ 2345|      следующий подход. Сделанное гаснет.
+ 2346|    ГРАНИЦЫ. Ни одной рамки: разделяют волосяная линия и воздух.
+ 2347| 
+ 2348|    Здесь живёт состояние «до». «Начать тренировку» — не декорация: она
+ 2349|    вызывает autoSession и ставит ЧЕСТНОЕ время старта. До неё старт считался
+ 2350|    по первому подходу, то есть уже после разминки, и длительность сессии
+ 2351|    систематически занижалась на 8–12 минут. */
+ 2352| /* ── ЗНАКОМСТВО ── один вопрос на экран, ответ крупной строкой. */
+ 2353| /* Полоса недели в шапке: семь точек, сделанные закрашены акцентом,
+ 2354|    плановые видны бледными, сегодня обведён. Ширина точки одинакова —
+ 2355|    иначе неделя читается как ломаный ритм, а не как семь равных дней. */
+ 2356| .wkstrip{display:inline-flex;gap:4px;vertical-align:-2px;margin-right:8px}
+ 2357| .wkstrip i{width:14px;height:4px;border-radius:2px;background:rgba(255,255,255,.14)}
+ 2358| .wkstrip i.plan{background:rgba(255,255,255,.30)}
+ 2359| .wkstrip i.on{background:var(--ac)}
+ 2360| .wkstrip i.now{box-shadow:0 0 0 1.5px rgba(255,255,255,.45)}
+ 2361| .wkn{color:var(--t3)}
+ 2362| .onb-in{max-width:460px;margin:0 auto;min-height:100dvh;display:flex;flex-direction:column;
+ 2363|   padding:calc(14px + env(safe-area-inset-top)) 20px calc(20px + env(safe-area-inset-bottom))}
+ 2364| .onb-top{display:flex;align-items:center;gap:var(--s3);margin-bottom:34px}
+ 2365| .onb-bar{flex:1 1 auto;height:3px;background:var(--c2);border-radius:2px;overflow:hidden}
+ 2366| .onb-bar>i{display:block;height:100%;background:var(--ac);border-radius:2px;transition:width .35s var(--ez)}
+ 2367| /* «Назад» — шевроном слева, как в системе, а не большой кнопкой внизу:
+ 2368|    там он читался как главное действие экрана и спорил с ответом. */
+ 2369| .onb-top button{flex:0 0 auto;background:none;border:0;color:var(--t3);font-size:var(--fs2);
+ 2370|   font-weight:var(--fwm);padding:8px 0 8px 12px;cursor:pointer}
+ 2371| .onb-top #onbBack{padding:8px 10px 8px 0;display:flex;align-items:center}
+ 2372| .onb-top #onbBack .ic{width:17px;height:17px}
+ 2373| #onbBody{flex:1 1 auto}
+ 2374| .onb-q{font-size:30px;font-weight:var(--fwb);letter-spacing:-.03em;line-height:36px;margin:0 0 8px}
+ 2375| .onb-h{font-size:var(--fs2);line-height:var(--lh2);color:var(--t3);margin-bottom:26px}
+ 2376| .onb-opt{display:flex;flex-direction:column;gap:var(--s2)}
+ 2377| .onb-opt button{width:100%;min-height:58px;border:0;border-radius:16px;background:var(--c2);color:var(--tx);
+ 2378|   font-size:var(--fsb);font-weight:var(--fwm);letter-spacing:-.012em;text-align:left;padding:0 18px;cursor:pointer;
+ 2379|   display:flex;align-items:center;gap:12px;transition:.15s}
+ 2380| .onb-opt button .s{margin-left:auto;font-size:var(--fs2);color:var(--t3);font-weight:400}
+ 2381| .onb-opt button.on{background:var(--acw);box-shadow:inset 0 0 0 1.5px var(--ac);color:var(--tx)}
+ 2382| .onb-opt button.on .s{color:var(--ac2)}
+ 2383| .onb-num{display:flex;align-items:baseline;gap:10px;margin-top:4px}
+ 2384| .onb-num input{flex:0 0 auto;width:150px;height:64px;border:0;border-radius:16px;background:var(--c2);
+ 2385|   color:var(--tx);font-size:32px;font-weight:var(--fwb);text-align:center;font-variant-numeric:tabular-nums;outline:none}
+ 2386| .onb-num input:focus{box-shadow:inset 0 0 0 1.5px var(--ac)}
+ 2387| .onb-num .u{font-size:var(--fs3);color:var(--t3)}
+ 2388| .onb-foot{flex:0 0 auto;padding-top:26px;display:flex;flex-direction:column;gap:var(--s2)}
+ 2389| .onb-foot .btn{height:54px;font-size:var(--fsb);font-weight:var(--fwb)}
+ 2390| .onb-done{font-size:34px;font-weight:var(--fwb);letter-spacing:-.035em;line-height:38px;margin:0 0 10px}
+ 2391| /* Конец знакомства: сначала ФАКТЫ собранной программы (это про него), потом
+ 2392|    четыре строки о том, что приложение умеет. Рекомендация №5 из APPS.md:
+ 2393|    всё перечисленное работает месяцами и нигде не названо. Порядок не
+ 2394|    переставлять — человек только что ответил на восемь вопросов, и первым
+ 2395|    он обязан увидеть результат своего труда, а не наш рассказ о себе. */
+ 2396| .onb-fx{font-size:var(--fsb);line-height:24px;color:var(--tx);margin-bottom:26px}
+ 2397| .onb-fx>div+div{color:var(--t3)}
+ 2398| .onb-cap{font-size:var(--fs1);letter-spacing:.06em;text-transform:uppercase;color:var(--t3);
+ 2399|   padding-bottom:10px;border-bottom:1px solid var(--line);margin-bottom:2px}
+ 2400| .can{padding:var(--s3) 0;border-bottom:1px solid var(--line);font-size:var(--fs2);line-height:var(--lh2)}
+ 2401| .can b{font-weight:var(--fwm);color:var(--tx)}
+ 2402| .can span{color:var(--t3)}
+ 2403| .can:last-child{border-bottom:0}
+ 2404| .dhd{padding:16px 20px 4px}
+ 2405| .dhd-o{display:flex;align-items:center;gap:var(--s2);margin-bottom:8px;
+ 2406|   font-size:var(--fs1);line-height:var(--lh1);color:var(--t3);font-weight:var(--fwm)}
+ 2407| /* ── ДАТА ДНЯ НЕ ОБРЕЗАЕТСЯ (замер владельца 11.09) ──
+ 2408|    В строке помещалось 147 px при нужных 218, и «цикл 1, нед 3/4» уезжал в
+ 2409|    многоточие. Обрезанная строка хуже длинной: человек видит, что от него
+ 2410|    что-то скрыли, и не знает что. Пусть переносится на вторую строку целиком;
+ 2411|    кнопки листания прижимаем к верху, чтобы они не прыгали от числа строк. */
+ 2412| .dhd-o{align-items:flex-start}
+ 2413| .dhd-o .d{flex:1 1 auto;min-width:0;white-space:normal;overflow-wrap:anywhere;padding-top:12px}
+ 2414| .dhd-o button{flex:0 0 auto;background:none;border:0;color:var(--t3);padding:0;
+ 2415|   width:44px;height:44px;border-radius:11px;display:flex;align-items:center;justify-content:center}
+ 2416| .dhd-o button:disabled{opacity:var(--dis)}
+ 2417| .dhd-o button:active{background:var(--c2)}
+ 2418| .dhd-o .ic{width:16px;height:16px}
+ 2419| /* Высота строки — ЦЕЛОЕ число пикселей. 36px × 1.04 = 37.44, и браузер
+ 2420|    раскладывает соседние абзацы с разным шагом: ритм экрана плывёт. */
+ 2421| .dhd-t{margin:0;font-size:var(--fs4);font-weight:var(--fwb);letter-spacing:-.038em;line-height:36px;
+ 2422|   overflow-wrap:break-word;text-wrap:balance}
+ 2423| .dhd-f{margin-top:8px;font-size:var(--fs2);line-height:var(--lh2);color:var(--t2)}
+ 2424| .dhd-f b{color:var(--tx);font-weight:var(--fwm)}
+ 2425| /* Совет новичку — свой класс, а не «как факты, только жёлтым». Общий класс
+ 2426|    на двух разных блоках делает правило гейта слепым: оно ищет строку фактов,
+ 2427|    находит совет и говорит «на месте» (мутация M722 прошла именно так). */
+ 2428| .dhd-w{margin-top:4px;font-size:var(--fs2);line-height:var(--lh2);color:var(--wn)}
+ 2429| .dhd-go{width:100%;height:56px;margin-top:16px;font-size:var(--fsb);font-weight:var(--fwb)}
+ 2430| .dhd-p{display:flex;gap:var(--s2);margin-top:12px}
+ 2431| .dhd-p button{flex:1 1 0;min-width:0;min-height:46px;border-radius:14px;border:0;background:var(--c2);
+ 2432|   color:var(--t2);font-size:var(--fs2);font-weight:var(--fwm);letter-spacing:-.01em;
+ 2433|   display:flex;align-items:center;justify-content:center;gap:7px;padding:0 10px;
+ 2434|   white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+ 2435| .dhd-p button .dot{flex:0 0 auto;width:6px;height:6px;border-radius:50%;background:var(--ac)}
+ 2436| .dhd-p button.on{background:var(--acw);color:var(--ac2)}
+ 2437| /* Пилюля в две строки: балл и срез по готовности («−2 подхода») — на 320 px
+ 2438|    в одну строку не помещается, а обрезанный факт хуже отсутствующего. */
+ 2439| .dhd-p button.two{flex-direction:column;gap:1px;padding:5px 10px;line-height:1.15}
+ 2440| .dhd-p button.two small{font-size:var(--fs0);font-weight:var(--fwm);color:var(--t3);letter-spacing:0}
+ 2441| .dhd-p button.two.on small{color:var(--ac2);opacity:.75}
+ 2442| .dhd-p button:active{opacity:.7}
+ 2443| /* Состояние «тренировка идёт»: заголовок ужимается до имени и счёта. */
+ 2444| .dhd.go{padding-top:16px;padding-bottom:2px}
+ 2445| .dhd-b{display:flex;align-items:center;gap:var(--s2)}
+ 2446| .dhd-b .n{flex:1 1 auto;min-width:0;font-size:var(--fs3);line-height:var(--lh3);font-weight:var(--fwb);
+ 2447|   letter-spacing:-.022em;white-space:normal;overflow-wrap:anywhere}
+ 2448| .dhd-b .c{flex:0 0 auto;font-size:var(--fs2);font-weight:var(--fwb);color:var(--ac);font-variant-numeric:tabular-nums}
+ 2449| .dhd-b .c s{color:var(--t3);font-weight:var(--fwm);text-decoration:none}
+ 2450| .dhd-b button{flex:0 0 auto;background:none;border:0;color:var(--t3);padding:0;
+ 2451|   width:36px;height:36px;border-radius:10px;display:flex;align-items:center;justify-content:center}
+ 2452| .dhd-b button:active{background:var(--c2)}
+ 2453| .dhd-r{height:3px;background:var(--c2);border-radius:2px;overflow:hidden;margin-top:12px}
+ 2454| .dhd-r i{display:block;height:100%;background:var(--ac);border-radius:2px;transition:width .4s var(--ez)}
+ 2455| .dhd-end{margin-top:12px;width:100%}
+ 2456| /* Колонка «было» жила на 15 px, потому что её собственное правило проигрывало
+ 2457|    по весу правилу строки, — и «дальше рабочий» обрезалось многоточием.
+ 2458|    Ставим вес выше самой строки и размер как в макете. */
+ 2459| .wrow>.wprev{font-size:var(--fs1);line-height:var(--lh1)!important;color:var(--t3)!important;text-align:left!important;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+ 2460| .wprev{font-size:var(--fs1);line-height:var(--lh1)!important;color:var(--t3)!important;text-align:left!important;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+ 2461| .wrow.done .wv{color:var(--tx);font-weight:var(--fwm);font-variant-numeric:tabular-nums}
+ 2462| /* Сделанное гаснет: подход закрыт и внимания больше не требует. Пока строки
+ 2463|    стояли в полную силу, самым заметным на экране была уже сделанная работа. */
+ 2464| .wrow.done{opacity:.45}
+ 2465| /* Поле без контура: форму держит заливка, как в Здоровье и Fitness. Высота
+ 2466|    в палец (44) — рамку убрали, зону нажатия нет. */
+ 2467| .wi{width:100%;height:44px;padding:0 var(--s1);text-align:center;border:0;border-radius:11px;
+ 2468|   background:var(--fill,rgba(255,255,255,.06));color:var(--tx);font-size:17px;line-height:44px;font-weight:var(--fwm);
+ 2469|   font-variant-numeric:tabular-nums;outline:none;-webkit-appearance:none}
+ 2470| .wi::placeholder{color:var(--t3);font-weight:400}
+ 2471| .wi:focus{box-shadow:inset 0 0 0 1.5px var(--ac)}
+ 2472| /* ── СЛЕДУЮЩИЙ ПОДХОД — ЕДИНСТВЕННОЕ ЛАЙМОВОЕ ПЯТНО ЭКРАНА ──
+ 2473|    Так глаз находит «где я» не читая: не по номеру строки, а по цвету. Ради
+ 2474|    этого лайм и убран отовсюду ещё: если светится всё, не светится ничего. */
+ 2475| .wrow.cur .wi{background:rgba(216,255,0,.10);color:var(--ac);box-shadow:inset 0 0 0 1px rgba(216,255,0,.32)}
+ 2476| .wrow.cur>span:first-child{color:var(--tx)}
+ 2477| /* Круг вместо квадрата с рамкой: галочка-таблетка в списке разминки читалась
+ 2478|    как поле ввода. Рамок в интерфейсе больше нет — форму держит фон. */
+ 2479| /* Невыполненное движение было залитым серым кругом с галочкой — в любом
+ 2480|    другом приложении это читается как «уже сделано». Пустой контур = «нажми»,
+ 2481|    заливка акцентом = «сделано»: состояние видно, не читая текста (19.08). */
+ 2482| /* Зона нажатия 44, КРУГ 30: палец получает своё, а глаз — спокойную точку
+ 2483|    в ряду, а не четвёртый по величине элемент строки. */
+ 2484| .wcheck{width:var(--tap);height:var(--tap);border:0;background:none;padding:0;position:relative;cursor:pointer;
+ 2485| display:flex;align-items:center;justify-content:center;justify-self:end;color:transparent;transition:.15s}
+ 2486| .wcheck::before{content:'';position:absolute;width:30px;height:30px;border-radius:50%;box-shadow:inset 0 0 0 1.5px var(--line)}
+ 2487| .wcheck .ic{position:relative;width:15px;height:15px}
+ 2488| .wcheck:active{transform:scale(.94)}
+ 2489| /* Закрытый подход помечается ТИХО. Лайм на восьми галочках подряд — это
+ 2490|    награда за прошлое, спорящая с единственным местом, куда надо смотреть. */
+ 2491| .wcheck.on{color:rgba(255,255,255,.85)}
+ 2492| .wcheck.on::before{background:rgba(255,255,255,.16);box-shadow:none}
+ 2493| .wrow.cur .wcheck::before{box-shadow:inset 0 0 0 2px var(--ac)}
+ 2494| /* ── ПОЛОСА ОТДЫХА ──
+ 2495|    Решение владельца 31.08: таймер должен читаться, когда телефон лежит на
+ 2496|    скамье в двух метрах. Раньше это была строка текста «Отдых 1:30» тем же
+ 2497|    кеглем, что и всё остальное, — с расстояния не видно ничего.
+ 2498|    Крупная цифра + полоса, которая убывает: полосу глаз считывает без чтения.
+ 2499|    Разворачивать на весь экран автоматически НЕЛЬЗЯ — это спрятало бы
+ 2500|    следующее упражнение, подсказку веса и журнал ровно тогда, когда они
+ 2501|    нужны («экран тренировки — это тренировка»). Поэтому во весь экран
+ 2502|    только по тапу, руками. */
+ 2503| .rest{position:fixed;left:0;right:0;bottom:var(--navh,62px);z-index:70;
+ 2504|   background:var(--ac-fill);color:var(--on-ac);display:none;align-items:center;justify-content:space-between;gap:8px;
+ 2505|   padding:8px 10px;font-weight:var(--fwm);font-size:var(--fs3);line-height:var(--lh3);
+ 2506|   overflow:hidden;cursor:pointer;user-select:none}
+ 2507| .rest.on{display:flex}
+ 2508| /* Полоса прогресса — фоном под содержимым, чтобы не занимать своей высоты. */
+ 2509| .rest .fill{position:absolute;left:0;top:0;bottom:0;background:rgba(0,0,0,.18);
+ 2510|   width:100%;transform-origin:left center;pointer-events:none;transition:transform .5s linear}
+ 2511| .rest>*{position:relative;z-index:1}
+ 2512| .rest .num{font-size:34px;line-height:1;font-weight:800;font-variant-numeric:tabular-nums;letter-spacing:-1px}
+ 2513| .rest .cap{font-size:var(--fs1);line-height:var(--lh1);opacity:.75;display:block;font-weight:var(--fwm)}
+ 2514| /* Метрики кнопок посчитаны под 320 px — самый узкий телефон, который мы
+ 2515|    поддерживаем. Первая версия влезала «на глаз» и на 390 px обрезала и цифру,
+ 2516|    и «Пропустить»: четыре кнопки со словами в одну строку с крупным числом
+ 2517|    не помещаются. Правило на ширину стоит в гейте (31.08). */
+ 2518| .rest .row{display:flex;gap:var(--s2);align-items:center;flex:0 1 auto;min-width:0}
+ 2519| .rest button{background:rgba(0,0,0,.16);border:0;color:var(--on-ac);border-radius:8px;padding:var(--s3) var(--s2);
+ 2520|   font-weight:var(--fwm);cursor:pointer;min-width:44px;min-height:44px;white-space:nowrap;
+ 2521|   font-size:var(--fs1);line-height:var(--lh1)}
+ 2522| .rest .num{flex:0 0 auto}
+ 2523| /* ── v626: ЦИФРА — САМА КНОПКА ──
+ 2524|    Замер 19.09: четыре кнопки по 46 px рядом с крупным числом съедали 203 px
+ 2525|    из 320 и оставляли на всё про всё 26 px запаса, а цифра — самое крупное
+ 2526|    пятно полосы — не была целью вовсе (71×41, меньше 44 по высоте).
+ 2527|    Теперь наоборот: «+30» и «Стоп» из ряда убраны, цифра стала целью 48 px
+ 2528|    и берёт на себя оба действия — тап добавляет тридцать секунд, долгое
+ 2529|    нажатие заканчивает отдых. Палец в перчатке попадает в неё не целясь,
+ 2530|    а на узком телефоне освободилось 100 px. */
+ 2531| .rest .numbtn{display:flex;align-items:center;gap:var(--s2);min-height:48px;flex:0 1 auto;min-width:0;
+ 2532|   background:rgba(0,0,0,.10);border:0;border-radius:14px;padding:var(--s1) var(--s3);
+ 2533|   color:inherit;font:inherit;text-align:left;cursor:pointer;
+ 2534|   transition:transform .12s var(--ez),background .18s var(--ez)}
+ 2535| .rest .numbtn .col{display:flex;flex-direction:column;align-items:flex-start;min-width:0}
+ 2536| .rest .numbtn .plus{font-size:var(--fs1);line-height:var(--lh1);font-weight:var(--fwb);white-space:nowrap;
+ 2537|   background:rgba(0,0,0,.14);border-radius:8px;padding:var(--s1) var(--s2)}
+ 2538| .rest .numbtn:active{transform:scale(.95)}
+ 2539| /* Пастельная зелёная пульсация = «тридцать секунд приняты». Ответ живёт
+ 2540|    в самой кнопке, а не всплывашкой поверх тренировки (правило v625). */
+ 2541| .rest .numbtn.bump{animation:restBumpP .42s var(--ez)}
+ 2542| @keyframes restBumpP{0%{background:rgba(48,209,88,.85);transform:scale(1.04)}
+ 2543|   60%{background:rgba(48,209,88,.40)}100%{background:rgba(0,0,0,.10);transform:scale(1)}}
+ 2544| @media (prefers-reduced-motion:reduce){ .rest .numbtn.bump{animation:none} }
+ 2545| /* ── v628: КНОПКА СБРОСА ВЕРНУЛАСЬ НА ВИД ──
+ 2546|    Разбор v626 показал перебор: жест — хороший ускоритель, но единственным
+ 2547|    путём к разрушающему действию он быть не может (HIG: разрушающее обязано
+ 2548|    быть обнаружимым). Уставший человек не обязан угадывать удержание.
+ 2549|    Круг 52 px с квадратом стопа — читается без слов и не спорит с «−30»
+ 2550|    и «Паузой», потому что он единственный круглый и единственный со знаком. */
+ 2551| .rest .stopb{min-width:52px;width:52px;height:52px;min-height:52px;border-radius:50%;
+ 2552|   background:rgba(0,0,0,.28);display:flex;align-items:center;justify-content:center;padding:0;
+ 2553|   transition:transform .12s var(--ez),background .18s var(--ez)}
+ 2554| .rest .stopb .ic{width:18px;height:18px;fill:currentColor;stroke:none}
+ 2555| .rest .stopb:active{transform:scale(.96);background:rgba(0,0,0,.4)}
+ 2556| .rest.big .stopb{width:64px;height:64px;min-width:64px;min-height:64px;background:rgba(255,255,255,.14)}
+ 2557| .rest.big .stopb .ic{width:24px;height:24px}
+ 2558| /* Подсказка про долгое нажатие — только в развёрнутом виде: внизу на полосе
+ 2559|    для неё нет места, а на скамье человек как раз смотрит в полный экран. */
+ 2560| .rest .tip{display:none}
+ 2561| /* Самый узкий телефон (320–360 px): значок «+30» на цифре уступает место
+ 2562|    кнопке сброса. Замер 20.09: с ним ряд и цифра требуют 335 px из 320 —
+ 2563|    цифру обрезало бы слева. Сам тап по цифре работает и здесь, а на 390 px
+ 2564|    значок остаётся и объясняет его. */
+ 2565| @media (max-width:360px){ .rest .numbtn .plus{display:none} }
+ 2566| /* ── ФИГУРА «ГДЕ БОЛИТ» (v628) ──
+ 2567|    Зоны по умолчанию едва заметны — ровно настолько, чтобы их было видно как
+ 2568|    зоны; отмеченная горит системным красным Apple. Прозрачная толстая обводка
+ 2569|    у путей не видна глазом, но делает цель нажатия больше 44 px: круг плеча
+ 2570|    на экране 30 px, с обводкой — 50. */
+ 2571| .injpick .figs{display:flex;gap:var(--s4);justify-content:center;align-items:flex-end}
+ 2572| .injpick .fig{display:flex;flex-direction:column;align-items:center;gap:var(--s2);min-width:0}
+ 2573| .injpick .fg{width:126px;height:auto;max-width:42vw;overflow:visible;touch-action:manipulation}
+ 2574| .injpick .fg .b{fill:rgba(255,255,255,.07)}
+ 2575| .injpick .fg .z{fill:rgba(255,255,255,.14);stroke:transparent;stroke-width:18;cursor:pointer;
+ 2576|   transition:fill .16s var(--ez)}
+ 2577| .injpick .fg .z:active{fill:rgba(255,255,255,.26)}
+ 2578| .injpick .fg .z.on{fill:#FF453A}
+ 2579| .injpick .fg .z:focus-visible{outline:2px solid var(--ac);outline-offset:2px}
+ 2580| .injpick .cap{font-size:var(--fs1);line-height:var(--lh1);color:var(--t3)}
+ 2581| .injEcho{margin-top:var(--s3);text-align:center;font-size:var(--fs1);line-height:var(--lh1);color:var(--t3)}
+ 2582| [data-theme="light"] .injpick .fg .b{fill:rgba(0,0,0,.08)}
+ 2583| [data-theme="light"] .injpick .fg .z{fill:rgba(0,0,0,.15)}
+ 2584| [data-theme="light"] .injpick .fg .z:active{fill:rgba(0,0,0,.26)}
+ 2585| /* Последние десять секунд: цвет предупреждения, чтобы встать заранее. */
+ 2586| .rest.soon{background:var(--wn,#ffb020);color:#151a22}
+ 2587| .rest.paused .fill{transition:none}
+ 2588| .rest.paused .num{opacity:.55}
+ 2589| /* Сигнал заблокирован после звонка: подпись становится призывом и читается как кнопка. */
+ 2590| .rest.mute .cap{opacity:1;text-decoration:underline;text-underline-offset:2px}
+ 2591| /* Развёрнуто на весь экран: телефон ставят на скамью как часы. Фон чёрный —
+ 2592|    на OLED почти не ест батарею, а цифра видна через зал. */
+ 2593| .rest.big{top:0;bottom:0;background:#000;color:var(--ac);flex-direction:column;gap:22px;align-items:center;text-align:center;
+ 2594|   padding:calc(24px + env(safe-area-inset-top)) 20px calc(24px + env(safe-area-inset-bottom));
+ 2595|   justify-content:center;z-index:420}
+ 2596| .rest.big .fill{background:rgba(255,255,255,.07)}
+ 2597| .rest.big .num{font-size:clamp(84px,30vw,180px)}
+ 2598| .rest.big .cap{font-size:var(--fs2);line-height:var(--lh2);opacity:.6}
+ 2599| .rest.big .row{display:flex;gap:14px;align-items:center;justify-content:center;flex-wrap:wrap}
+ 2600| .rest.big button{background:rgba(255,255,255,.1);color:var(--ac);padding:var(--s4) var(--s5);font-size:var(--fs2)}
+ 2601| .rest.big .numbtn{flex-direction:column;background:none;padding:0;gap:var(--s3)}
+ 2602| .rest.big .numbtn .col{align-items:center}
+ 2603| .rest.big .numbtn .plus{font-size:var(--fs2);line-height:var(--lh2);padding:var(--s3) var(--s4);background:rgba(255,255,255,.1)}
+ 2604| .rest.big .tip{display:block;font-size:var(--fs1);line-height:var(--lh1);opacity:.5}
+ 2605| .rest.big.soon{color:var(--wn,#ffb020)}
+ 2606| /* ── ОТДЫХ КОНЧИЛСЯ — ЭТО ВИДНО, А НЕ ТОЛЬКО СЛЫШНО ──
+ 2607|    Полевой отчёт владельца 01.09: «экран точно не вибрировал, горел и был
+ 2608|    виден, но телефон не моргал». Экран и правда горел — Wake Lock работает,
+ 2609|    он это подтвердил. А вот события «готово» на экране НЕ БЫЛО ВООБЩЕ:
+ 2610|    restDone проигрывал три тона и звал stopRest, полоса просто исчезала.
+ 2611|    Человек, который положил телефон на скамью и смотрит на цифру, не видел
+ 2612|    ничего — а именно ради него таймер и разворачивается на весь экран.
+ 2613|    Вибрации на айфоне не будет никогда: navigator.vibrate в Safari нет, это
+ 2614|    ограничение платформы, а не наша недоделка. Значит визуальный сигнал —
+ 2615|    не украшение, а ЕДИНСТВЕННОЕ, что доходит до человека без звука.
+ 2616|    Вспышка идёт там же, где стоял таймер: развёрнутый остаётся развёрнутым,
+ 2617|    полоса внизу мигает полосой. Полторы секунды и уходит сама. */
+ 2618| .rest.done{background:var(--tr,#34c759)!important;color:#0b1410!important;
+ 2619|   animation:restFlash .38s steps(1) 3}
+ 2620| .rest.done .fill{display:none}
+ 2621| .rest.done .row{display:none}
+ 2622| /* Вспышка «готово» — не кнопка: добавлять время уже некуда. */
+ 2623| .rest.done .numbtn{pointer-events:none;background:none;padding:0}
+ 2624| .rest.done .numbtn .plus{display:none}
+ 2625| .rest.done .tip{display:none}
+ 2626| .rest.done .num{font-size:clamp(34px,9vw,54px)}
+ 2627| .rest.big.done{color:#0b1410!important}
+ 2628| .rest.big.done .num{font-size:clamp(56px,16vw,110px)}
+ 2629| @keyframes restFlash{0%{filter:brightness(1)}50%{filter:brightness(1.85)}100%{filter:brightness(1)}}
+ 2630| @media (prefers-reduced-motion:reduce){ .rest.done{animation:none} }
+ 2631| /* ── v629: ДВЕ ЦЕЛИ НАЖАТИЯ НИЖЕ ПОРОГА ──
+ 2632|    Обход 21.09 по всем пяти вкладкам мерил не рамку, а попадание пальцем
+ 2633|    (правило v628). Нарушителей нашлось ровно два, и оба — в работе, а не в
+ 2634|    настройках: микрофон записи подхода голосом (36×36, руки заняты штангой)
+ 2635|    и ссылка «заполни рост и вес» на «Еде» (138×19 — строка текста высотой
+ 2636|    19 px). Расширяем ЗОНУ, а не рисунок: псевдоэлемент не меняет ни раскладку,
+ 2637|    ни вид, и это тот же приём, что у плюса кладовой с давних пор. */
+ 2638| #wVoice{position:relative}
+ 2639| #wVoice::before{content:'';position:absolute;inset:-4px;border-radius:14px}
+ 2640| #tSrcGo{position:relative;display:inline-block}
+ 2641| #tSrcGo::before{content:'';position:absolute;left:-8px;right:-8px;top:-13px;bottom:-13px}
+ 2642| /* Раскрывашка упражнения: 44 в ширину, а в высоту было 28 — её рисунок
+ 2643|    (шеврон 13 px) остаётся, зона дорастает до 44. */
+ 2644| #v-train .wfold{position:relative}
+ 2645| #v-train .wfold::before{content:'';position:absolute;left:0;right:0;top:-8px;bottom:-8px}
+ 2646| /* Кнопки таймера читают уставшими глазами между подходами. Шкала проекта
+ 2647|    не знает 13 px (--fs0 11 · --fs1 12 · --fs2 15), и лишний размер в ней
+ 2648|    заводить нельзя — это правило гейта. Берём следующий по шкале и меряем
+ 2649|    ряд на 320 px: если не влезет, 12 остаётся осознанным решением. */
+ 2650| .rest .row button{font-size:var(--fs2);line-height:var(--lh2)}
+ 2651| </style>
+ 2652| <style>
+ 2653| /* Тёмная тема, поверх базовых токенов. Раньше этот блок был продублирован
+ 2654|    дважды подряд — след прошлых правок, чистим. */
+ 2655| /* Выбранная вкладка — нейтральная плашка, как в системе. Белая плашка,
+ 2656|    стоявшая тут до v496, была вторым по яркости пятном экрана после кнопки
+ 2657|    действия и спорила с названием дня; в сегментированном контроле подсветка
+ 2658|    тише самой дорожки. Правило живёт в одном месте — этот дубль снят. */
+ 2659| /* «Спросить тренера» — главное действие своего экрана, а не сноска.
+ 2660|    Призрачная кнопка с обводкой проигрывала по весу даже кнопке «Поделиться»
+ 2661|    (сверка скриншота 19.08): заливаем акцентом, как остальные первые действия. */
+ 2662| .btn.ai{background:var(--ac-fill);color:var(--on-ac);border:0;box-shadow:none}
+ 2663| /* ── СТРОКА СООБЩЕНИЯ ТРЕНЕРУ (v623) ──
+ 2664|    По образцу нативной строки iOS: поле-пилюля и две круглые кнопки по краям.
+ 2665|    Размеры НЕ уменьшены: и до правки они были 52 px, то есть выше порога 44.
+ 2666|    Круг — это форма, а не новая зона нажатия.
+ 2667|    Свой токен фона: --body-in живёт только внутри #v-body, здесь он развернулся
+ 2668|    бы в пустоту и поле осталось бы без подложки (тот же класс, что --mok в v618). */
+ 2669| #sh-ask{--ask-in:rgba(255,255,255,.06)}
+ 2670| [data-theme="light"] #sh-ask{--ask-in:rgba(0,0,0,.05)}
+ 2671| .askbar{margin-top:12px;gap:8px;align-items:stretch}
+ 2672| .askbar>#askQ{flex:1;min-width:0;border-radius:20px;background:var(--ask-in);padding:10px 16px;min-height:44px}
+ 2673| .askbar>.btn{flex:0 0 52px;width:52px;min-height:52px;padding:0;border-radius:50%;
+ 2674|   display:flex;align-items:center;justify-content:center}
+ 2675| .askbar>.btn:active{transform:scale(.96)}
+ 2676| /* Вспомогательное действие с ИИ не должно спорить по весу с соседями:
+ 2677|    в ряду «Штрихкод · Голосом · Вручную» лаймовая заливка выделяла один из
+ 2678|    трёх равных способов без причины (скриншот кладовой 19.08).
+ 2679|    19.08, второй заход: серо-лаймовый был ТРЕТЬИМ видом кнопки — на «Коуче»
+ 2680|    в одном ряду стояли залитая, серо-лаймовая и контурная, то есть три
+ 2681|    разных приоритета у трёх равных кнопок. Ролей всего две: главное
+ 2682|    действие заливкой, остальные контуром. */
+ 2683| .btn.ai.sm{background:none;color:var(--tx);box-shadow:inset 0 0 0 1.5px var(--line)}
+ 2684| .btn.ai.sm:active{background:var(--c2)}
+ 2685| /* v674: верх листа несёт полоса заголовка, а не отступ контейнера. Липкая полоса
+ 2686|    стоит по краю прокрутки (top:0), и над ней не остаётся щели, куда заезжало
+ 2687|    содержимое (замер 27.09: h3 висел на 13 px ниже края). В standalone полоса и
+ 2688|    ручка листа уважают строку состояния. Правило стоит последним намеренно. */
+ 2689| .sheet .in{padding-top:0}
+ 2690| .sheet .in::before{margin-top:8px}
+ 2691| .sheet h3{margin-top:0;padding-top:12px;padding-bottom:8px}
+ 2692| /* Полноэкранный лист (.kb, в том числе настройки) касается строки состояния: отступ под неё
+ 2693|    несла та же подложка (.sheet.kb>.in{padding-top}), и липкая полоса вставала на 12 px ниже
+ 2694|    края. Переносим отступ в полосу и в ручку — щели нет, строка состояния уважена. */
+ 2695| .sheet.kb>.in{padding-top:0}
+ 2696| .sheet.kb>.in::before{margin-top:calc(8px + env(safe-area-inset-top))}
+ 2697| .sheet.kb>.in>h3{padding-top:calc(12px + env(safe-area-inset-top))}
+ 2698| </style>
+ 2699| </head>
+ 2700| <body>
+ 2701| <div id="splash" style="position:fixed;inset:0;z-index:9999;background:#000000;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:20px;transition:opacity .35s">
+ 2702|   <svg viewBox="0 0 512 512" style="width:96px;height:96px">
+ 2703|     <defs><linearGradient id="spg" x1="0" y1="1" x2="1" y2="0">
+ 2704|       <stop offset="0" stop-color="#9edc1c"/><stop offset="1" stop-color="#d6ff62"/></linearGradient></defs>
+ 2705|     <path d="M92 322 L172 322 L212 216 L262 372 L302 254 L334 296 L420 296"
+ 2706|       stroke="url(#spg)" stroke-width="42" fill="none" stroke-linecap="round" stroke-linejoin="round"
+ 2707|       stroke-dasharray="620" stroke-dashoffset="620">
+ 2708|       <animate attributeName="stroke-dashoffset" from="620" to="0" dur=".9s" fill="freeze" calcMode="spline" keySplines=".3 .7 .3 1"/>
+ 2709|     </path>
+ 2710|   </svg>
+ 2711|   <div style="font:600 22px Oswald,Impact,sans-serif;letter-spacing:.03em;text-transform:uppercase;color:#D8FF00">БЕЗ ВОДЫ</div>
+ 2712| </div>
+ 2713| 
+ 2714| <!-- ══════════ ЗНАКОМСТВО ══════════
+ 2715|      Замер пути новичка 02.09: после ворот человек попадал в «Еду», на
+ 2716|      вкладке «Зал» упирался в текст «собери программу в другой вкладке», и
+ 2717|      десять готовых программ не показывались нигде. Витрина (v500) это
+ 2718|      закрыла, но остался вопрос, который решают все конкуренты и не решали
+ 2719|      мы: ЧЕЙ это план. У воронок из разбора (APPS.md) человек двадцать
+ 2720|      экранов рассказывает о себе и получает «твою программу» — и держит его
+ 2721|      не функция, а то, что он уже вложился.
+ 2722|      У нас всё для этого посчитано: genProgram, калории, подсказка веса.
+ 2723|      Не хватало ритуала. Восемь вопросов по одному на экран, и в конце
+ 2724|      собранная неделя.
+ 2725|      Решение владельца 02.09: квиз ПРОПУСКАЕМЫЙ (незакрывающийся пейволл —
+ 2726|      то, за что конкурентов ругают в отзывах), после него — сразу «Зал». -->
+ 2727| <div id="onb" style="display:none;position:fixed;inset:0;z-index:310;background:var(--bg);overflow-y:auto">
+ 2728|   <div class="onb-in">
+ 2729|     <div class="onb-top">
+ 2730|       <button id="onbBack" aria-label="назад"><svg class="ic chevl"><use href="#i-chev"/></svg></button>
+ 2731|       <div class="onb-bar"><i id="onbBar"></i></div>
+ 2732|       <button id="onbSkip">Пропустить</button>
+ 2733|     </div>
+ 2734|     <div id="onbBody"></div>
+ 2735|     <div class="onb-foot">
+ 2736|       <button class="btn" id="onbNext">Далее</button>
+ 2737|       <button class="btn" id="onbGo" style="display:none">В зал</button>
+ 2738|     </div>
+ 2739|   </div>
+ 2740| </div>
+ 2741| 
+ 2742| <div id="gate" style="display:none;position:fixed;inset:0;z-index:300;background:var(--bg);overflow-y:auto">
+ 2743|   <div style="max-width:460px;margin:0 auto;padding:calc(40px + env(safe-area-inset-top)) 20px calc(40px + env(safe-area-inset-bottom))">
+ 2744|     <div style="text-align:center;margin-bottom:28px">
+ 2745|       <svg width="72" height="72" viewBox="0 0 100 100" style="margin-bottom:14px">
+ 2746|         <rect width="100" height="100" rx="22" fill="#16191f"/>
+ 2747|         <path d="M22 62 L40 42 L54 56 L78 30" stroke="#D8FF00" stroke-width="9" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+ 2748|       </svg>
+ 2749|       <h1 style="font-size:var(--fs4);line-height:var(--lh4);letter-spacing:-1px">БЕЗ ВОДЫ</h1>
+ 2750|       <div class="mini" style="margin-top:8px;line-height:var(--lhb)">
+ 2751|         Тренд веса без водного шума.<br>Советы без воды.
+ 2752|       </div>
+ 2753|     </div>
+ 2754| 
+ 2755|     <div class="card">
+ 2756|       <h2>Как хранить данные</h2>
+ 2757|       <button class="btn" id="gSync">Синхронизировать устройства</button>
+ 2758|       <div class="note keep" style="margin-top:8px">Телефон и компьютер видят одно и то же. Данные шифруются в браузере — сервер хранит нечитаемый блоб и не может их прочесть.</div>
+ 2759|       <button class="btn sec" style="margin-top:14px" id="gLocal">Только на этом устройстве</button>
+ 2760|       <div class="note keep" style="margin-top:8px">Ничего никуда не уходит вообще. Бэкап — вручную, через экспорт JSON.</div>
+ 2761|     </div>
+ 2762| 
+ 2763|     <div class="card">
+ 2764|       <h2>Уже есть данные?</h2>
+ 2765|       <label class="btn sec" style="display:block;text-align:center;cursor:pointer;line-height:var(--lhb)">
+ 2766|         Перенести с другого устройства
+ 2767|         <input type="file" accept="application/json,.json" id="gImp" style="display:none">
+ 2768|       </label>
+ 2769|       <!-- Раньше кнопка называлась «Импортировать JSON» — это имя формата, а не
+ 2770|            имя ситуации. Человек, который ставит приложение на новый телефон и не
+ 2771|            помнит пароль, мимо неё проходит (полевой случай 21.08). -->
+ 2772|       <div class="note keep">На старом устройстве: Настройки → <b>Экспорт JSON</b>, файл сюда. Переносится всё,
+ 2773|       включая прогресс-фото, и <b>пароль для этого не нужен</b>. Это же — запасной путь, если пароль забыт.</div>
+ 2774|     </div>
+ 2775| 
+ 2776|     <!-- «Пропустить и начать с нуля» снят (v500). Замер 02.09: он делал ровно
+ 2777|          то же, что «Только на этом устройстве» — S.gated=1 и закрыть ворота, —
+ 2778|          отличался только текстом тоста. Две кнопки на одно действие удлиняли
+ 2779|          экран до 1107 px при видимых 844, то есть выбор хранения человек
+ 2780|          пролистывал, чтобы добраться до кнопки, которая означает то же самое. -->
+ 2781|     <div class="note keep" style="text-align:center;opacity:.6">
+ 2782|       Приложение честно говорит, чего оно не умеет.<br>
+ 2783|       Разбор техники по видео, автокорзину в магазине и программу по фото — не умеет никто.
+ 2784|     </div>
+ 2785|   </div>
+ 2786| </div>
+ 2787| 
+ 2788| <svg style="display:none" aria-hidden="true">
+ 2789|   <symbol id="i-gear" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3.2"/><path d="M19.4 15a1.7 1.7 0 00.34 1.87l.06.06a2 2 0 11-2.83 2.83l-.06-.06a1.7 1.7 0 00-1.87-.34 1.7 1.7 0 00-1.03 1.56V21a2 2 0 11-4 0v-.09a1.7 1.7 0 00-1.11-1.56 1.7 1.7 0 00-1.87.34l-.06.06a2 2 0 11-2.83-2.83l.06-.06a1.7 1.7 0 00.34-1.87 1.7 1.7 0 00-1.56-1.03H3a2 2 0 110-4h.09A1.7 1.7 0 004.65 8.3a1.7 1.7 0 00-.34-1.87l-.06-.06a2 2 0 112.83-2.83l.06.06a1.7 1.7 0 001.87.34h.08A1.7 1.7 0 0010.12 2.4V2.3a2 2 0 014 0v.09a1.7 1.7 0 001.03 1.56h.08a1.7 1.7 0 001.87-.34l.06-.06a2 2 0 112.83 2.83l-.06.06a1.7 1.7 0 00-.34 1.87v.08a1.7 1.7 0 001.56 1.03H21a2 2 0 110 4h-.09a1.7 1.7 0 00-1.51 1.05z"/></symbol>
+ 2790|   <symbol id="i-drop" viewBox="0 0 24 24"><path d="M12 3s6 6.6 6 11a6 6 0 01-12 0c0-4.4 6-11 6-11z"/></symbol>
+ 2791|   <!-- шаги: идущий человек. Ступни в обводке на 16 px читались как «8g» —
+ 2792|        фигура однозначна и рисуется теми же линиями, что и остальные иконки. -->
+ 2793|   <symbol id="i-walk" viewBox="0 0 24 24"><circle cx="13.5" cy="4.5" r="2"/><path d="M13 8.2l-2 3.4 2 2.4 1 6.5"/><path d="M13 14l-3.5 6.5"/><path d="M11 11.6L7.5 10"/><path d="M12.4 10.6l4 2.2"/></symbol>
+ 2794|   <symbol id="i-scan" viewBox="0 0 24 24"><path d="M4 7v10M8 7v10M12 7v10M15 7v10M19 7v10M17 7v10"/></symbol>
+ 2795|   <symbol id="i-search" viewBox="0 0 24 24"><circle cx="11" cy="11" r="6.5"/><path d="M21 21l-4.8-4.8"/></symbol>
+ 2796|   <symbol id="i-cart" viewBox="0 0 24 24"><circle cx="9" cy="20" r="1.4"/><circle cx="17" cy="20" r="1.4"/><path d="M3 4h2l2.4 11.2a1.6 1.6 0 001.6 1.3h7.6a1.6 1.6 0 001.6-1.3L20 8H6"/></symbol>
+ 2797|   <symbol id="i-mic" viewBox="0 0 24 24"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5 11a7 7 0 0014 0M12 18v3"/></symbol><symbol id="i-cam" viewBox="0 0 24 24"><path d="M4 8h3l2-2.5h6L17 8h3a1.5 1.5 0 011.5 1.5V18a1.5 1.5 0 01-1.5 1.5H4A1.5 1.5 0 012.5 18V9.5A1.5 1.5 0 014 8z"/><circle cx="12" cy="13.5" r="3.4"/></symbol>
+ 2798|   <symbol id="i-dish" viewBox="0 0 24 24"><path d="M4 15a8 8 0 0116 0z"/><path d="M2.5 15h19M12 7v-2"/><circle cx="12" cy="6" r="1"/></symbol>
+ 2799|   <symbol id="i-book" viewBox="0 0 24 24"><path d="M4 5.5A2.5 2.5 0 016.5 3H20v16H6.5A2.5 2.5 0 004 21.5z"/><path d="M4 19a2.5 2.5 0 012.5-2.5H20"/></symbol>
+ 2800|   <symbol id="i-home" viewBox="0 0 24 24"><path d="M4 11l8-7 8 7"/><path d="M6 9.5V20h12V9.5"/><path d="M10 20v-6h4v6"/></symbol>
+ 2801|   <symbol id="i-save" viewBox="0 0 24 24"><path d="M6 3h12l3 3v15H3V3z"/><path d="M8 3v5h7V3M7 21v-8h10v8"/></symbol>
+ 2802|   <symbol id="i-flame" viewBox="0 0 24 24"><path d="M12 2.5s5.5 5 5.5 10.3A5.6 5.6 0 0112 18.5a5.6 5.6 0 01-5.5-5.7c0-2 1-4 2.3-5.6.4 1.5 1.3 2.4 2.4 2.7C11 7.4 11.5 4.7 12 2.5z"/><path d="M12 21.5v-3"/></symbol>
+ 2803|   <symbol id="i-plus" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></symbol><symbol id="i-minus" viewBox="0 0 24 24"><path d="M5 12h14"/></symbol>
+ 2804|   <symbol id="i-close" viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></symbol>
+ 2805|   <symbol id="i-stop" viewBox="0 0 24 24"><rect x="6.5" y="6.5" width="11" height="11" rx="2.5"/></symbol>
+ 2806|   <symbol id="i-arr" viewBox="0 0 24 24"><path d="M4 12h15M13 6l6 6-6 6"/></symbol>
+ 2807|   <symbol id="i-chev" viewBox="0 0 24 24"><path d="M9 5l7 7-7 7"/></symbol><symbol id="i-chat" viewBox="0 0 24 24"><path d="M4 6.5A2.5 2.5 0 0 1 6.5 4h11A2.5 2.5 0 0 1 20 6.5v8a2.5 2.5 0 0 1-2.5 2.5H10l-4.5 3.5V17H6.5A2.5 2.5 0 0 1 4 14.5z"/></symbol><symbol id="i-repeat" viewBox="0 0 24 24"><path d="M4 12a8 8 0 0 1 13.7-5.6L20 8.5M20 4v4.5h-4.5M20 12a8 8 0 0 1-13.7 5.6L4 15.5M4 20v-4.5h4.5"/></symbol>
+ 2808|   <symbol id="i-check" viewBox="0 0 24 24"><path d="M5 12.5l4.5 4.5L19 7"/></symbol>
+ 2809|   <symbol id="i-bolt" viewBox="0 0 24 24"><path d="M13 2L4.5 13.5H11L9.7 22 19 10h-6.8z"/></symbol>
+ 2810|   <symbol id="i-torch" viewBox="0 0 24 24"><path d="M8 2h8l-2 6h-4zM10 8h4v12a2 2 0 01-4 0z"/><circle cx="12" cy="12" r="1"/></symbol>
+ 2811|   <symbol id="i-warn" viewBox="0 0 24 24"><path d="M12 3L2.5 20h19z"/><path d="M12 9.5V14M12 17.2v.3"/></symbol>
+ 2812|   <symbol id="i-shield" viewBox="0 0 24 24"><path d="M12 3l7.5 3v5.5c0 4.6-3.2 8.3-7.5 9.5-4.3-1.2-7.5-4.9-7.5-9.5V6z"/><path d="M12 8.5V13M12 15.8v.3"/></symbol>
+ 2813|   <symbol id="i-globe" viewBox="0 0 24 24"><circle cx="12" cy="12" r="8.5"/><path d="M3.5 12h17M12 3.5c-5.5 5.5-5.5 11.5 0 17 5.5-5.5 5.5-11.5 0-17z"/></symbol>
+ 2814|   <!-- «Уйти в магазин»: девять мест на кухне рисовали это символом  из шрифта. -->
+ 2815|   <symbol id="i-up" viewBox="0 0 24 24"><path d="M7 21V10l5-7 1.2.8a2 2 0 01.8 2.2L13 10h5.5a2 2 0 012 2.4l-1.3 6a2 2 0 01-2 1.6H7z"/></symbol>
+ 2816|   <symbol id="i-down" viewBox="0 0 24 24"><path d="M17 3v11l-5 7-1.2-.8a2 2 0 01-.8-2.2L11 14H5.5a2 2 0 01-2-2.4l1.3-6a2 2 0 012-1.6H17z"/></symbol>
+ 2817|   <symbol id="i-swap" viewBox="0 0 24 24"><path d="M4 8h14"/><path d="M15 5l3 3-3 3"/><path d="M20 16H6"/><path d="M9 13l-3 3 3 3"/></symbol>
+ 2818|   <symbol id="i-ext" viewBox="0 0 24 24"><path d="M14 4h6v6"/><path d="M20 4l-8.5 8.5"/><path d="M18.5 14.5V19a1.5 1.5 0 01-1.5 1.5H5A1.5 1.5 0 013.5 19V7A1.5 1.5 0 015 5.5h4.5"/></symbol>
+ 2819|   <symbol id="i-chart" viewBox="0 0 24 24"><path d="M3 17l6-6 4 4 8-8"/><path d="M21 7v5h-5"/></symbol>
+ 2820| </svg>
+ 2821| <header>
+ 2822|   <svg class="hlogo" viewBox="0 0 512 512" aria-hidden="true">
+ 2823|     <defs><linearGradient id="hlg" x1="0" y1="1" x2="1" y2="0">
+ 2824|       <stop offset="0" stop-color="#9edc1c"/><stop offset="1" stop-color="#d6ff62"/>
+ 2825|     </linearGradient></defs>
+ 2826|     <rect width="512" height="512" rx="128" fill="#10131a"/>
+ 2827|     <path d="M92 322 L172 322 L212 216 L262 372 L302 254 L334 296 L420 296"
+ 2828|       stroke="url(#hlg)" stroke-width="46" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+ 2829|     <circle cx="420" cy="296" r="27" fill="#d6ff62"/>
+ 2830|   </svg>
+ 2831|   <div style="flex:1;min-width:0">
+ 2832|     <!-- v634: кольца в шапке нет — решение автора. Верхний ряд держит одну
+ 2833|          высоту на всех вкладках (min-height 44), чтобы заголовок не прыгал.
+ 2834|          Подзаголовок остаётся строкой (она резервирует высоту), а КНОПКОЙ
+ 2835|          становится только там, где открывает лист дня, — на «Еде». -->
+ 2836|     <div class="hdrow"><h1 id="hT">Еда</h1></div>
+ 2837|     <div class="sub" id="hS"></div>
+ 2838|   </div>
+ 2839|   <span id="syncDot" aria-hidden="true"></span>
+ 2840|   <button id="bSet" aria-label="Настройки"><svg class="ic lg"><use href="#i-gear"/></svg></button>
+ 2841| </header>
+ 2842| 
+ 2843| <main>
+ 2844| 
+ 2845| <!-- ══════════ FOOD ══════════ -->
+ 2846| <section class="view on" id="v-food">
+ 2847|   <div id="frBox"></div>
+ 2848|   <!-- Вес — утреннее действие ровно один раз в день. Пока он за сегодня не
+ 2849|        записан, форма стоит первой и занимает одну строку; записал — она
+ 2850|        исчезает до завтра, потому что больше не нужна. Раньше она лежала в
+ 2851|        свёрнутой раскрывашке в самом низу дневника: место, куда утром никто
+ 2852|        не долистывает (полевое замечание владельца 19.08). -->
+ 2853|   <!-- v660: форма веса — одна строка (было: заголовок, подпись, поле, кнопка —
+ 2854|        127 px утром на первом экране ради одного числа). -->
+ 2855|   <div class="card wtop" id="wTop" style="display:none">
+ 2856|     <div class="row">
+ 2857|       <span class="nm">Вес утром</span>
+ 2858|       <input type="text" step="0.05" inputmode="decimal" id="wIn" placeholder="кг" aria-label="Вес утром, кг">
+ 2859|       <button class="btn sec" style="flex:0 0 52px" id="bWVoice" title="сказать голосом"><svg class="ic"><use href="#i-mic"/></svg></button>
+ 2860|       <button class="btn" style="flex:0 0 auto" id="bW">Записать</button>
+ 2861|     </div>
+ 2862|     <div class="note">Каждый день — алгоритму нужен поток, а не идеальные цифры. Дневной вес шумит на ±1–2 кг из-за воды; тренд на экране «Тело» этот шум сглаживает.</div>
+ 2863|   </div>
+ 2864|   <!-- v630: вместо «‹ Сегодня ›» и значка цепочки в шапке — заголовок дня
+ 2865|        и мини-неделя под ним. День выбирается тапом по дню недели, а не
+ 2866|        перелистыванием по одному; цепочка переехала внутрь колец. -->
+ 2867|   <!-- v633: карточки дня больше нет. Прибор уехал в шапку, выбор дня — в
+ 2868|        лист по тапу на дату, оговорка врача — в хаб тренера. Здесь остаются
+ 2869|        только предупреждения о самом дне, и оба по умолчанию скрыты. -->
+ 2870|   <div class="ib" id="dFuture" style="display:none;margin-bottom:12px">Планируешь наперёд — записывай.
+ 2871|     В расчёт расхода и тренда этот день войдёт, когда наступит.</div>
+ 2872| 
+ 2873|   <!-- ── МАКРОСЫ — СВОЯ КАРТОЧКА ──
+ 2874|        Полевой отчёт владельца 29.08 со снимками «Сводки»: там кольца,
+ 2875|        показатели и подробности лежат РАЗНЫМИ плитами, а у нас всё жило
+ 2876|        одной плитой в тысячу пикселей — кольца, неделя, макросы и подпись
+ 2877|        под ними. Одна плита не даёт глазу точки остановки: человек видит
+ 2878|        не четыре вещи, а одну длинную. -->
+ 2879|   <div class="card" id="macCard">
+ 2880|     <!-- v634: калории — ПЕРВАЯ строка той же таблицы, той же грамматикой
+ 2881|          (имя · съедено/цель · полоса). Кольца в шапке больше нет. #macBars
+ 2882|          остался контейнером всего, что прячется без цели (кухонный стенд). -->
+ 2883|     <!-- v634: без цели вместо стены нулей — одна строка с действием ЗДЕСЬ, на
+ 2884|          первом экране. С v633 #tSrc живёт в листе дня, и подсказка «заполни
+ 2885|          рост и вес» новичку стала невидима: карточка стояла пустой. -->
+ 2886|     <div class="mini" id="macHint" style="display:none"></div>
+ 2887|     <div id="macBars">
+ 2888|     <div class="kc" id="kcalRow"><div class="tp"><span class="nm">Калории</span><span class="vl" id="kV">0/0</span></div>
+ 2889|       <div class="bar"><i id="kB" style="background:var(--tx)"></i></div></div>
+ 2890|     <div class="mcs">
+ 2891|       <div class="mc"><div class="tp"><span class="nm">Белок</span><span class="vl" id="pV" style="color:var(--p)">0/0</span></div>
+ 2892|         <div class="bar"><i id="pB" style="background:var(--p)"></i></div></div>
+ 2893|       <div class="mc"><div class="tp"><span class="nm">Жиры</span><span class="vl" id="fV" style="color:var(--f)">0/0</span></div>
+ 2894|         <div class="bar"><i id="fB" style="background:var(--f)"></i></div></div>
+ 2895|       <div class="mc"><div class="tp"><span class="nm">Углеводы</span><span class="vl" id="cV" style="color:var(--cb)">0/0</span></div>
+ 2896|         <div class="bar"><i id="cB" style="background:var(--cb)"></i></div></div>
+ 2897|     </div>
+ 2898|     </div>
+ 2899|   </div>
+ 2900|   <!-- «С возвращением» стоит СРАЗУ ПОД цифрой дня, а не над ней.
+ 2901|        Решение 31.07 было о том, что внутри свёрнутого «Дневника» карточку никто
+ 2902|        не увидит, — оно в силе: здесь она на первом экране. Но над кольцами она
+ 2903|        вместе с баннером бэкапа уносила за сгиб то, ради чего приложение
+ 2904|        открывают: на iPhone SE кольца оказывались на y=726 при экране 667, то
+ 2905|        есть человек, вернувшийся после пропуска, видел ноль своих чисел.
+ 2906|        Порядок как в Apple Health и Strava: сначала цифра дня, под ней —
+ 2907|        объяснение (23.08). -->
+ 2908|   <!-- v660: СТРОКА «СЕЙЧАС». Десять сценариев дня (SCENARIOS.md): в 7, 13, 19
+ 2909|        и за час до зала экран показывал одно и то же — таблицу, и ни разу не
+ 2910|        говорил, что делать. Одна строка: ближайший приём, его цель, «до зала»,
+ 2911|        тап — «Что съесть» этого приёма. День закрыт — одна спокойная строка. -->
+ 2912|   <div class="lst" id="nowRow" style="display:none;margin-bottom:12px"></div>
+ 2913|   <!-- Расход впервые посчитан по фактам человека: один день, потом уходит сам. -->
+ 2914|   <div id="tdeeWin"></div>
+ 2915|   <!-- Предупреждение о копии и карточка «С возвращением» стоят ПОД цифрой
+ 2916|        дня, а не над ней. Замер: баннер 148 px и карточка 241 px отжимали
+ 2917|        кольца на y=557 при экране 667 — человек открывал приложение и не
+ 2918|        видел ни калорий, ни воды. Тот же принцип, что в «Зале»: сначала
+ 2919|        работа, потом сообщения о ней. -->
+ 2920|   <div id="gapBox"></div>
+ 2921|   <div id="todayPlan"></div>
+ 2922| 
+ 2923|   <!-- ── ДВЕ МЕТРИКИ В РЯД ──
+ 2924|        Полевой отчёт владельца 29.08 со снимками «Сводки»: там показатели
+ 2925|        лежат сеткой по два, каждый своей плитой со своим цветом и своим
+ 2926|        числом. У нас вода и шаги стояли двумя полосами во всю ширину —
+ 2927|        две трети экрана на две цифры, и ни одна не читалась как показатель.
+ 2928|        Запись воды в один тап сохранена: кнопки ужались, но остались. -->
+ 2929|   <div class="g2 mgrid mini2">
+ 2930|   <div class="card wcard" id="waterCard">
+ 2931|     <div class="wcard-main" id="wEdit">
+ 2932|       <div class="wcard-h">
+ 2933|         <span><svg class="ic" style="color:var(--cb)"><use href="#i-drop"/></svg> Жидкость, мл</span><span class="ch2"></span></div>
+ 2934|       <div class="mrow" id="wRow" style="color:var(--cb)">
+ 2935|         <span class="mval" id="wVal" data-v="0"><i>0</i></span><span class="mtgt" id="wGoalL">/ 3000</span></div>
+ 2936|       <div class="bar" style="margin-top:8px"><i id="wBar" style="background:var(--cb)"></i></div>
+ 2937|       <div class="mgoal" id="wLog" style="margin-top:8px;display:none"></div>
+ 2938|     </div>
+ 2939|     <div class="wcard-acts">
+ 2940|       <button class="btn sec wpill" id="wA250" data-rapid>+250</button>
+ 2941|       <button class="btn sec wpill" id="wA500" data-rapid>+500</button>
+ 2942|     </div>
+ 2943|   </div>
+ 2944| 
+ 2945|   <!-- ШАГИ ЖИВУТ РЯДОМ С ВОДОЙ, А НЕ ЗА ВКЛАДКОЙ (23.08, запрос владельца:
+ 2946|        «максимально коротко и понятно, но чтоб не ломалось»).
+ 2947|        Раньше тап по кольцу «Шаги» уводил на «Тело» → раздел «Режим» → к полю
+ 2948|        с датой: три экрана ради четырёх цифр, которые человек вносит каждый
+ 2949|        вечер. Вода — ровно такая же ежедневная цифра — всё это время жила
+ 2950|        карточкой прямо здесь. Теперь и шаги: тап раскрывает поле на месте.
+ 2951|        Ломаться тут нечему по построению: ни настроек, ни разрешений, ни
+ 2952|        внешних сервисов — только поле. -->
+ 2953|   <div class="card wcard" id="stepsCard">
+ 2954|     <div class="wcard-main" id="stEdit">
+ 2955|       <div class="wcard-h">
+ 2956|         <span><svg class="ic" style="color:var(--rg3)"><use href="#i-walk"/></svg> Шаги</span><span class="ch2"></span></div>
+ 2957|       <div class="mrow" id="stRow" style="color:var(--rg3)">
+ 2958|         <span class="mval" id="stVal" data-v="0"><i>0</i></span><span class="mtgt" id="stGoalL">/ 8000</span></div>
+ 2959|       <div class="bar" style="margin-top:8px"><i id="stBar" style="background:var(--rg3)"></i></div>
+ 2960|     </div>
+ 2961|     <!-- Поле и кнопка ДРУГ ПОД ДРУГОМ, а не в строку: в половинной карточке
+ 2962|          на 390 px строка оставляла полю 24 px из 141 (замер 31.08). Объяснение
+ 2963|          про «Здоровье» уехало в «Справку» — на рабочей карточке ему не место. -->
+ 2964|     <!-- v634: одна пилюля там же, где у воды стоят +250/+500. Раньше тап
+ 2965|          «куда-то в карточку» был невидимой возможностью, а место под ней —
+ 2966|          пустым на 60 px (замер 21.09: карточка шагов растягивалась под воду). -->
+ 2967|     <div class="wcard-acts"><button class="btn sec wpill" id="stPill">Ввести</button></div>
+ 2968|     <div id="stInline" style="display:none">
+ 2969|       <input type="number" id="stQuick" inputmode="numeric" enterkeyhint="done"
+ 2970|              autocomplete="off" name="bv_steps" style="margin-top:12px;width:100%">
+ 2971|       <button class="btn" id="bStQuick" style="margin-top:8px;width:100%">Записать</button>
+ 2972|       <!-- v634: нотация «число за сегодня целиком — из «Здоровья»…» снята
+ 2973|            (закон 1: интерфейс не объясняет себя текстом; подсказка в самом
+ 2974|            поле — «вчера 6410» — говорит то же самое без абзаца). -->
+ 2975|     </div>
+ 2976|   </div>
+ 2977|   </div>
+ 2978| 
+ 2979|   <!-- ── ДНЕВНИК ВЫШЕ ПОДСКАЗОК ──
+ 2980|        Решение владельца 27.08. До этого сверху лежали ПОДСКАЗКИ (841 px из
+ 2981|        1844), а то, что человек реально съел, — внизу свёрнутой строкой.
+ 2982|        Приоритет был перевёрнут: свои записи важнее чужих предложений, и так
+ 2983|        же устроены MyFitnessPal и Cronometer — день открыт, подсказки узкой
+ 2984|        лентой под ним. Раскрыт по умолчанию; свернуть человек может сам. -->
+ 2985|   <details class="det" id="diaryDet" open>
+ 2986|     <summary>Дневник<span class="mini" id="dSum" style="margin-left:auto"></span></summary>
+ 2987|     <div style="margin-top:8px">
+ 2988|     <!-- «Набор» не читался (владелец 03.09: «звучит непонятно, я бы понял
+ 2989|          "свой приём"»). Кнопка открывает лист «Сохранить как блюдо», и
+ 2990|          вещь на кнопке названа тем же словом, что и на листе, — «блюдо»,
+ 2991|          одно имя на одну вещь. «Сохранить блюдо» не влезало в полколонки
+ 2992|          на 320 и 390 (замер: две строки), «Своё блюдо» влезает. Ряд
+ 2993|          растянут на всю ширину (его же решение) той же сеткой 1fr 1fr,
+ 2994|          что и ряд «Рецепты · Что съесть» ниже. -->
+ 2995|     <!-- v635: ряда кнопок больше нет (решение автора, 22.09). «+ Вручную» —
+ 2996|          вход для записи, и живёт там же, где остальные входы: строкой внизу
+ 2997|          листа «Записать еду», первой — когда поиск ничего не нашёл. «Своё
+ 2998|          блюдо» — не запись, а сохранение уже съеденного; владелец не
+ 2999|          пользовался им ни разу, с экрана снято, доступно долгим нажатием на
+ 3000|          строку приёма. Дневник начинается записями. -->

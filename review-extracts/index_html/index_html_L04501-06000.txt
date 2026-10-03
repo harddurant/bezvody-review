@@ -1,0 +1,1501 @@
+// ИЗВЛЕЧЕНИЕ ДЛЯ ЧТЕНИЯ: index.html, строки 4501–6000 из 31008. Номера строк совпадают с оригиналом. Код не менялся.
+ 4501|     <div class="lst-f">Только на этом устройстве, уходит только в Anthropic.</div>
+ 4502|     <details class="det"><summary>Как работает ключ</summary>
+ 4503|       <div class="mini" style="margin-top:8px;white-space:normal">Нужен для фото и ИИ-функций. Хранится только на этом устройстве и уходит в API Anthropic: напрямую, а из РФ — транзитом через наш сервер, без хранения. Запросы оплачиваешь ты — распознавание одного фото стоит доли цента. Получить ключ: console.anthropic.com</div>
+ 4504|       <div class="mini" style="margin-top:8px;white-space:normal">Если хостишь эту страницу публично — ключ в браузере <b>можно украсть</b>. Для личного использования с телефона это нормально, для публичного сайта — нет.</div>
+ 4505|     </details>
+ 4506|     </div>
+ 4507|   </details>
+ 4508| 
+ 4509|   <details class="det" id="setSub">
+ 4510|     <summary>Подписка<span class="mini" id="subSt" style="margin-left:auto"></span></summary>
+ 4511|     <div id="subBox" style="margin-top:8px"></div>
+ 4512|   </details>
+ 4513|   </div>
+ 4514|   <div class="setpg" id="grpAbout" hidden data-title="О приложении">
+ 4515|   <details class="det" id="setHelp">
+ 4516|     <summary>Справка — как что считается</summary>
+ 4517|     <div style="margin-top:8px" id="helpBox"></div>
+ 4518|   </details>
+ 4519| 
+ 4520|   <details class="det" id="setCan">
+ 4521|     <summary>Что умеет приложение</summary>
+ 4522|     <div style="margin-top:8px" id="canBox"></div>
+ 4523|   </details>
+ 4524| 
+ 4525|   <details class="det" id="setPriv">
+ 4526|     <summary>Приватность</summary>
+ 4527|     <div style="margin-top:8px">
+ 4528|     <label class="swr" style="margin-bottom:4px"><span class="g"><span class="t">Помогать улучшать приложение</span><span class="s">только факт события, без единой цифры</span></span>
+ 4529|       <input type="checkbox" class="sw" id="s_track"></label>
+ 4530|     <div class="note" style="margin-top:0">
+ 4531|       Если включено, приложение сообщает <b>только факт события</b>: «открыл»,
+ 4532|       «записал еду», «сделал тренировку», «взвесился». Без единой цифры — ни вес,
+ 4533|       ни калории, ни еда, ни фото, ни замеры. Записи привязаны к случайному номеру
+ 4534|       устройства, а не к тебе.<br><br>
+ 4535|       <b>Что добавилось 30.08 и зачем.</b> Приложение делает один человек, и узнавать
+ 4536|       о поломках он может только от тебя — а половину ты просто не замечаешь.
+ 4537|       Поэтому теперь при падении и при явной заминке уходит ещё и <b>путь</b>:
+ 4538|       последние двадцать шагов <b>именами экранов и кнопок</b> — «тело/вес → цикл ·
+ 4539|       отметить → лист подхода → поле кг». Ни одного значения: подпись кнопки в списке
+ 4540|       еды — это название твоего продукта, и её мы не берём никогда.<br>
+ 4541|       Заминкой считаются четыре вещи, и ни одна не требует от тебя слов:
+ 4542|       три тапа в одно место за секунду · нажал, а экран не ответил · открыл лист и
+ 4543|       закрыл за две секунды · начал вводить и бросил поле пустым.<br><br>
+ 4544|       <b>Записи всех нажатий подряд НЕТ и не будет.</b> Тапы происходят на экранах
+ 4545|       с твоим весом и едой; писать их значит писать твою жизнь. Путь живёт в памяти
+ 4546|       вкладки и уходит только вместе с поломкой — а пока всё работает, не уходит никуда.
+ 4547|       Выключишь — не уйдёт ничего, даже путь: падения по-прежнему сообщат только
+ 4548|       техническое.
+ 4549|     </div>
+ 4550|     </div>
+ 4551|   </details>
+ 4552| 
+ 4553|   <details class="det" id="setVows">
+ 4554|     <summary>Чего мы не делаем — принципы</summary>
+ 4555|     <div style="margin-top:8px">
+ 4556|     <div class="tech"><ul>
+ 4557|       <li><b>Реклама внутри приложения.</b>&nbsp;Рекламная сеть — это слежка, а мы построены на том, что твои данные о здоровье не видим даже мы. Одно исключает другое.</li>
+ 4558|       <li><b>Продажа данных.</b>&nbsp;Никаких, в том числе «обезличенных».</li>
+ 4559|       <li><b>Советы по фарме.</b>&nbsp;Журнал приёмов — да. Дозировки, схемы, «что добавить» — нет: это медицинское решение, и его принимают с врачом.</li>
+ 4560|       <li><b>Чудо-обещания.</b>&nbsp;«Минус 10 кг за месяц» и «тело мечты за 8 недель» продают, но врут. Марафонов и сжигателей жира здесь не будет.</li>
+ 4561|       <li><b>Скрытые партнёрки.</b>&nbsp;Если когда-нибудь появится партнёрская ссылка — она будет помечена прямо в карточке, с процентом, который мы получаем. И рекомендация всегда выбирается до и независимо от неё.</li>
+ 4562|       <li><b>Платные обзоры и интеграции.</b>&nbsp;Место в подборках не продаётся.</li>
+ 4563|     </ul></div>
+ 4564|     <div class="hd" style="margin-top:14px"><h2>Журнал отказов</h2></div>
+ 4565|     <div class="note keep" style="margin-top:0" id="vowLog">
+ 4566|       Здесь будут публиковаться предложения о сотрудничестве, от которых мы
+ 4567|       отказались, и причина отказа — с датами. Пока предложений не поступало:
+ 4568|       приложение маленькое. Появятся — увидишь здесь, а не узнаешь случайно.
+ 4569|     </div>
+ 4570|     </div>
+ 4571|   </details>
+ 4572|   <!-- Чтиво переехало из «Коуча» (03.09): статьи — не ежедневное. -->
+ 4573|   <div class="lst-h pro" style="margin-top:14px">Читать — коротко и без воды</div>
+ 4574|   <div class="lst pro" id="readList"></div>
+ 4575| 
+ 4576| 
+ 4577|     <div class="note keep" style="text-align:center;margin-top:14px;opacity:.7">
+ 4578|       Данные не покидают устройство: всё лежит в этом браузере (IndexedDB).
+ 4579|       В облако уходит только зашифрованный бэкап — и только если ты включил синхронизацию.<br><br>
+ 4580|       <a href="./promo/terms.html" target="_blank" style="color:var(--t3)">Условия</a> ·
+ 4581|       <a href="./promo/privacy.html" target="_blank" style="color:var(--t3)">Политика данных</a> ·
+ 4582|       <a href="./promo/about.html" target="_blank" style="color:var(--t3)">О приложении</a>
+ 4583|     </div>
+ 4584|   </div>
+ 4585| 
+ 4586|   <!-- «Тут что-то не так» — то, о чём просил владелец: канал из приложения,
+ 4587|        которым он реально пользуется, а не из превью. Экран нажатия здесь
+ 4588|        всегда «настройки», и это неважно: путь в крошках показывает, где он
+ 4589|        был до того, как пришёл жаловаться. -->
+ 4590|   <div class="lst" style="margin-bottom:var(--s4)">
+ 4591|     <button class="lrow" id="bGripe"><span class="g"><span class="t">Сообщить о проблеме или идее</span></span>
+ 4592|       <span class="ch"></span></button>
+ 4593|   </div>
+ 4594| 
+ 4595|   <button class="btn" id="bSOk" style="margin-top:4px">Сохранить</button>
+ 4596| </div></div>
+ 4597| 
+ 4598| <div class="toast" id="toast"></div>
+ 4599| 
+ 4600| <script>
+ 4601| /* Ранний страж (отдельный блок — переживает даже синтаксический крах главного
+ 4602|    скрипта): упали до первого рендера — вместо белого экрана текст ошибки
+ 4603|    с местом краша + краш-репорт в client_errors. Главный скрипт после
+ 4604|    успешного старта ставит __bvBoot=true и убирает оверлей. */
+ 4605| window.__bvBoot=false;
+ 4606| window.addEventListener('error',function(e){
+ 4607|   if(window.__bvBoot) return;
+ 4608|   var msg=String((e&&e.message)||'ошибка');
+ 4609|   var where=String((e&&e.filename)||'')+':'+((e&&e.lineno)||0)+':'+((e&&e.colno)||0);
+ 4610|   try{
+ 4611|     if(!window.__bvBeacon){ window.__bvBeacon=1;
+ 4612|       fetch('/sb/rest/v1/client_errors',{method:'POST',keepalive:true,headers:{
+ 4613|         'apikey':'sb_publishable_REDACTED','content-type':'application/json'},
+ 4614|         body:JSON.stringify({kind:'boot',msg:msg.slice(0,500),stack:where.slice(0,300),
+ 4615|           ua:(navigator.userAgent||'').slice(0,300),url:(location.href||'').slice(0,300)})}).catch(function(){});
+ 4616|     }
+ 4617|     var t=function(s){return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')};
+ 4618|     var d=document.getElementById('bvBootErr');
+ 4619|     if(!d){ d=document.createElement('div'); d.id='bvBootErr';
+ 4620|       /* v620: у экрана падения безопасные зоны важнее, чем где-либо: это
+ 4621|          единственный экран, где человеку надо ПРОЧИТАТЬ, что случилось, и он
+ 4622|          точно на телефоне. До этого текст начинался на 43 px от верха — под
+ 4623|          Dynamic Island (замер 19.09). */
+ 4624|       d.style.cssText='position:fixed;inset:0;z-index:99999;background:#000000;color:#f4f6fa;font:15px/1.6 system-ui,sans-serif;padding:calc(40px + env(safe-area-inset-top)) calc(22px + env(safe-area-inset-right)) calc(40px + env(safe-area-inset-bottom)) calc(22px + env(safe-area-inset-left));overflow:auto;-webkit-font-smoothing:antialiased';
+ 4625|       (document.body||document.documentElement).appendChild(d); }
+ 4626|     d.innerHTML='<b>Приложение не запустилось</b><br><br>'+t(msg)+
+ 4627|       '<br><span style="color:#8E8E93">'+t(where)+'</span>'+
+ 4628|       '<br><br>Скриншот этого экрана — на hello@bezvodyfit.ru, починим.';
+ 4629|   }catch(_){}
+ 4630| });
+ 4631| </script>
+ 4632| <script>
+ 4633| 'use strict';
+ 4634| /* ══════════════ DB ══════════════ */
+ 4635| const DBN='fittrk2';
+ 4636| /* Синхронизируемые сторы. Каждая запись получает uid (UUID) и ua (метка времени).
+ 4637|    Автоинкрементные ID нельзя: на двух устройствах они гарантированно столкнутся. */
+ 4638| const SYNC=['foods','log','weight','meas','sets','sess','ready','steps','labs','subs','adh','sleep','combos'];
+ 4639| /* photos сознательно НЕ синхронизируются: одно фото ~100 КБ в base64, двадцать фото = 2 МБ,
+ 4640|    и весь блоб уезжал бы на сервер при КАЖДОЙ правке (шифруется снимок целиком).
+ 4641|    Записал яблоко — отправил 2 мегабайта. Фото остаются локальными;
+ 4642|    перенести их между устройствами можно через Экспорт/Импорт JSON. */
+ 4643| const STORES=['settings',...SYNC,'photos','tomb'];
+ 4644| /* Сторы, где ключ — дата (одна запись на день) */
+ 4645| const BYDATE=new Set(['weight','meas','ready','steps','labs','adh','sleep']);
+ 4646| let db=null;
+ 4647| function opendb(){return new Promise((res,rej)=>{
+ 4648|   const r=indexedDB.open(DBN,5);
+ 4649|   r.onupgradeneeded=e=>{const d=e.target.result;
+ 4650|     if(!d.objectStoreNames.contains('settings')) d.createObjectStore('settings');
+ 4651|     ['foods','log','photos','sets','sess','subs','combos'].forEach(s=>{
+ 4652|       if(!d.objectStoreNames.contains(s)) d.createObjectStore(s,{keyPath:'id',autoIncrement:true})});
+ 4653|     ['weight','meas','ready','steps','labs','adh','sleep'].forEach(s=>{
+ 4654|       if(!d.objectStoreNames.contains(s)) d.createObjectStore(s,{keyPath:'d'})});
+ 4655|     // надгробия: без них запись, удалённая на телефоне, воскреснет с компьютера
+ 4656|     if(!d.objectStoreNames.contains('tomb')) d.createObjectStore('tomb',{keyPath:'uid'});
+ 4657|   };
+ 4658|   r.onsuccess=e=>{db=e.target.result;res()};r.onerror=e=>rej(e);
+ 4659| })}
+ 4660| const os=(s,m='readonly')=>db.transaction(s,m).objectStore(s);
+ 4661| const rq=r=>new Promise((res,rej)=>{r.onsuccess=()=>res(r.result);r.onerror=()=>rej(r.error)});
+ 4662| /* ── БАЗА ПЕРЕОТКРЫВАЕТСЯ САМА ──
+ 4663|    Настоящая запись с телефона владельца 28.08, v461, вид «boot»:
+ 4664|    «Attempt to get records from database without an in-progress transaction».
+ 4665|    Это Safari: соединение с базой он закрывает сам — когда вкладка долго
+ 4666|    висела в фоне, когда страница вернулась из bfcache, когда система решила
+ 4667|    освободить память. Наш код при этом падает НА ЗАГРУЗКЕ, то есть человек
+ 4668|    открывает приложение и не видит своих данных вовсе. Хуже случая нет.
+ 4669|    Чинится не в месте, а классом: любая работа с базой один раз
+ 4670|    переоткрывает соединение и повторяет попытку. Если и это не вышло —
+ 4671|    ошибка идёт наверх честно, как раньше. */
+ 4672| async function dbTry(fn){
+ 4673|   try{ return await fn(); }
+ 4674|   catch(e){
+ 4675|     const m=String((e&&e.message)||e||'');
+ 4676|     if(!/transaction|closing|closed|InvalidState|not allowed|database connection/i.test(m)) throw e;
+ 4677|     /* Переоткрытие — попытка, а не обещание. Если и оно не вышло (в браузере
+ 4678|        без IndexedDB, в приватном режиме, при отказе диска), наверх идёт
+ 4679|        ИСХОДНАЯ ошибка: подменять её на «не смог открыть базу» значит прятать
+ 4680|        настоящую причину от того, кто будет это чинить. */
+ 4681|     try{
+ 4682|       try{ if(db&&db.close) db.close(); }catch(_){}
+ 4683|       db=null;
+ 4684|       await opendb();
+ 4685|     }catch(_){ throw e; }
+ 4686|     return await fn();
+ 4687|   }
+ 4688| }
+ 4689| const all=s=>dbTry(()=>rq(os(s).getAll()));
+ 4690| const rawput=(s,v,k)=>dbTry(()=>rq(os(s,'readwrite').put(v,k)));
+ 4691| const gt=(s,k)=>dbTry(()=>rq(os(s).get(k))), clr=s=>dbTry(()=>rq(os(s,'readwrite').clear()));
+ 4692| /* Тихая запись «по возможности»: аналитика и служебные метки пишутся без
+ 4693|    ожидания, и их отказ не должен выглядеть падением приложения. До 30.08
+ 4694|    такие вызовы бросали синхронно и гасли в чужом try/catch; когда работа с
+ 4695|    базой стала асинхронной (переоткрытие соединения), тот же отказ полетел
+ 4696|    бы в краш-лог как необработанный промис — то есть шумом, за которым не
+ 4697|    видно настоящих поломок. Кому результат важен, тот пишет await rawput. */
+ 4698| const bgput=(s,v,k)=>{ try{ const p=rawput(s,v,k); if(p&&p.catch) p.catch(()=>{}); }catch(e){} };
+ 4699| const uuid=()=>(crypto.randomUUID?crypto.randomUUID():
+ 4700|   'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g,c=>{
+ 4701|     const r=Math.random()*16|0;return (c==='x'?r:(r&3|8)).toString(16)}));
+ 4702| 
+ 4703| /* Каждая запись при сохранении получает uid и метку времени — это фундамент слияния */
+ 4704| /* Счётчик записей. Нужен там, где важно ЗНАТЬ, изменилось ли что-нибудь на
+ 4705|    самом деле: инструменты тренера возвращают человеческий текст, по которому
+ 4706|    нельзя отличить «записал подход» от «не нашёл упражнение», а put() —
+ 4707|    единственная воронка записи, и один счётчик здесь заменяет десять пометок
+ 4708|    по местам (24.08). */
+ 4709| let PUTN=0;
+ 4710| async function put(s,v,k){
+ 4711|   PUTN++;
+ 4712|   if(SYNC.includes(s)&&v&&typeof v==='object'){
+ 4713|     if(!v.uid) v.uid=uuid();
+ 4714|     v.ua=Date.now();
+ 4715|   }
+ 4716|   if(s==='settings'&&v&&typeof v==='object') v.ua=Date.now();
+ 4717|   const r=await rawput(s,v,k);
+ 4718|   try{ if(s==='settings'&&v===S) pushDowsSync(); }catch(e){}
+ 4719|   if(SYNC.includes(s)) schedSync();
+ 4720|   try{ const te=trkStoreEv(s); if(te) trkDaily(te); }catch(e){}
+ 4721|   // Протеин, записанный в Еду, сам ставит отметку в Добавках (решение владельца
+ 4722|   // 03.08: дневник — источник правды с КБЖУ, журнал приёма получает галочку сам).
+ 4723|   // Одна отметка в день; мост Добавки→Еда не зациклится — его отметка уже стоит.
+ 4724|   try{ if(s==='log'&&v&&v.d===td()&&isProtFood(v.n)) await protSubMark(); }catch(e){}
+ 4725|   return r;
+ 4726| }
+ 4727| /* «Протеин» как добавка — порошок/коктейль, а не снек: батончик или печенье
+ 4728|    со словом «протеин» в названии — обычная еда, приём добавки не означает
+ 4729|    (поле 05.08: батончик сам отметил протеин, который владелец не пил) */
+ 4730| function isProtFood(n){
+ 4731|   n=String(n||'');
+ 4732|   return /протеин|казеин|whey|изолят/i.test(n)
+ 4733|     && !/батончик|печен|вафл|чипс|паст|пудинг|десерт|морожен|хлебц|снек|конфет|кекс|маффин|cookie|snack/i.test(n);
+ 4734| }
+ 4735| async function protSubMark(_w){
+ 4736|   if(SUBS.some(x=>x.d===td()&&/протеин|казеин|whey|изолят/i.test(x.n||''))) return false;
+ 4737|   const row={d:td(),t:nowHM(),rel:null,c:'sup',n:'Протеин (из дневника)',v:null,u:'г',act:'',note:''};
+ 4738|   if(_w){ await _w('subs',row); return true; }
+ 4739|   await put('subs',row);
+ 4740|   SUBS=await all('subs');
+ 4741|   try{ if(typeof rHealth==='function') rHealth(); }catch(e){}
+ 4742|   try{ toast('Протеин отмечен в Добавках сам'); }catch(e){}
+ 4743|   return true;
+ 4744| }
+ 4745| /* Удаление оставляет надгробие, иначе запись воскреснет при синхронизации */
+ 4746| async function del(s,k,silent){
+ 4747|   if(SYNC.includes(s)&&!silent){
+ 4748|     const rec=await gt(s,k);
+ 4749|     if(rec&&rec.uid) await rawput('tomb',{uid:rec.uid,s,ua:Date.now()});
+ 4750|   }
+ 4751|   const r=await rq(os(s,'readwrite').delete(k));
+ 4752|   if(SYNC.includes(s)&&!silent) schedSync();
+ 4753|   return r;
+ 4754| }
+ 4755| 
+ 4756| /* ══════════════ STATE ══════════════ */
+ 4757| let S={h:180,age:30,sex:'m',rate:-0.5,pkg:2,fkg:0.9,tdee:null,lastCalc:null,target:null,seeded:false,
+ 4758|        key:'',prog:null,gym:'',shop:0,gated:0,sbEmail:'',sbRefresh:'',sbAt:0,lev:null,plan:null,block:null,keyScheme:'',kcalManual:null};
+ 4759| let FOODS=[],LOG=[],W=[],M=[],PH=[],SETS=[],SESS=[],RDY=[],STEPS=[],LABS=[],SUBS=[],ADH=[],SLP=[],CMB=[];
+ 4760| let cmpSel=[], cmpGrid=false;
+ 4761| const KPK=7700;
+ 4762| 
+ 4763| /* ЛОКАЛЬНАЯ дата, а не UTC. Иначе в Москве (+3) всё, записанное с полуночи до 3 утра,
+ 4764|    падало бы во вчерашний день — и ломало тренд веса и привязку тренировок. */
+ 4765| const td=()=>{const d=new Date();
+ 4766|   return new Date(d.getTime()-d.getTimezoneOffset()*6e4).toISOString().slice(0,10)};
+ 4767| const dn=s=>Math.round(new Date(s+'T00:00:00Z').getTime()/864e5);
+ 4768| const dstr=n=>new Date(n*864e5).toISOString().slice(0,10);
+ 4769| const ds=n=>new Date(n*864e5).toISOString().slice(0,10);
+ 4770| /* Битая или отсутствующая дата не имеет права ронять экран: одна кривая
+ 4771|    строка из старого экспорта или чужого синка отрезала человека от ВСЕЙ
+ 4772|    истории (найдено проверкой на грязных данных 18.08). */
+ 4773| const fd=s=>{const p=String(s||'').split('-');return (p.length===3&&p[2]&&p[1])?(p[2]+'.'+p[1]):'—'};
+ 4774| const r0=n=>Math.round(n), r1=n=>Math.round(n*10)/10, r2=n=>Math.round(n*100)/100;
+ 4775| /* Одна строка КБЖУ на всё приложение: калории вольтом, белок малиновым, жиры
+ 4776|    оранжевым, углеводы синим. d=1 — десятые у макросов; макрос можно не
+ 4777|    передавать (null просто не печатается). Двенадцать мест писали её руками,
+ 4778|    и цвет величины зависел от того, кто писал экран. */
+ 4779| const nvS=(k,p,f,c,d)=>{const n=d?r1:r0;
+ 4780|   return '<span class="nv nv-k">'+r0(k)+'</span> ккал'
+ 4781|     +(p==null?'':' · Б <span class="nv nv-p">'+n(p)+'</span>')
+ 4782|     +(f==null?'':' · Ж <span class="nv nv-f">'+n(f)+'</span>')
+ 4783|     +(c==null?'':' · У <span class="nv nv-c">'+n(c)+'</span>')};
+ 4784| /* Цвета графиков берём из токенов темы, а не хардкодом: до v282 линии на
+ 4785|    канвасе оставались зелёными от старого акцента, пока интерфейс уже был
+ 4786|    лаймовым, — на скриншотах это читалось как «два разных приложения». */
+ 4787| const cvar=(n,d)=>{try{const v=getComputedStyle(document.documentElement).getPropertyValue(n).trim();return v||d}catch(e){return d}};
+ 4788| const C_AC=()=>cvar('--ac','#D8FF00'), C_WN=()=>cvar('--wn','#ffb44d'), C_BD=()=>cvar('--bd','#ff6b6b'), C_WT=()=>cvar('--wt','#30D158');
+ 4789| const esc=s=>String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+ 4790| const $=i=>document.getElementById(i);
+ 4791| /* ── ЛЕНИВЫЙ РЕНДЕР ВКЛАДОК (v604, AUDIT_POINT_A §4.1/§5.3) ──
+ 4792|    rFood/rTrain/rBody/rHealth/rCoach — обёртки над настоящими рендерами
+ 4793|    (rFood_ …): видимую вкладку рисуют сразу, скрытую только помечают в
+ 4794|    TAB_DIRTY; goView дорисовывает помеченную при входе и сбрасывает метку.
+ 4795|    Так «rFood();rBody();rCoach();» после записи веса стоит одного рендера,
+ 4796|    а не трёх. renderAll — полная перерисовка (старт, смена дня, синк, импорт),
+ 4797|    она снимает все метки. VS/curV — память прокрутки и текущая вкладка (v593). */
+ 4798| const VS={}; let curV=null;
+ 4799| const TAB_DIRTY={food:true,train:true,body:true,health:true,coach:true};
+ 4800| const _RTAB={food:()=>rFood_(),train:()=>rTrain_(),body:()=>rBody_(),health:()=>rHealth_(),coach:()=>rCoach_()};   // поздняя привязка: стенд гейта подменяет рендер по имени
+ 4801| function rTab(v){
+ 4802|   if((curV||'food')===v||globalThis.__renderEager){ TAB_DIRTY[v]=false; return _RTAB[v](); }
+ 4803|   TAB_DIRTY[v]=true;                                                   // скрытая: дорисуем при входе
+ 4804| }
+ 4805| function rFood(){ return rTab('food'); }
+ 4806| function rTrain(){ return rTab('train'); }
+ 4807| function rBody(){ return rTab('body'); }
+ 4808| function rHealth(){ return rTab('health'); }
+ 4809| function rCoach(){ return rTab('coach'); }
+ 4810| /* ── ДЕБАУНС (v602): один вызов после паузы в ms; последний аргумент побеждает ── */
+ 4811| function debounce(fn,ms){ let t=null; return function(){ const a=arguments, self=this; clearTimeout(t); t=setTimeout(()=>{ t=null; fn.apply(self,a); },ms); }; }
+ 4812| /* ── ТОСТ С ВИДОМ (v602, micro-interactions.md §4/§5, ios-accessibility.md §3) ──
+ 4813|    toast(text) — как раньше; toast(text,{kind:'ok'|'error'|'info', field:el}).
+ 4814|    Ошибка — assertive для читалки и красная подсветка поля на 1.6 с. */
+ 4815| function toast(t,o){
+ 4816|   const e=$('toast'); if(!e) return;
+ 4817|   const kind=(o&&o.kind)||'';
+ 4818|   e.textContent=t;
+ 4819|   try{ e.classList.remove('ok','error','info'); if(kind) e.classList.add(kind);
+ 4820|     e.setAttribute('aria-live',kind==='error'?'assertive':'polite'); e.setAttribute('role',kind==='error'?'alert':'status'); }catch(_){}
+ 4821|   e.classList.add('on');clearTimeout(e._t);e._t=setTimeout(()=>e.classList.remove('on'),Math.min(6500,Math.max(2000,t.length*38)));
+ 4822|   if(o&&o.field) fieldErr(o.field,o.reason);
+ 4823| }
+ 4824| /* fieldErr(el,text) (v607): красная рамка + встряска + фокус + строка причины
+ 4825|    под контейнером поля (.field) или под самим полем. Одна строка на поле,
+ 4826|    переиспользуется; уходит вместе с рамкой (с текстом — через 2.8 с, без — 1.6). */
+ 4827| function fieldErr(el,text){
+ 4828|   try{ const f=(typeof el==='string')?$(el):el; if(!f||!f.classList) return;
+ 4829|     f.classList.remove('field-error'); try{ void f.offsetWidth; }catch(_){}   // повторная ошибка снова трясёт
+ 4830|     f.classList.add('field-error'); try{ f.setAttribute('aria-invalid','true'); }catch(_){}
+ 4831|     try{ f.focus(); }catch(_){}
+ 4832|     const msg=fieldMsg(f,text||'');
+ 4833|     clearTimeout(f._errT); f._errT=setTimeout(()=>{ f.classList.remove('field-error'); try{ f.setAttribute('aria-invalid','false'); }catch(_){} if(msg&&msg.classList) msg.classList.remove('on'); },text?2800:1600);
+ 4834|   }catch(_){}
+ 4835| }
+ 4836| function fieldMsg(f,text){
+ 4837|   try{
+ 4838|     const anchor=(f.closest&&f.closest('.field'))||f;
+ 4839|     let m=anchor.nextElementSibling; if(!(m&&m.classList&&m.classList.contains('field-msg'))) m=null;
+ 4840|     if(!text){ if(m) m.classList.remove('on'); return m; }
+ 4841|     if(!m){ m=document.createElement('div'); m.className='field-msg'; m.setAttribute('role','alert'); anchor.insertAdjacentElement('afterend',m); }
+ 4842|     m.textContent=text; m.classList.add('on'); return m;
+ 4843|   }catch(_){ return null; }
+ 4844| }
+ 4845| /* Единая проверка подхода (v607): вес и повторы из двух полей — пусто, запятая,
+ 4846|    границы 500 кг / 100 повторов. Вернёт {w,r} или null, подсветив виновное поле. */
+ 4847| function setInput(wEl,rEl){
+ 4848|   if(!wEl||!rEl) return null;
+ 4849|   const w=num(wEl), r=Math.floor(num(rEl));
+ 4850|   if(numTxt(wEl)===''||!(w>=0)){ fieldErr(wEl,'Введи вес — для своего веса 0'); return null; }
+ 4851|   if(w>500){ fieldErr(wEl,'Вес до 500 кг'); return null; }
+ 4852|   if(!(r>0)){ fieldErr(rEl,'Введи повторы'); return null; }
+ 4853|   if(r>100){ fieldErr(rEl,'Повторов до 100'); return null; }
+ 4854|   return {w,r};
+ 4855| }
+ 4856| /* ── ask(): свой диалог вместо confirm() (v602, AUDIT_POINT_A §3.2 ярус A) ──
+ 4857|    Лист sh-dlg в стеке NAV: закрывается кнопками, крестиком, фоном, свайпом и
+ 4858|    «назад» — любое закрытие без «OK» = false. Один диалог за раз. */
+ 4859| let _dlgRes=null;
+ 4860| function ask(o){
+ 4861|   o=o||{};
+ 4862|   return new Promise(res=>{
+ 4863|     if(_dlgRes){ const r=_dlgRes; _dlgRes=null; r(false); }
+ 4864|     _dlgRes=res;
+ 4865|     const t=$('dlgT'), x=$('dlgX'), ok=$('dlgOk'), no=$('dlgNo');
+ 4866|     if(t) t.textContent=o.title||'';
+ 4867|     if(x){ x.textContent=o.text||''; x.style.display=o.text?'':'none'; }
+ 4868|     if(ok){ ok.textContent=o.ok||'OK'; ok.classList.toggle('danger',!!o.danger); }
+ 4869|     if(no) no.textContent=o.cancel||'Отмена';
+ 4870|     sheet('sh-dlg',true);
+ 4871|   });
+ 4872| }
+ 4873| function _dlgDone(v){ const r=_dlgRes; _dlgRes=null; try{ sheet('sh-dlg',false); }catch(_){} if(r) r(v); }
+ 4874| $('dlgOk')&&($('dlgOk').onclick=()=>_dlgDone(true));
+ 4875| $('dlgNo')&&($('dlgNo').onclick=()=>_dlgDone(false));
+ 4876| /* ── askText(): свой лист вместо prompt() (v603, AUDIT_POINT_A §5.4 шаг 4) ──
+ 4877|    askText({title,label,value,type:'text'|'number'|'password',placeholder,
+ 4878|    max,required,autocomplete,ok,danger}) → Promise<string|null>. Любое закрытие
+ 4879|    мимо кнопки сохранения — null. Пароль: type=password, без автозамены и
+ 4880|    подсказок; значение стирается из поля сразу после ответа. */
+ 4881| let _prRes=null;
+ 4882| function askText(o){
+ 4883|   o=o||{};
+ 4884|   return new Promise(res=>{
+ 4885|     if(_prRes){ const r=_prRes; _prRes=null; r(null); }
+ 4886|     _prRes=res;
+ 4887|     const t=$('prT'), l=$('prL'), i=$('prIn'), ok=$('prOk');
+ 4888|     if(t) t.textContent=o.title||'';
+ 4889|     if(l){ l.textContent=o.label||''; l.style.display=o.label?'':'none'; }
+ 4890|     if(i){ const pw=o.type==='password', num=o.type==='number';
+ 4891|       i.type=pw?'password':(o.type==='date'?'date':'text');   // v665: дата — системным колесом, а не строкой
+ 4892|       try{ i.setAttribute('inputmode',num?'decimal':'text');
+ 4893|         i.setAttribute('autocomplete',pw?(o.autocomplete||'off'):'off');
+ 4894|         i.setAttribute('autocorrect','off'); i.setAttribute('spellcheck','false');
+ 4895|         i.setAttribute('autocapitalize',(pw||num)?'none':'sentences');
+ 4896|         i.setAttribute('enterkeyhint','done'); }catch(_){}
+ 4897|       i.placeholder=o.placeholder||''; i.maxLength=o.max||200; i._req=!!o.required;
+ 4898|       i.value=(o.value==null)?'':String(o.value); }
+ 4899|     if(ok){ ok.textContent=o.ok||'Сохранить'; ok.classList.toggle('danger',!!o.danger); }
+ 4900|     sheet('sh-prompt',true);
+ 4901|     setTimeout(()=>{ try{ i.focus(); if(i.value) i.select(); }catch(_){} },260);
+ 4902|   });
+ 4903| }
+ 4904| function _prDone(save){
+ 4905|   const i=$('prIn'); let v=null;
+ 4906|   if(save){ v=i?i.value:''; if(i&&i._req&&!String(v).trim()){ fieldErr(i); return; } }
+ 4907|   const r=_prRes; _prRes=null;
+ 4908|   if(i) i.value='';                                                   // пароль в DOM не задерживается
+ 4909|   try{ sheet('sh-prompt',false); }catch(_){}
+ 4910|   if(r) r(v);
+ 4911| }
+ 4912| $('prOk')&&($('prOk').onclick=()=>_prDone(true));
+ 4913| $('prNo')&&($('prNo').onclick=()=>_prDone(false));
+ 4914| $('prIn')&&($('prIn').onkeydown=e=>{ if(e&&e.key==='Enter'){ try{ e.preventDefault(); }catch(_){} _prDone(true); } });
+ 4915| let _shT={};
+ 4916| /* Помещается ли лист над клавиатурой. Меряем ДО того, как клавиатура
+ 4917|    появилась: её высоты заранее не знает никто, поэтому берём проверенную
+ 4918|    долю — русская клавиатура с панелью подстановки занимает около 45 %
+ 4919|    экрана телефона. Если в листе вообще нечего печатать, клавиатуры не будет
+ 4920|    и делить экран не с кем — тогда порог обычный.
+ 4921|    Класс снимаем ПЕРЕД замером: с ним высота листа равна экрану, и ответ
+ 4922|    «помещается ли содержимое» стал бы бессмысленным — ровно та ловушка,
+ 4923|    на которой сгорела подгонка ряда вкладок. */
+ 4924| function sheetFit(el){
+ 4925|   try{
+ 4926|     if(!el||!el.classList||!el.classList.contains('on')) return;
+ 4927|     const inn=el.querySelector('.in'); if(!inn) return;
+ 4928|     if(el.id==='sh-find') return;                 // у него свой, более старый механизм
+ 4929|     const vv=window.visualViewport;
+ 4930|     const vh=Math.round((vv&&vv.height)||window.innerHeight||0);
+ 4931|     if(!(vh>200)) return;
+ 4932|     el.classList.remove('kb');
+ 4933|     const need=inn.scrollHeight;
+ 4934|     const типы='input:not([type=checkbox]):not([type=radio]):not([type=file]),textarea';
+ 4935|     /* Настройки — экран, а не шторка (решение владельца 03.09: «поверх
+ 4936|        основного окна неудобно»): всегда во всю высоту, от верхнего края. */
+ 4937|     if(el.id==='sh-s'){ el.classList.add('kb'); return; }
+ 4938|     /* Только ВИДИМЫЕ поля: с v509 разделы настроек лежат на скрытых страницах,
+ 4939|        и скрытый input считался бы «есть куда печатать» на пустом списке. */
+ 4940|     const печатают=[...inn.querySelectorAll(типы)].some(f=>f.getClientRects().length>0);
+ 4941|     /* Клавиатура уже на экране — тогда не гадаем, а меряем по факту. */
+ 4942|     const открыта=!!(vv&&window.innerHeight-vh>120);
+ 4943|     /* Сколько экрана останется, когда клавиатура выедет. Если она уже на
+ 4944|        экране — знаем точно; если нет — берём проверенную долю: русская
+ 4945|        клавиатура с панелью подстановки съедает около 45 %. */
+ 4946|     const останется=открыта?vh:Math.round(vh*0.55);
+ 4947|     /* Клавиатура УЖЕ на экране и в листе есть куда печатать — спорить не о чем:
+ 4948|        шторка снизу при открытой клавиатуре крепится к нижнему краю бумажного
+ 4949|        окна, то есть ЗА клавиатуру, и человек видит её верхний обрезок или не
+ 4950|        видит вовсе (полевой скриншот 31.08, ввод бренда). Верхний якорь. */
+ 4951|     let надо=(открыта&&печатают)||need>(печатают?останется:vh-8);
+ 4952|     /* Высоты листа мало. Сплошная проверка 30.08 по всем тридцати листам:
+ 4953|        «Штрихкод», «Подход», «Тренировка на выезде», «Стартовый пакет»,
+ 4954|        «База продуктов» и «Тренер» помещались по высоте — а первое поле
+ 4955|        ввода всё равно оказывалось на середине или ниже, потому что шторка
+ 4956|        крепится снизу и поле уезжает вместе с ней. Считаем ПОЛОЖЕНИЕ поля:
+ 4957|        где оно окажется, когда клавиатура выедет. Верхняя треть — предел;
+ 4958|        ниже человек не видит ни следующих полей, ни кнопки. */
+ 4959|     if(!надо&&печатают){
+ 4960|       const поле=inn.querySelector(типы);
+ 4961|       if(поле){
+ 4962|         const верхШторки=Math.max(0,останется-Math.min(need,останется));
+ 4963|         const отступ=поле.getBoundingClientRect().top-inn.getBoundingClientRect().top;
+ 4964|         if(верхШторки+отступ>останется*0.34) надо=true;
+ 4965|       }
+ 4966|     }
+ 4967|     if(надо) el.classList.add('kb');
+ 4968|   }catch(e){}
+ 4969| }
+ 4970| function sheetsFit(){ document.querySelectorAll('.sheet.on').forEach(sheetFit); }
+ 4971| /* ── ПОЧЕМУ SAFARI ПРЕДЛАГАЛ ПАРОЛЬ В ПОИСКЕ ЕДЫ ──
+ 4972|    Полевой скриншот владельца 31.08: открывает поиск продукта — и над
+ 4973|    клавиатурой «пароль для этого сайта · [email владельца удалён в публичной копии]».
+ 4974|    `autocomplete="off"` (поставлен в v481) Safari для этой панели ИГНОРИРУЕТ,
+ 4975|    и это не наша ошибка, а его поведение. Настоящая причина в другом:
+ 4976|    **на странице всегда висели два поля type="password"** — пароль синхронизации
+ 4977|    и ключ ИИ, оба в закрытых листах. Для Safari страница с полем пароля — это
+ 4978|    страница входа, и он предлагает сохранённые доступы в ЛЮБОМ текстовом поле
+ 4979|    на ней, включая поиск еды.
+ 4980|    Лечим причину: поле становится паролем только тогда, когда его лист открыт,
+ 4981|    то есть когда человек действительно вводит пароль. Всё остальное время это
+ 4982|    обычное поле (и всё равно скрытое точками через -webkit-text-security).
+ 4983|    Менеджеру паролей это не мешает: он нужен ровно в открытом листе.
+ 4984| 
+ 4985|    ── ВТОРОЙ ЗАХОД, 01.09: ПОЧИНИЛИ ПОЛОВИНУ ПАРЫ ──
+ 4986|    Полевой скриншот владельца: цифровая клавиатура над полем ШАГОВ, и над ней
+ 4987|    всё та же панель «пароль для этого сайта — [email владельца удалён в публичной копии]».
+ 4988|    Замер DOM в покое: полей type="password" ноль — та починка работает. А вот
+ 4989|    что осталось: `sy_e` — `type="email"` с `autocomplete="username"`, и висит
+ 4990|    он на странице ВСЕГДА.
+ 4991|    Логин и пароль — это ПАРА, и Safari опознаёт страницу входа по любой её
+ 4992|    половине. Я убрал одну и оставил другую, поэтому и не помогло.
+ 4993|    Тот же приём: имя пользователя объявляется именем пользователя только
+ 4994|    внутри открытого листа входа. Закрыт — обычное текстовое поле, которое
+ 4995|    ни на что не претендует. Значение НЕ стираем, в отличие от пароля: почту
+ 4996|    человек вводит один раз и ждёт, что она сохранится, а пароль — каждый раз. */
+ 4997| function pwArm(sheetEl,on){
+ 4998|   try{
+ 4999|     (sheetEl.querySelectorAll('input[data-pw]')||[]).forEach(e=>{
+ 5000|       /* Снимаем не только тип, но и `autocomplete`. Замер 01.09: поле уже
+ 5001|          было `type="text"`, а атрибут `current-password` на нём оставался —
+ 5002|          менеджеры паролей смотрят именно на него, и одного типа мало.
+ 5003|          Прежнее значение помним на самом узле, чтобы вернуть точно то, что
+ 5004|          стояло в разметке, а не угадывать. */
+ 5005|       if(on){ e.type='password'; e.setAttribute('autocomplete',e.dataset.ac||'current-password'); }
+ 5006|       /* Стираем при закрытии только ПАРОЛИ. Ключ ИИ (data-keep) — секрет
+ 5007|          того же вида, но живёт на устройстве постоянно: его стирание в поле
+ 5008|          превращало следующее «Сохранить» в удаление ключа (отчёт владельца
+ 5009|          10.09: «в какой-то момент удалился ключ»). */
+ 5010|       else { e.type='text'; if(!e.dataset.keep) e.value=''; e.setAttribute('autocomplete','off'); }
+ 5011|     });
+ 5012|     (sheetEl.querySelectorAll('input[data-usr]')||[]).forEach(e=>{
+ 5013|       if(on){ e.type='email'; e.setAttribute('autocomplete','username'); }
+ 5014|       else { e.type='text'; e.setAttribute('autocomplete','off'); }
+ 5015|     });
+ 5016|   }catch(e){}
+ 5017| }
+ 5018| /* Разоружаем ВСЮ страницу при загрузке: pwArm срабатывает на открытии и
+ 5019|    закрытии листа, а до первого открытия поле стоит ровно так, как записано
+ 5020|    в разметке. Именно этот случай владелец и увидел — он лист входа в той
+ 5021|    сессии не открывал вовсе. */
+ 5022| function credDisarm(){
+ 5023|   try{
+ 5024|     document.querySelectorAll('.sheet').forEach(s=>{ if(!s.classList.contains('on')) pwArm(s,false); });
+ 5025|   }catch(e){}
+ 5026| }
+ 5027| /* Замок документа следует за СОСТОЯНИЕМ листов, а не за вызовом: кто бы ни
+ 5028|    снял .on — крестик, подложка, чужой код, — наблюдатель за классами снимет
+ 5029|    и замок. Страховка от повторения поломки v510. */
+ 5030| /* ── КРЕСТИК НА ПРЕДУПРЕЖДЕНИИ (решение владельца 03.09) ──
+ 5031|    «Все эти предупреждения засоряют экран; человек должен спокойно убирать
+ 5032|    их при необходимости». Механизм один на всё приложение: наблюдатель
+ 5033|    находит каждое предупреждение (.wb, .ib, [data-dis]) на экранах — не в
+ 5034|    листах, не в карточке упражнения, не в шапке дня — и ставит крестик.
+ 5035|    Разделение врача: блок с data-med (боль в суставе) убирается НА ДЕНЬ и
+ 5036|    возвращается завтра или когда боль отмечена снова; data-day (состояние
+ 5037|    дня, например срез готовности) — тоже на день; остальное — насовсем.
+ 5038|    Ключ — вид + текст без цифр: «Записей без копии: 5» и «: 7» — одно и
+ 5039|    то же предупреждение. */
+ 5040| function disKey(el){
+ 5041|   const kind=el.dataset.med?'med':(el.dataset.day?'day':'all');
+ 5042|   const t=(el.textContent||'').replace(/\d+/g,'').replace(/\s+/g,' ').trim().slice(0,90);
+ 5043|   return kind+':'+t;
+ 5044| }
+ 5045| function disHidden(el){
+ 5046|   const v=(S&&S.dis||{})[disKey(el)]; if(!v) return false;
+ 5047|   return v==='*'||v===td();
+ 5048| }
+ 5049| function disPass(root){
+ 5050|   try{
+ 5051|     const sel='.view .wb, .view .ib, .view [data-dis]';
+ 5052|     /* Сам корень тоже кандидат: querySelectorAll ищет только потомков, а
+ 5053|        наблюдатель отдаёт добавленный узел — карточка «Данные только на этом
+ 5054|        устройстве» приходит целиком и без этого оставалась без крестика. */
+ 5055|     const list=root&&root.querySelectorAll?[...(root.matches&&root.matches(sel)?[root]:[]),...root.querySelectorAll(sel)]:[...document.querySelectorAll(sel)];
+ 5056|     list.forEach(el=>{
+ 5057|       /* #insBox — наблюдения ИИ. Крестик туда доклеивался автоматически,
+ 5058|          налезал на текст и дублировал кнопку «Не надо», которая стоит
+ 5059|          рядом и делает то же самое осмысленнее (полевое замечание
+ 5060|          владельца 11.09). На остальных сообщениях крестик как был. */
+ 5061|       if(el.closest('.sheet,#onb,#gate,.wc,.dhd,#insBox')) return;
+ 5062|       /* Раскрывашка («Профиль неполный») — не предупреждение, а вход: кнопка
+ 5063|          внутри details легла бы в свёрнутое тело и не была бы видна. */
+ 5064|       if(el.tagName==='DETAILS'||el.closest('details')) return;
+ 5065|       if(!(el.textContent||'').trim()) return;
+ 5066|       if(disHidden(el)){ el.classList.add('dis-hid'); return; }
+ 5067|       el.classList.remove('dis-hid');
+ 5068|       if(!el.classList.contains('dis')){ el.classList.add('dis');
+ 5069|         const b=document.createElement('button'); b.className='dis-x'; b.type='button'; b.setAttribute('aria-label','Убрать это сообщение');
+ 5070|         b.innerHTML='<svg class="ic"><use href="#i-close"/></svg>';
+ 5071|         el.appendChild(b); }
+ 5072|     });
+ 5073|   }catch(_){}
+ 5074| }
+ 5075| document.addEventListener('click',e=>{
+ 5076|   const x=e.target&&e.target.closest&&e.target.closest('.dis-x'); if(!x) return;
+ 5077|   const el=x.closest('.wb,.ib,[data-dis]'); if(!el) return;
+ 5078|   e.preventDefault(); e.stopPropagation();
+ 5079|   S.dis=S.dis||{}; S.dis[disKey(el)]=(el.dataset.med||el.dataset.day)?td():'*';
+ 5080|   el.classList.add('dis-hid');
+ 5081|   put('settings',S,'main').catch(()=>{});
+ 5082| });
+ 5083| try{ new MutationObserver(ms=>{ for(const m of ms) for(const nd of m.addedNodes) if(nd.nodeType===1) disPass(nd.closest&&nd.closest('.view')?nd:null); })
+ 5084|   .observe(document.body,{subtree:true,childList:true}); }catch(_){}
+ 5085| /* ── ЧЕСТНЫЙ ЗАМОК ФОНА (NAVIGATION.md §2.2, v591) ──
+ 5086|    Две правки в одном. (1) Замок держится и на 180 мс ухода листа
+ 5087|    (`.closing`): раньше `.on` снимался сразу, страница отпиралась, а лист был
+ 5088|    ещё виден — второй быстрый тап попадал в страницу под ним. (2) На iOS
+ 5089|    WebKit `overflow:hidden` на html не держит резиновую прокрутку: фон под
+ 5090|    листом дёргался. Схема position:fixed — запоминаем scrollY, фиксируем body
+ 5091|    со смещением, при снятии возвращаем позицию. Функция идемпотентна:
+ 5092|    наблюдатель классов зовёт её на каждое изменение. */
+ 5093| let _shY=0;
+ 5094| function shlockSync(){
+ 5095|   const on=!!document.querySelector('.sheet.on,.sheet.closing');
+ 5096|   const r=document.documentElement, was=r.classList.contains('shlock');
+ 5097|   if(on&&!was){
+ 5098|     _shY=window.scrollY||window.pageYOffset||0;
+ 5099|     r.classList.add('shlock'); document.body.style.top=(-_shY)+'px';
+ 5100|   } else if(!on&&was){
+ 5101|     r.classList.remove('shlock'); document.body.style.top='';
+ 5102|     try{ window.scrollTo(0,_shY); }catch(_){}
+ 5103|   }
+ 5104| }
+ 5105| try{ new MutationObserver(()=>{ try{ shlockSync(); }catch(_){} })
+ 5106|   .observe(document.body,{subtree:true,attributes:true,attributeFilter:['class']}); }catch(_){}
+ 5107| /* Примитив показа/скрытия. Снаружи его не зовут: все пути идут через стек
+ 5108|    NAV ниже, иначе «один видимый лист» невозможно гарантировать. */
+ 5109| const _sheetRaw=(i,on)=>{ const s=$(i);
+ 5110|   if(!on&&i==='sh-dlg'&&typeof _dlgRes==='function'){ const r=_dlgRes; _dlgRes=null; r(false); }   // v602: закрыли диалог любым путём — ответ «нет»
+ 5111|   if(!on&&i==='sh-why'&&typeof _whyRes==='function'){ const r=_whyRes; _whyRes=null; r(null); }   // v646: закрыли вопрос мимо кнопки — ничего не учим
+ 5112|   if(!on&&i==='sh-prompt'&&typeof _prRes==='function'){ const r=_prRes; _prRes=null; const x=$('prIn'); if(x) x.value=''; r(null); }   // v603: закрыли ввод мимо кнопки — null
+ 5113|   try{ if(s) pwArm(s,!!on); }catch(e){}
+ 5114|   /* Закрыли экран — выключаем его микрофон. Именно ЕГО: у чата и у разбора
+ 5115|      голосом свои шторки, и закрытие одной не должна глушить другую. */
+ 5116|   if(!on&&voiceRec&&voiceSheet===i){ try{ voiceRec.abort(); }catch(e){} voiceRec=null; voiceSheet=null; }
+ 5117|   // уход шторки доигрывается классом closing; .on снимаем сразу, чтобы всё,
+ 5118|   // что на него смотрит (счёт открытых, проверки состояния), не изменилось
+ 5119|   if(!on){
+ 5120|     if(s.classList.contains('on')){
+ 5121|       s.classList.add('closing');
+ 5122|       clearTimeout(_shT[i]);
+ 5123|       _shT[i]=setTimeout(()=>{ s.classList.remove('closing'); },240);
+ 5124|     }
+ 5125|   } else { s.classList.remove('closing'); clearTimeout(_shT[i]); }
+ 5126|   s.classList.toggle('on',on);
+ 5127|   if(i==='sh-day'){ try{ document.documentElement.classList.toggle('dayOpen',!!on); }catch(e){} }   // v643: шеврон в шапке знает, открыта ли панель
+ 5128|   /* Пока открыт хоть один лист, страница под ним не листается. Полевой
+ 5129|      скриншот владельца 03.09: настройки открылись поверх «Еды», и листались
+ 5130|      и лист, и страница под ним — два скроллера на одном экране. Запираем
+ 5131|      документ, а не ловим жесты. */
+ 5132|   try{ shlockSync(); }catch(_){}
+ 5133|   // шторка поверх шторки: z-index по числу открытых, иначе побеждает порядок в DOM
+ 5134|   // (иначе «Изменить» из поиска открывал бы форму ПОД поиском)
+ 5135|   /* Ряды вкладок внутри листа рисуются скрытыми: ширины у них нет, мерить
+ 5136|      нечего, и подгонка их пропускала — «Из наличия» и «Закупка» уезжали за
+ 5137|      край, как только лист открывали (замер 23.08). Подгоняем на открытии. */
+ 5138|   if(on) setTimeout(()=>{ try{ segFit(); }catch(e){} try{ sheetFit(s); }catch(e){} },0);
+ 5139|   if(!on) s.classList.remove('kb');
+ 5140|   if(on){ s.style.zIndex=400+document.querySelectorAll('.sheet.on').length;
+ 5141|     // клавиатура не должна хоронить новую шторку (полевой скрин 04.08): фокус
+ 5142|     // в поле ВНЕ неё — гасим, клавиатура закрывается. Кому клавиатура нужна
+ 5143|     // в новой шторке — те ставят focus() после открытия, порядок сохраняется.
+ 5144|     const ae=document.activeElement;
+ 5145|     if(ae&&ae.matches&&ae.matches('input,textarea,select')&&!s.contains(ae)){ try{ae.blur()}catch(_e){} }
+ 5146|   } };
+ 5147| /* ══════════ МЕНЕДЖЕР СТЕКА ЛИСТОВ (NAVIGATION.md §2.1, v591) ══════════
+ 5148|    Одно место истины о том, что открыто. DOM-классы и история браузера
+ 5149|    выводятся из стека, а не наоборот — так «неопределённого состояния» не
+ 5150|    бывает по построению.
+ 5151|    · HIG sheets: «never stack sheets» — новый лист ПРЯЧЕТ предыдущий
+ 5152|      (класс .under, visibility:hidden, поля целы), закрытие верхнего
+ 5153|      возвращает его. Три листа на «Зале» (карточка → подход → выбор) теперь
+ 5154|      видны по одному.
+ 5155|    · HIG modality: «warn before data loss» — тап по фону и свайп с набранным
+ 5156|      текстом (data-dirty) спрашивают; кнопка × и закрытие из кода — нет.
+ 5157|    · История: одна запись на лист, popstate закрывает верхний. На iPhone в
+ 5158|      standalone жеста истории нет — безвредное зеркало; на Android
+ 5159|      аппаратная «назад» перестаёт закрывать всё приложение. skipPop гасит
+ 5160|      наш же popstate после history.back(). */
+ 5161| const NAV={stack:[],gen:0,skipPop:0};
+ 5162| function navTop(){ return NAV.stack.length?NAV.stack[NAV.stack.length-1]:null; }
+ 5163| function navPush(id){
+ 5164|   const s=$(id); if(!s) return;
+ 5165|   const at=NAV.stack.indexOf(id);
+ 5166|   if(at>=0&&at===NAV.stack.length-1){ _sheetRaw(id,true); return; }      // уже сверху — освежить
+ 5167|   if(at>=0) NAV.stack.splice(at,1);                                     // был глубже — поднимаем
+ 5168|   const prev=navTop();
+ 5169|   if(prev){ const p=$(prev); if(p) p.classList.add('under'); }
+ 5170|   NAV.stack.push(id);
+ 5171|   s.classList.remove('under');
+ 5172|   try{ s.setAttribute('data-dirty','0'); }catch(e){}     // «0», не удаление: у фейкового DOM гейта нет removeAttribute
+ 5173|   _sheetRaw(id,true);
+ 5174|   try{ history.pushState({bv:++NAV.gen,d:NAV.stack.length},''); }catch(e){}
+ 5175| }
+ 5176| /* reason: 'button' | 'backdrop' | 'swipe' | 'history' | 'code' */
+ 5177| function navPop(reason){
+ 5178|   const id=navTop(); if(!id) return false;
+ 5179|   const s=$(id);
+ 5180|   /* v629: аппаратная «назад» и жест истории спрашивают наравне с фоном и
+ 5181|      свайпом. Замер 21.09: набранное в листе закрывалось по «назад» МОЛЧА —
+ 5182|      из трёх путей закрытия мимо кнопки предупреждали только два.
+ 5183|      popstate уже случился, поэтому запись истории возвращаем на место: иначе
+ 5184|      следующая «назад» вынесла бы человека из приложения. */
+ 5185|   if((reason==='backdrop'||reason==='swipe'||reason==='history')&&s&&s.getAttribute('data-dirty')==='1'&&id!=='sh-dlg'&&id!=='sh-prompt'){
+ 5186|     if(reason==='history'){ try{ history.pushState({bv:++NAV.gen,d:NAV.stack.length},''); }catch(e){} }
+ 5187|     /* v603: свой вопрос вместо confirm(). Лист остаётся, вопрос ложится поверх;
+ 5188|        «Закрыть» — закрываем из кода, любой другой ответ — лист живёт. */
+ 5189|     if(!NAV.asking){ NAV.asking=id;
+ 5190|       ask({title:'Закрыть без сохранения?',text:'Набранное в этом листе пропадёт.',ok:'Закрыть',danger:true})
+ 5191|         .then(y=>{ NAV.asking=null; if(y&&navTop()===id) navPop('code'); })
+ 5192|         .catch(()=>{ NAV.asking=null; }); }   // v629: вопрос упал — сторож не залипает навсегда
+ 5193|     return false;
+ 5194|   }
+ 5195|   NAV.stack.pop();
+ 5196|   if(s) s.classList.remove('under');
+ 5197|   _sheetRaw(id,false);
+ 5198|   const prev=navTop();
+ 5199|   if(prev){ const p=$(prev); if(p) p.classList.remove('under'); }
+ 5200|   if(reason!=='history'){
+ 5201|     try{ if(history.state&&history.state.bv&&history.state.d>NAV.stack.length){ NAV.skipPop=1; history.back(); } }catch(e){}
+ 5202|   }
+ 5203|   return true;
+ 5204| }
+ 5205| /* Закрыть КОНКРЕТНЫЙ лист: верхний — через navPop; глубже в стеке — вынуть
+ 5206|    и спрятать без вопросов (так делает код после сохранения); вне стека —
+ 5207|    просто скрыть, идемпотентно. */
+ 5208| function navClose(id,reason){
+ 5209|   if(navTop()===id) return navPop(reason||'code');
+ 5210|   const at=NAV.stack.indexOf(id);
+ 5211|   if(at>=0){ NAV.stack.splice(at,1); const s=$(id); if(s) s.classList.remove('under'); }
+ 5212|   _sheetRaw(id,false);
+ 5213|   return true;
+ 5214| }
+ 5215| addEventListener('popstate',()=>{
+ 5216|   if(NAV.skipPop){ NAV.skipPop=0; return; }
+ 5217|   if(NAV.stack.length) navPop('history');
+ 5218| });
+ 5219| /* Набранное в листе — под защитой: любой ввод ставит метку, открытие снимает. */
+ 5220| document.addEventListener('input',e=>{ const s=e.target&&e.target.closest&&e.target.closest('.sheet'); if(s) s.setAttribute('data-dirty','1'); },true);
+ 5221| document.addEventListener('change',e=>{ const s=e.target&&e.target.closest&&e.target.closest('.sheet'); if(s) s.setAttribute('data-dirty','1'); },true);
+ 5222| /* Публичный вход остался прежним — все существующие вызовы sheet(id,true/false)
+ 5223|    теперь идут через стек без правки ста мест. */
+ 5224| const sheet=(i,on)=>{ if(on) navPush(i); else navClose(i,'code'); };
+ 5225| /* ── СВАЙП ВНИЗ — ЖЕСТ, КОТОРЫЙ ОБЕЩАЕТ ГРАБЕР (NAVIGATION.md §2.3, v591) ──
+ 5226|    Грабер 36×4 рисовался у каждого листа, а жеста не было. HIG sheets:
+ 5227|    «support swipe to dismiss», «grabber — visible affordance for dragging».
+ 5228|    Перехватываем касание только когда лист уже на верху (scrollTop<=0) и
+ 5229|    палец идёт вниз — внутренняя прокрутка и поля ввода не задеты. Порог
+ 5230|    120 px; меньше — плавно возвращаем. Направление совпадает с появлением
+ 5231|    (HIG motion). */
+ 5232| function sheetSwipe(inEl){
+ 5233|   if(inEl.closest&&inEl.closest('.sheet.top')) return;   // v643: выпадающая панель вниз не тянется
+ 5234|   let y0=null, dy=0;
+ 5235|   const skip=t=>!!(t&&t.closest&&t.closest('textarea,input,select,[contenteditable],canvas,.nosw'));
+ 5236|   inEl.addEventListener('touchstart',e=>{
+ 5237|     dy=0; y0=(inEl.scrollTop<=0&&!skip(e.target))?e.touches[0].clientY:null;
+ 5238|   },{passive:true});
+ 5239|   inEl.addEventListener('touchmove',e=>{
+ 5240|     if(y0==null) return;
+ 5241|     dy=e.touches[0].clientY-y0;
+ 5242|     if(dy>0){ e.preventDefault(); inEl.style.transition='none'; inEl.style.transform='translateY('+dy+'px)'; }
+ 5243|     else { y0=null; inEl.style.transform=''; }                            // пошёл вверх — это прокрутка
+ 5244|   },{passive:false});
+ 5245|   const end=()=>{
+ 5246|     if(y0==null) return;
+ 5247|     const s=inEl.closest('.sheet');
+ 5248|     if(dy>120&&s&&navTop()===s.id&&navPop('swipe')){ inEl.style.transition=''; inEl.style.transform=''; }
+ 5249|     else { inEl.style.transition='transform .18s var(--ez)'; inEl.style.transform='';
+ 5250|       setTimeout(()=>{ inEl.style.transition=''; },200); }
+ 5251|     y0=null; dy=0;
+ 5252|   };
+ 5253|   inEl.addEventListener('touchend',end,{passive:true});
+ 5254|   inEl.addEventListener('touchcancel',end,{passive:true});
+ 5255| }
+ 5256| try{ document.querySelectorAll('.sheet>.in').forEach(sheetSwipe); }catch(e){}
+ 5257| const pf=v=>parseFloat(String(v==null?'':v).replace(',','.'));   // «62,5» с русской клавиатуры = 62.5
+ 5258| /* ── ДЕСЯТИЧНАЯ ЗАПЯТАЯ НА iOS (v616) ──
+ 5259|    Цифровая клавиатура iPhone в русской раскладке даёт ЗАПЯТУЮ, а поле с
+ 5260|    type="number" молча выбрасывает такое значение: `el.value` становится пустым
+ 5261|    ещё до нашего обработчика (замер в Chromium: «150,5» → ""). Человек видит,
+ 5262|    как цифры исчезают при вводе, и это читается как поломка приложения.
+ 5263|    Поэтому поля дробного ввода — type="text" с inputmode="decimal": клавиатура
+ 5264|    та же, а значение доходит целиком и мы меняем запятую на точку на лету.
+ 5265|    Слушатель ОДИН и делегированный: `el.oninput=` затёр бы живые обработчики
+ 5266|    полей порции (amPrev) и продукта (leRescale) — и предпросмотр порции умер бы
+ 5267|    молча. Заодно он работает на полях, которых в момент загрузки ещё нет
+ 5268|    (формы рисуются innerHTML): опросник готовности, замеры рычагов, анализы. */
+ 5269| const DEC_OK=/^-?[0-9]*[.]?[0-9]*$/;
+ 5270| function decFix(el){
+ 5271|   if(!el||el.tagName!=='INPUT') return;
+ 5272|   const v=String(el.value==null?'':el.value);
+ 5273|   if(!v){ return; }
+ 5274|   let out=v.replace(/,/g,'.');
+ 5275|   /* Мусор из голосового ввода, вставки из буфера и чужих клавиатур: оставляем
+ 5276|      цифры, ведущий минус и ПЕРВУЮ точку — человек ставит разделитель один раз,
+ 5277|      и выигрывает тот, что он набрал раньше. Молча правим только запятую; всё
+ 5278|      остальное объясняем, иначе символ пропадает без причины. */
+ 5279|   const neg=out.charAt(0)==='-';
+ 5280|   let clean=out.replace(/[^0-9.]/g,'');
+ 5281|   const parts=clean.split('.');
+ 5282|   if(parts.length>2) clean=parts.shift()+'.'+parts.join('');
+ 5283|   if(neg) clean='-'+clean;
+ 5284|   if(clean!==out){
+ 5285|     try{ fieldErr(el,'Только цифры и точка'); }catch(_){}
+ 5286|     out=clean;
+ 5287|   }
+ 5288|   if(out!==v){
+ 5289|     const end=el.selectionStart===v.length;
+ 5290|     el.value=out;
+ 5291|     try{ if(end&&el.setSelectionRange) el.setSelectionRange(out.length,out.length); }catch(_){}
+ 5292|   }
+ 5293|   return DEC_OK.test(out);
+ 5294| }
+ 5295| addEventListener('input',e=>{
+ 5296|   const t=e&&e.target;
+ 5297|   if(t&&t.matches&&t.matches('input[inputmode="decimal"]')) decFix(t);
+ 5298| },true);   // capture: правим значение ДО обработчиков поля (amPrev, leRescale и прочих)
+ 5299| /* ── ЧИСЛО ИЗ ПОЛЯ (v607, AUDIT_POINT_A §4.2) ── num(el|строка): «80,5» с русской
+ 5300|    клавиатуры iOS → 80.5; пусто, NaN, Infinity → 0. Единственная точка чтения
+ 5301|    чисел из полей — правка класса, а не 29 мест. Пустое поле от «0» различает
+ 5302|    сам обработчик по тексту (numTxt), где ноль — законное значение. */
+ 5303| function num(x){ const v=(x&&typeof x==='object')?x.value:x; const n=pf(v); return Number.isFinite(n)?n:0; }
+ 5304| function numTxt(x){ const v=(x&&typeof x==='object')?x.value:x; return String(v==null?'':v).trim(); }
+ 5305| /* «18:30» → 18.5. Общий хелпер времени: сессии зала, свип незакрытых тренировок.
+ 5306|    Был удалён «диетой функций» v195 как якобы неиспользуемый — сохранение времени
+ 5307|    сессии и авто-закрытие молча падали на ReferenceError (полевой отчёт 02.08). */
+ 5308| const hh=t=>{const p=String(t||'').split(':');return t?(+p[0]||0)+((+p[1]||0)/60):null};
+ 5309| 
+ 5310| /* ══════════════ TDEE ALGORITHM ══════════════
+ 5311|    EWMA trend → energy balance → Kalman-ish blend. Steps deliberately NOT an input:
+ 5312|    the trend already contains all activity; adding steps would double-count. */
+ 5313| const ALPHA=.25,WIN=14,BLEND=.35,MIND=10;
+ 5314| /* Записи будущим числом в расчёты не идут — ни в тренд веса, ни в среднее
+ 5315|    потребление. Человек может отметить завтрашние контейнеры заранее, но пока
+ 5316|    день не наступил, это план, а не факт: иначе завтрашний обед сегодня же
+ 5317|    занизил бы расчётный расход (тот же класс, что расход ниже базового обмена,
+ 5318|    найденный 19.08). Как день настанет — запись включится сама. */
+ 5319| /* ── ТРЕНД СЧИТАЕТСЯ ОДИН РАЗ НА ИЗМЕНЕНИЕ ДАННЫХ (v617) ──
+ 5320|    Замер на истории в полгода (181 взвешивание): один показ «Тела» гонял EMA по
+ 5321|    всей истории ШЕСТЬ раз, запись веса — девять (T в rBody_, actRate ×2, curW в
+ 5322|    прогнозе, trend в ветке цикла, curW ×2 в rNavyBF) — около 1100 проходов ради
+ 5323|    одного экрана. Считаем один раз и отдаём тот же массив, пока данные те же.
+ 5324|    Подпись сторожит ЧЕТЫРЕ вещи, и каждая закрывает свою дыру:
+ 5325|    · сама ссылка на W — `W=await all('weight')` создаёт новый массив, поэтому
+ 5326|      любая перезагрузка из базы и любой приход синка видны сразу;
+ 5327|    · длина и последняя запись — быстрая проверка «дописали/удалили»;
+ 5328|    · PUTN — счётчик записей в базу: правка СТАРОГО взвешивания не меняет ни
+ 5329|      длину, ни последнюю запись, и без него тренд застрял бы на прежнем
+ 5330|      (S.ua тут не помощник — при записи веса настройки не трогаются);
+ 5331|    · td() — в расчёте стоит фильтр `x.d<=now`, а PWA живёт сутками: после
+ 5332|      полуночи вчерашний кэш обязан протухнуть сам.
+ 5333|    Массив отдаём ТОТ ЖЕ, не копию: все читатели (chartW, estTDEE, rBody_)
+ 5334|    только читают и делают свои slice/filter. */
+ 5335| let _trendCache=null,_trendSig='',_trendW=null;
+ 5336| function trend(){
+ 5337|   const now=td(), n=W.length, last=n?W[n-1]:null;
+ 5338|   const sig=n+'|'+(last?last.d+':'+last.kg:'')+'|'+PUTN+'|'+now;
+ 5339|   if(_trendCache&&_trendW===W&&sig===_trendSig) return _trendCache;
+ 5340|   const s=[...W].filter(x=>x.d<=now).sort((a,b)=>a.d<b.d?-1:1); let t=null;
+ 5341|   _trendCache=s.map(x=>{t=t===null?x.kg:ALPHA*x.kg+(1-ALPHA)*t;return{d:x.d,raw:x.kg,tr:t}});
+ 5342|   _trendSig=sig; _trendW=W;
+ 5343|   return _trendCache;
+ 5344| }
+ 5345| function dayK(){const m={},now=td();LOG.forEach(l=>{ if(l.d<=now) m[l.d]=(m[l.d]||0)+l.k });return m}
+ 5346| /* Одна причина «расхода ещё нет» на три экрана (обход ролей 05.09,
+ 5347|    нутрициолог): «Еда» писала «нужно 10 дней данных» при 13 взвешиваниях,
+ 5348|    «Коуч» — «1 дн. из 14», лист «Расход» — «10 из 14». Настоящая причина одна и
+ 5349|    живёт в estTDEE: чего именно не хватает и сколько есть. */
+ 5350| function tdeeWhy(r){
+ 5351|   r=r||estTDEE(); if(!r||r.ok) return '';
+ 5352|   const have=r.have|0, need=r.need|0;
+ 5353|   if(r.r==='w') return 'взвешиваний '+have+' из '+need;
+ 5354|   if(r.r==='f') return 'еда записана '+have+' дн. из '+need;
+ 5355|   if(r.r==='sw') return 'взвешиваний за 14 дней '+have+' из '+need;
+ 5356|   if(r.r==='sh') return 'дней взвешиваний '+have+' из '+need;
+ 5357|   return 'взвешиваний '+have+' из '+need;
+ 5358| }
+ 5359| function estTDEE(){
+ 5360|   const T=trend();
+ 5361|   if(T.length<MIND) return{ok:0,r:'w',have:T.length,need:MIND};
+ 5362|   const K=dayK(), last=dn(T[T.length-1].d), from=last-WIN+1;
+ 5363|   const win=T.filter(x=>dn(x.d)>=from);
+ 5364|   if(win.length<8) return{ok:0,r:'sw',have:win.length,need:8};
+ 5365|   const d0=dn(win[0].d),d1=dn(win[win.length-1].d),n=d1-d0;
+ 5366|   if(n<7) return{ok:0,r:'sh',have:n,need:7};
+ 5367|   const lg=[];for(let i=d0;i<=d1;i++) if(K[ds(i)]>0) lg.push(K[ds(i)]);
+ 5368|   const need=Math.ceil((n+1)*.7);
+ 5369|   if(lg.length<need) return{ok:0,r:'f',have:lg.length,need};
+ 5370|   const avg=lg.reduce((a,b)=>a+b,0)/lg.length;
+ 5371|   const dw=win[win.length-1].tr-win[0].tr;
+ 5372|   const obs=avg-(dw*KPK/n);
+ 5373|   // Сглаживание — от базы НА ДЕНЬ, а не от текущего значения: иначе каждый
+ 5374|   // тап «Пересчитать» подмешивает наблюдаемое заново и цифра ползёт вниз
+ 5375|   // при одних и тех же данных (полевой кейс: «нажимаю — постоянно снижает»).
+ 5376|   const base=(S.tdeeDay===td()&&S.tdeeBase!=null)?S.tdeeBase:S.tdee;
+ 5377|   const est=base==null?obs:(1-BLEND)*base+BLEND*obs;
+ 5378|   return{ok:1,est:Math.max(1200,est),obs,avg,dw,n,cov:lg.length/(n+1)};
+ 5379| }
+ 5380| const curW=()=>{const T=trend();return T.length?T[T.length-1].tr:null};
+ 5381| /* ── СВОЙ РАЗБРОС ЧЕЛОВЕКА, А НЕ ВЫДУМАННАЯ КОНСТАНТА ──
+ 5382|    Насколько дневной вес обычно гуляет вокруг тренда: среднее отклонение
+ 5383|    сырого от сглаженного по последним 30 взвешиваниям. Именно по ЕГО истории —
+ 5384|    у одного это ±0.3 кг, у другого ±1.2, и общая цифра соврала бы обоим.
+ 5385|    Живёт отдельной функцией, а не внутри рисования: по ней строится коридор на
+ 5386|    графике, и её обязано уметь проверить правило гейта без канваса. */
+ 5387| function wNoise(T){
+ 5388|   const R=(T||[]).slice(-30).filter(p=>p&&p.raw>0&&p.tr>0);
+ 5389|   if(R.length<5) return 0;
+ 5390|   return R.reduce((a,p)=>a+Math.abs(p.raw-p.tr),0)/R.length;
+ 5391| }
+ 5392| /* РАСКЛАДКА МАКРОСОВ ПОД ЦЕЛЬ. Белок и жиры «на кг» — хорошая отправная точка,
+ 5393|    но на дефиците они съедают весь бюджет: при цели 1700 ккал и весе 92 кг
+ 5394|    оставалось 55 г углеводов (найдено прогоном экрана с месяцем данных 18.08).
+ 5395|    Это уже не питание тренирующегося, а случайное кето, которое человек не
+ 5396|    выбирал: на трёх силовых в неделю не из чего работать.
+ 5397|    Порядок уступок продиктован физиологией, а не удобством счёта:
+ 5398|    1) сначала ЖИРЫ — но не ниже 0.6 г/кг (гормоны и жирорастворимые витамины);
+ 5399|    2) потом БЕЛОК — но не ниже 1.6 г/кг (нижняя граница сохранения мышц на дефиците);
+ 5400|    3) углеводам держим пол в 25% калорий — это топливо тренировки.
+ 5401|    Если и после уступок мало — не подгоняем цифры, а честно говорим, что цель
+ 5402|    слишком жёсткая для этого веса. */
+ 5403| function macroSplit(k,kg){
+ 5404|   /* Настройки «на кг» приходят и из чужого импорта, и из ручной правки: там
+ 5405|      бывает строка, NaN или ноль. Без нормализации раскладка отдавала NaN, и
+ 5406|      на экран уезжало «NaN г» — цифра, которой нельзя пользоваться (найдено
+ 5407|      прогоном на грязных данных 19.08). Дефолты те же, что в анкете. */
+ 5408|   const gkg=(v,dflt,lo,hi)=>{ const n=+v; return (isFinite(n)&&n>=lo&&n<=hi)?n:dflt; };
+ 5409|   const pk=gkg(S.pkg,2,0.8,4), fk=gkg(S.fkg,0.9,0.3,2.5);
+ 5410|   if(!(isFinite(k)&&k>0)||!(isFinite(kg)&&kg>0)) return {p:0,f:0,c:0,cut:null,tight:false};
+ 5411|   let p=r0(pk*kg), f=r0(fk*kg);
+ 5412|   const cMinK=k*0.25, pMin=r0(1.6*kg), fMin=r0(0.6*kg);
+ 5413|   const carbK=()=>k-p*4-f*9;
+ 5414|   let cut=null;
+ 5415|   if(carbK()<cMinK&&f>fMin){ const f2=Math.max(fMin,r0((k-cMinK-p*4)/9)); if(f2<f){ f=f2; cut='fat'; } }
+ 5416|   // Уступку отмечаем, только если цифра ДЕЙСТВИТЕЛЬНО уменьшилась: иначе
+ 5417|   // округление на границе рисует «ужали белок» там, где ничего не тронуто.
+ 5418|   if(carbK()<cMinK&&p>pMin){ const p2=Math.max(pMin,r0((k-cMinK-f*9)/4)); if(p2<p){ p=p2; cut=cut?'both':'prot'; } }
+ 5419|   /* Цель может быть ниже суммы даже минимальных белка и жиров — тогда раньше
+ 5420|      выходило «углеводы 0 г» и пустая полоска: цифра, которой не бывает в еде
+ 5421|      (найдено на скриншоте 19.08). Ужимаем оба пропорционально, оставляя
+ 5422|      углеводам десятую часть калорий, и помечаем цель как невыполнимую. */
+ 5423|   if(carbK()<k*0.1){
+ 5424|     const room=k*0.9, need=p*4+f*9;
+ 5425|     if(need>room&&need>0){ const sc=room/need; p=r0(p*sc); f=r0(f*sc); cut=cut||'both'; }
+ 5426|   }
+ 5427|   const c=Math.max(0,r0(carbK()/4));
+ 5428|   return {p,f,c,cut,tight:carbK()<cMinK*0.8};
+ 5429| }
+ 5430| /* Базовый обмен (Mifflin–St Jeor) — санитар для РАСХОДА, а не для цели.
+ 5431|    Найдено скриншотом 19.08: мужчине 93 кг вышел расход 1605 при базовом обмене
+ 5432|    1900 и цель 1055 ккал — раскладка честно отдала 27 г углеводов. Формулы не
+ 5433|    виноваты: адаптивный расход считается по ЗАПИСЯМ еды, и систематический
+ 5434|    недоучёт («масло, соус, кусочек») тянет его вниз. Но расход ниже базового
+ 5435|    обмена физически невозможен — даже лежачий человек тратит больше. Значит
+ 5436|    чинить надо расход, а не цель. Сама цель ниже базового обмена быть может
+ 5437|    (обычный дефицит), пол у неё клинический: 1500 мужчинам, 1200 женщинам. */
+ 5438| function bmrOf(kg){
+ 5439|   if(!(kg>0)||!(S.h>0)||!(S.age>0)) return null;
+ 5440|   return 10*kg+6.25*S.h-5*S.age+(S.sex==='f'?-161:5);
+ 5441| }
+ 5442| /* ── Цель по воде ──
+ 5443|    Аудит 19.08: цель считалась по весу только внутри стартового пакета, а во
+ 5444|    всех остальных местах стоял запасной вариант «3000 мл». Человек, который
+ 5445|    просто ведёт дневник и пакет не собирал, получал три литра независимо от
+ 5446|    размера: женщине 55 кг это 55 мл на кг, мужчине 120 кг — наоборот мало.
+ 5447|    Считаем по весу везде: 30 мл на кг — общепринятый ориентир, с разумными
+ 5448|    границами. Явно заданную человеком цель не трогаем. */
+ 5449| /* ── ЦЕЛЬ ПО ВОДЕ ──
+ 5450|    Полевой вопрос владельца 24.08: «как она формируется и редактируется, как
+ 5451|    корректируется с учётом веса?». Проверка показала неприятное: формула
+ 5452|    30 мл на килограмм была, но работала только у того, кто НИКОГДА не собирал
+ 5453|    пакет. Сборка пакета записывала результат в S.waterGoal один раз — и дальше
+ 5454|    цель не двигалась вообще. Человек худеет на десять килограммов, а вода
+ 5455|    стоит на цифре от старого веса: экран показывает персональную цель, за
+ 5456|    которой давно нет ничего персонального.
+ 5457|    Теперь S.waterGoal — только РУЧНОЙ выбор (флаг waterManual), а без него
+ 5458|    цель считается каждый раз от текущего веса и от того, тренировка сегодня
+ 5459|    или нет. Плюс за тренировочный день — потери с потом, это не изобретение,
+ 5460|    а стандартная поправка; берём осторожные +500 мл, а не «сколько-нибудь».
+ 5461|    Ручную цифру не трогаем молча: человек её выбрал, а тренер про неё скажет. */
+ 5462| const WATER_ML_KG=30, WATER_TRAIN=500;
+ 5463| function waterAuto(kg){
+ 5464|   if(!(kg>0)) return 2500;
+ 5465|   return Math.max(1500,Math.min(4000,Math.round(kg*WATER_ML_KG/100)*100));
+ 5466| }
+ 5467| function waterTrainDay(d){
+ 5468|   d=d||td();
+ 5469|   if(SETS.some(s=>s.d===d&&!s.wu)) return true;          // уже записал подходы
+ 5470|   /* Прошлое не планируется. Пропущенная тренировка задним числом не должна
+ 5471|      накидывать пол-литра: в тот день человек не потел. */
+ 5472|   if(d<td()) return false;
+ 5473|   const P=S.prog&&S.prog.plan;
+ 5474|   if(!P||!P.length) return false;
+ 5475|   const day=P.find(x=>x.dow===effDow(d));
+ 5476|   return !!(day&&(day.ex||[]).some(i=>!i.hidden));       // по плану сегодня зал
+ 5477| }
+ 5478| /* Цель человека — без надбавки за день. Именно она лежит в поле настроек и
+ 5479|    с ней же сверяется введённое: иначе в тренировочный день в поле окажется
+ 5480|    3300, сверка пойдёт с 2800, они не совпадут — и цель замёрзнет от одного
+ 5481|    захода в настройки. Ровно это и происходило: защита была написана, но
+ 5482|    сравнивала разные величины (найдено разбором 24.08). */
+ 5483| function waterBase(){
+ 5484|   return (S.waterManual&&S.waterGoal>0)?S.waterGoal:waterAuto(curW());
+ 5485| }
+ 5486| function waterGoalOf(d){
+ 5487|   return waterBase()+(waterTrainDay(d)?WATER_TRAIN:0);
+ 5488| }
+ 5489| function kcalFloor(){ return S.sex==='f'?1200:1500; }
+ 5490| /* Расход, каким его можно показывать и на который можно опираться. */
+ 5491| function tdeeSane(kg){
+ 5492|   if(S.tdee==null) return null;
+ 5493|   const b=bmrOf(kg||curW());
+ 5494|   return b&&S.tdee<b?{v:b,raw:r0(S.tdee),bmr:r0(b),low:1}:{v:S.tdee};
+ 5495| }
+ 5496| function tg(){
+ 5497|   /* Белок и жиры считаем от массы, за которой стоят мышцы, а не от всех
+ 5498|      килограммов: при 140 кг «2 г на кг» давали 280 г белка в день — столько
+ 5499|      не съесть, и это вытесняет из рациона углеводы, на которых человек
+ 5500|      тренируется. Клинические рекомендации при ожирении ровно об этом:
+ 5501|      белок считают от целевой или безжировой массы. Та же поправка, что и в
+ 5502|      нормативах силы (аудит 20.08). */
+ 5503|   const kg=(typeof stdBW==='function'?stdBW():null)||curW()||80;
+ 5504|   // ВЫСШИЙ ПРИОРИТЕТ — ручной калораж (план тренера). Не сбрасывается ничем.
+ 5505|   if(S.kcalManual>0){
+ 5506|     const k=+S.kcalManual, m=macroSplit(k,kg);
+ 5507|     /* Ручную цифру не подменяем — это осознанное решение человека. Но если
+ 5508|        она ниже клинической черты (приехала из старого бэкапа или с другого
+ 5509|        устройства), приложение обязано сказать об этом, а не молча кормить. */
+ 5510|     const _lo=k<kcalFloor()?{k:r0(k),floor:kcalFloor()}:null;
+ 5511|     if(_lo) return {k:r0(k),p:m.p,f:m.f,c:m.c,cut:m.cut,tight:m.tight,manLow:_lo};
+ 5512|     return {k:r0(k), p:m.p, f:m.f, c:m.c, cut:m.cut, tight:m.tight};
+ 5513|   }
+ 5514|   // ПРИОРИТЕТ — план тренера: если в нём заданы КБЖУ, цель берётся из плана, а не из формулы
+ 5515|   // План мог прийти от ИИ или из чужого импорта со строкой вместо числа:
+ 5516|   // «цель 2500» превращалась в NaN и уезжала на экран как цифра-призрак.
+ 5517|   if(S.plan&&Number(S.plan.kcal)>0){
+ 5518|     const k=+S.plan.kcal;
+ 5519|     const num=(v,dflt)=>Number(v)>0?+v:dflt;
+ 5520|     const m=macroSplit(k,kg);                 // то, что план не задал, считаем разумно
+ 5521|     const p=num(S.plan.protein,m.p);
+ 5522|     const f=num(S.plan.fat,m.f);
+ 5523|     const c=num(S.plan.carbs,Math.max(0,r0((k-p*4-f*9)/4)));
+ 5524|     return{k:r0(k),p:r0(p),f:r0(f),c:r0(c),fromPlan:1};
+ 5525|   }
+ 5526|   const ts=tdeeSane(kg);
+ 5527|   /* ── Дефицит при недостатке массы ──
+ 5528|      Аудит 21.08: человек 42 кг при росте 168 (ИМТ 15) выставлял «−0.5 кг/нед»
+ 5529|      и получал обычную цель на снижение, будто всё в порядке. Приложение уже
+ 5530|      умеет отказывать — клинический пол 1500/1200 ккал ровно про это, — но
+ 5531|      смотрело только на калории и не смотрело на то, кого оно ими кормит.
+ 5532|      При ИМТ ниже 18.5 дефицит снимает не жир: уходят мышцы, гормоны и цикл.
+ 5533|      Темп считаем как удержание и говорим прямо, почему. Набор и удержание не
+ 5534|      трогаем: помощь тому, кто хочет набрать, — как раз то, что нужно. */
+ 5535|   const bmi=bmiNow();
+ 5536|   const wantCut=bmi!=null&&bmi<18.5&&(+S.rate||0)<0;
+ 5537|   let rate=wantCut?0:(+S.rate||0);
+ 5538|   /* ── Темп — не быстрее 1 % массы в неделю (обход ролей 05.09, врач) ──
+ 5539|      Пункт меню «−0.75 — агрессивная сушка» один на всех: для 93 кг это 0.8 %
+ 5540|      в неделю — допустимо, для 58 кг — 1.3 %, и это уже мышцы, цикл и откат,
+ 5541|      а не жир. Пол по калориям (1200/1500) такую цель не ловил: 2100 − 825 =
+ 5542|      1275 выше пола. Единственная проверка «быстрее 0.75 % массы» жила в
+ 5543|      «Коуче» и требовала четырёх тренировок за две недели — без зала молчала.
+ 5544|      Считаем по капу и говорим прямо, почему. Набор не трогаем. */
+ 5545|   let fast=null;
+ 5546|   { const kgNow=curW();
+ 5547|     if(rate<0&&kgNow>0){ const cap=-Math.round(kgNow*0.01*100)/100;
+ 5548|       if(rate<cap-1e-9){ fast={set:rate,cap,pct:Math.round(Math.abs(rate)/kgNow*1000)/10}; rate=cap; } } }
+ 5549|   /* Кламп ставим на ИТОГОВУЮ цифру, а не только на расчётную ветку: S.target
+ 5550|      переписывается из темпа в десятке мест (пересчёт расхода, импорт, ИИ), и
+ 5551|      проверка одной ветки была бы проверкой ничего. */
+ 5552|   let maint=ts?ts.v:(+S.tdee>0?+S.tdee:null);
+ 5553|   /* Пока адаптивного расхода нет, maint был null — и кламп молчал ровно в те
+ 5554|      первые две недели, когда человек только заполнил анкету и цель ему уже
+ 5555|      поставлена. Женщина 42 кг при росте 168 (ИМТ 14.9) получала 1200 ккал
+ 5556|      против расхода 1539 — дефицит 340 ккал в день, и ни слова о том, почему
+ 5557|      этого делать нельзя (аудит 22.08). Пока факта нет, берём формулу — ту же,
+ 5558|      что и seed(). Это только для нижней границы: цель по-прежнему считается
+ 5559|      как раньше. */
+ 5560|   if(maint==null&&wantCut){ const _b0=bmrOf(curW()); if(_b0>0) maint=_b0*actK(); }
+ 5561|   let raw=S.target!=null?S.target:(maint!=null?maint+rate*KPK/7:null);
+ 5562|   let thin=null;
+ 5563|   /* И объяснение показываем всегда, когда снижение снято, а не только когда
+ 5564|      цифру пришлось подвинуть: иначе приложение молча игнорирует заданный
+ 5565|      человеком темп и ничего об этом не говорит. */
+ 5566|   if(wantCut&&maint>0&&Number(raw)>0){ if(raw<maint) raw=maint; thin={bmi:Math.round(bmi*10)/10,rate:+S.rate}; }
+ 5567|   if(raw==null||!(Number(raw)>0)) return null;   // мусор в цели — честнее показать «цели нет»
+ 5568|   const fl=kcalFloor(), k=Math.max(fl,raw);
+ 5569|   const m=macroSplit(k,kg);
+ 5570|   return{k:r0(k),p:m.p,f:m.f,c:m.c,cut:m.cut,tight:m.tight,
+ 5571|     floored:k>raw+1?{raw:r0(raw),floor:fl}:null,
+ 5572|     thin,fast,
+ 5573|     tdeeLow:ts&&ts.low?ts:null};
+ 5574| }
+ 5575| /* Подпись под выбором темпа: сколько это процентов массы для ЭТОГО человека
+ 5576|    и где приложение его остановит (v527). */
+ 5577| function ratePctNote(){
+ 5578|   const el=$('s_ratePct'); if(!el) return;
+ 5579|   const r=+($('s_rate')||{}).value||0, kg=curW();
+ 5580|   if(!(kg>0)||!r){ el.textContent=''; return; }
+ 5581|   const pct=Math.round(Math.abs(r)/kg*1000)/10;
+ 5582|   el.textContent=r<0&&pct>1
+ 5583|     ? `Для тебя это ${pct} % массы в неделю — считаю не быстрее 1 % (${-Math.round(kg*0.01*100)/100} кг/нед): быстрее уходят мышцы, а не жир`
+ 5584|     : `Для тебя это ${pct} % массы в неделю`;
+ 5585| }
+ 5586| /* ИМТ по текущему весу. Не диагноз и не цель — граница, ниже которой
+ 5587|    приложение не строит снижение. */
+ 5588| function bmiNow(){
+ 5589|   const kg=curW(), h=(+S.h||0)/100;
+ 5590|   return (kg>0&&h>1&&h<2.6)?kg/(h*h):null;
+ 5591| }
+ 5592| /* Применение ИИ-правки калорий. Цель живёт в трёх местах с приоритетом
+ 5593|    (ручной калораж → план тренера → расчётная), поэтому «просто записать
+ 5594|    S.target» мало: пока активен план тренера, tg() возвращает его цифру —
+ 5595|    правка объявлялась в тосте, но до «Еды» не доходила (полевой кейс v152).
+ 5596|    Пишем туда, откуда цель реально читается. */
+ 5597| /* ── «ПРИЛОЖЕНИЕ СЧИТАЕТ КАК ХОЧЕТ» — ЕДИНСТВЕННЫЙ ОТВЕТ НА ЭТО ──
+ 5598|    Запрос владельца: журнал решений — когда и на сколько двигался таргет и от
+ 5599|    какой цифры. Это наш провенанс, и он единственный аргумент.
+ 5600|    Дыра была в главном месте: ручные и ИИ-правки калорий след оставляли, а
+ 5601|    САМА адаптация — та, ради которой продукт и существует, — двигала цель
+ 5602|    молча. Человек видел вчера 2450, сегодня 2380 и ниоткуда не мог узнать,
+ 5603|    почему. Молчащий алгоритм неотличим от произвольного.
+ 5604|    Пишем только НАСТОЯЩЕЕ движение: пересчёт при загрузке даёт ту же цифру,
+ 5605|    и запись «2450 → 2450» — это шум, который похоронит настоящие. Порог
+ 5606|    в 15 ккал — ниже него разница не меняет ни одного решения человека. */
+ 5607| const KCAL_SNAP_MIN=15;
+ 5608| function kcalSnap(было,стало,почему){
+ 5609|   try{
+ 5610|     if(!(было>0)||!(стало>0)) return;
+ 5611|     const d=Math.round(стало-было);
+ 5612|     if(Math.abs(d)<KCAL_SNAP_MIN) return;
+ 5613|     progSnap(почему,'Калории: '+(d>0?'+':'')+d+' ккал/день ('+r0(было)+' → '+r0(стало)+')');
+ 5614|   }catch(e){}
+ 5615| }
+ 5616| /* Строка «сегодня» для «Коуча» жила здесь до v565. Владелец перенёс дневной
+ 5617|    учёт на «Еду» («роль вкладки — стратегия, а не ежедневный учёт»), контейнер
+ 5618|    todayBar из разметки ушёл, и функция осталась считать в пустоту. Убрана
+ 5619|    в v566 вместе с вызовом в rCoach и осиротевшими стилями плит .ecard/.egrid.
+ 5620|    Цифры дня теперь живут в кольцах «Еды», это же стережёт гейт. */
+ 5621| /* Журнал решений по калориям — из общего лога, но глазами «Коуча»: здесь
+ 5622|    человек спрашивает «почему такая цифра», и ответ должен быть здесь же,
+ 5623|    а не в истории программы во вкладке зала (принцип контекста). */
+ 5624| function kcalLogHTML(){
+ 5625|   const L=[...(S.progLog||[])].filter(x=>x&&/ккал\/день/.test(x.txt||'')).reverse().slice(0,8);
+ 5626|   if(!L.length) return '';
+ 5627|   return `<details class="det" style="margin-top:8px"><summary class="mini">что менялось и почему<span class="mini" style="margin-left:auto">${L.length}</span></summary>
+ 5628|     <div style="margin-top:8px">${L.map(x=>`<div class="mini" style="color:var(--t2);margin-bottom:5px">
+ 5629|       <b style="color:var(--t3)">${fd(x.d)}</b> · ${esc(x.txt)} <span style="color:var(--t3)">— ${esc(x.src)}</span></div>`).join('')}
+ 5630|     <div class="mini" style="color:var(--t3);margin-top:8px">Каждая строка — момент, когда цель сдвинулась, и причина. Ничего не двигается само по себе и без следа.</div></div></details>`;
+ 5631| }
+ 5632| async function applyKcalAdj(d,src){
+ 5633|   const tgt=tg(); if(!tgt){ toast('Нет цели по калориям'); return false; }
+ 5634|   // Нижний кламп как у estTDEE: правка «−300» от маленькой цели не должна
+ 5635|   // уводить таргет к нулю и в минус (аудит 01.08: «Цель −150»)
+ 5636|   const k=Math.max(1200,r0(tgt.k+d));
+ 5637|   progSnap(src,'Калории: '+(d>0?'+':'')+d+' ккал/день ('+tgt.k+' → '+k+')');
+ 5638|   S.kcalManual=0;
+ 5639|   const inPlan=!!(S.plan&&S.plan.kcal);
+ 5640|   if(inPlan){ S.plan.kcal=k; S.plan.carbs=null; }   // углеводы выведутся заново из новой цели
+ 5641|   S.target=k;
+ 5642|   try{ await put('settings',S,'main'); }catch(_){}
+ 5643|   rFood(); rCoach();
+ 5644|   toast('Калории: '+k+(inPlan?' — обновлено и в плане тренера':''));
+ 5645|   return true;
+ 5646| }
+ 5647| async function recalc(force){
+ 5648|   const r=estTDEE(); if(!r.ok) return r;
+ 5649|   const days=S.lastCalc?dn(td())-dn(S.lastCalc):99;
+ 5650|   if(!force&&days<7) return{ok:1,skip:1};
+ 5651|   if(S.tdeeDay!==td()){ S.tdeeBase=S.tdee; S.tdeeDay=td(); }   // база дня — до первой записи
+ 5652|   /* МОМЕНТ, РАДИ КОТОРОГО ВСЁ И ЗАТЕВАЛОСЬ.
+ 5653|      Две недели человек записывает вес и еду, а приложение считает цель
+ 5654|      формулой по росту и возрасту — то есть по среднему человеку. И вот
+ 5655|      набралось столько, что расход считается по ЕГО данным: по тому, как
+ 5656|      реально поехал его вес против того, сколько он реально съел. Это главное
+ 5657|      обещание продукта, и до сих пор оно исполнялось молча — цифра просто
+ 5658|      менялась. Момент отмечаем один раз, датой: карточка живёт этот день и
+ 5659|      уходит сама (24.08). */
+ 5660|   if(S.tdee==null&&!S.tdeeFirst){ S.tdeeFirst=td(); }
+ 5661|   const _было=S.target;
+ 5662|   S.tdee=r.est; if(!(S.kcalManual>0)) S.target=r.est+S.rate*KPK/7; S.lastCalc=td();
+ 5663|   kcalSnap(_было,S.target,'расход пересчитан по факту');
+ 5664|   try{ await put('settings',S,'main'); }catch(_){} return r;
+ 5665| }
+ 5666| /* ══════════ ЦИКЛ ══════════
+ 5667|    Решение владельца 30.08: «это точно не на мне, я обычный мужчина». Значит
+ 5668|    решает не вкус, а данные. Разобрано:
+ 5669| 
+ 5670|    ЧЕГО МЫ НЕ ДЕЛАЕМ, И ЭТО ГЛАВНОЕ. Тренировки «по фазам цикла» — самая
+ 5671|    продаваемая функция в этой нише и одновременно самая пустая. Обзор в
+ 5672|    Strength & Conditioning Journal (2025): доказательств, что периодизация
+ 5673|    силовых по фазам даёт что-то сверх обычного подхода, НЕТ. Мета-анализ 78
+ 5674|    исследований (1193 участницы): падение работоспособности в раннюю
+ 5675|    фолликулярную фазу тривиальное. Зонтичный обзор 2023 по силе: фаза не
+ 5676|    влияет ни на разовую силу, ни на долгую адаптацию. Замер синтеза
+ 5677|    мышечного белка (2025): 1.52 % против 1.46 % в день — разницы нет.
+ 5678|    Поставить «на этой неделе лёгкие веса» значит поставить цифру, которую
+ 5679|    нечем обосновать. Правило владельца: цифра без здравого смысла хуже её
+ 5680|    отсутствия. Не ставим.
+ 5681| 
+ 5682|    ЧТО МЫ ДЕЛАЕМ. Ровно три вещи, и все три доказуемы:
+ 5683|    1) Вес по циклу гуляет на 1–3 кг (прогестерон задерживает воду в
+ 5684|       лютеиновой фазе). Наш адаптивный расход и строка «факт +0.3 кг/нед»
+ 5685|       считаются ИЗ ТРЕНДА ВЕСА. Для женщины в лютеиновой фазе приложение
+ 5686|       говорило «ты набираешь, режь калории» на воде. Это не недостающая
+ 5687|       фича, это наша сломанная цифра для половины аудитории.
+ 5688|    2) Сравнивать вес имеет смысл с ТЕМ ЖЕ ДНЁМ прошлого цикла, а не с
+ 5689|       прошлой неделей.
+ 5690|    3) Пропавший цикл на дефиците — красный флаг (RED-S), а не косметика.
+ 5691|       Приложение для похудения, которое это видит и молчит, — плохое
+ 5692|       приложение.
+ 5693| 
+ 5694|    ХРАНЕНИЕ. Только даты начала, массивом в настройках: двенадцать строк в
+ 5695|    год. Своего хранилища не заводим — значит отметки автоматически попадают
+ 5696|    в бэкап, в облако и под то же шифрование, что и всё остальное, и не
+ 5697|    требуют миграции базы. Ни симптомов, ни настроения, ни выделений мы не
+ 5698|    спрашиваем: это чужой продукт, у нас одна кнопка. */
+ 5699| function cycOn(){ return !!(S&&S.sex==='f'&&!S.cycOff); }
+ 5700| /* Отметки — новые первыми. Чистим на месте: строка, не похожая на дату,
+ 5701|    и дата из будущего в расчёт не идут (санитар грязных данных). */
+ 5702| function cycStarts(){
+ 5703|   const t=dn(td());
+ 5704|   return [...new Set((S&&S.cyc||[]).filter(d=>typeof d==='string'&&/^\d{4}-\d{2}-\d{2}$/.test(d)&&dn(d)<=t&&dn(d)>t-1500))]
+ 5705|     .sort((a,b)=>a<b?1:-1);
+ 5706| }
+ 5707| function cycStartOn(D){ const t=dn(D||td()); for(const d of cycStarts()) if(dn(d)<=t) return d; return null; }
+ 5708| /* День цикла: первый день менструации — день 1, как принято везде. */
+ 5709| function cycDay(D){ const st=cycStartOn(D); return st?dn(D||td())-dn(st)+1:null; }
+ 5710| /* Длины между отметками. Меньше 18 и больше 60 дней в среднее не берём:
+ 5711|    это либо двойная отметка, либо пропущенный цикл, и среднее от них врёт. */
+ 5712| function cycLens(){ const s=cycStarts(), out=[];
+ 5713|   for(let i=0;i<s.length-1;i++){ const L=dn(s[i])-dn(s[i+1]); if(L>=18&&L<=60) out.push(L); }
+ 5714|   return out;
+ 5715| }
+ 5716| function cycLenAvg(){ const L=cycLens(); return L.length?Math.round(L.reduce((a,b)=>a+b,0)/L.length):null; }
+ 5717| /* Тот же день предыдущего цикла — единственное честное сравнение веса. */
+ 5718| function cycPrevSame(D){
+ 5719|   const s=cycStarts(), st=cycStartOn(D); if(!st) return null;
+ 5720|   const i=s.indexOf(st); if(i<0||i+1>=s.length) return null;
+ 5721|   return ds(dn(s[i+1])+(dn(D||td())-dn(st)));
+ 5722| }
+ 5723| /* Дни, когда вес держит воду: менструация и вторая половина цикла.
+ 5724|    Границы намеренно грубые — точнее наши данные не позволяют, а точность
+ 5725|    здесь и не нужна: мы не назначаем тренировку, а объясняем весы. */
+ 5726| function cycWater(D){
+ 5727|   const d=cycDay(D); if(d==null) return false;
+ 5728|   const L=cycLenAvg()||28;
+ 5729|   /* Цикл задержался больше чем на десять дней — фазы мы больше не знаем, и
+ 5730|      списывать вес на воду нечестно. Поймано на своём же скриншоте: на 51-м
+ 5731|      дне приложение писало «сейчас вода», хотя это уже другой разговор,
+ 5732|      и о нём говорит красный флаг выше, а не строка про весы. */
+ 5733|   if(d>L+10) return false;
+ 5734|   return d<=5||d>L-8;
+ 5735| }
+ 5736| function cycGap(D){ const st=cycStartOn(D); return st?dn(D||td())-dn(st):null; }
+ 5737| /* ── КРАСНЫЙ ФЛАГ: ЦИКЛ ПРОПАЛ НА ДЕФИЦИТЕ ──
+ 5738|    Самая частая реальная вредность приложения для похудения у женщин:
+ 5739|    дефицит плюс тренировки — цикл уходит — падает плотность костей (RED-S).
+ 5740|    Мы не ставим диагноз: контрацепция без перерывов и беременность дают ту
+ 5741|    же картину. Мы называем риск, даём действие и даём убрать. */
+ 5742| function redsFlag(){
+ 5743|   if(!cycOn()) return null;
+ 5744|   const g=cycGap(td()); if(g==null||g<45) return null;
+ 5745|   if(S.redsAck&&dn(td())-dn(S.redsAck)<60) return null;
+ 5746|   let def=(+S.rate<0);
+ 5747|   if(!def){ try{ const a=actRate(); def=(a!=null&&a<-0.1); }catch(e){} }
+ 5748|   return def?{days:g}:null;
+ 5749| }
+ 5750| function actRate(){
+ 5751|   const T=trend(); if(T.length<10) return null;
+ 5752|   const L=T[T.length-1], from=dn(L.d)-27, w=T.filter(x=>dn(x.d)>=from);
+ 5753|   if(w.length<8) return null;
+ 5754|   const n=dn(L.d)-dn(w[0].d); if(n<10) return null;
+ 5755|   return (L.tr-w[0].tr)/(n/7);
+ 5756| }
+ 5757| /* v282 (правило владельца): между «в цель» и «мимо» должна быть серая полоса.
+ 5758|    Иначе 0.01 кг/нед решает, зелёная цифра или тревожная — и человек каждый
+ 5759|    день видит «провал» там, где ничего не случилось. Тот же принцип, что и
+ 5760|    коридор ±5% по калориям: акцент — попал, нейтрально — рядом, тревога —
+ 5761|    реально мимо. */
+ 5762| function rateCol(a){
+ 5763|   const d=Math.abs(a-S.rate);
+ 5764|   return d<0.2?'var(--ac)':d<0.4?'var(--t2)':'var(--wn)';
+ 5765| }
+ 5766| /* ЦЕЛЬ ПО ВЕСУ И ПРОГНОЗ (MacroFactor/Happy Scale — механика, которой люди
+ 5767|    пользуются каждую неделю). Приложение знало ТЕМП, но не знало, куда человек
+ 5768|    идёт: «−0.5 кг/нед» без финиша — это процесс без смысла. Теперь знает и оно,
+ 5769|    и тренер. Правила честности: считаем по ФАКТИЧЕСКОМУ темпу (план говорит о
+ 5770|    намерении, факт — о реальности), а если факта мало, так и говорим. Дату не
+ 5771|    выдумываем: стоит вес или движение идёт в другую сторону — пишем это прямо,
+ 5772|    а не рисуем красивый декабрь. */
+ 5773| function goalETA(){
+ 5774|   const g=+S.wGoal||0; if(!(g>0)) return null;
+ 5775|   const cur=curW(); if(cur==null) return null;
+ 5776|   const left=r1(g-cur);                                  // + набирать, − сбрасывать
+ 5777|   if(Math.abs(left)<0.3) return{g,cur,left,done:1};
+ 5778|   const act=actRate(), plan=+S.rate||0;
+ 5779|   const byPlan=!(act!=null&&Math.abs(act)>=0.05);
+ 5780|   // Считаем ПО ТОЙ ЖЕ цифре, что показываем. Иначе выходит «осталось 5.2 кг
+ 5781|   // при −0.4 кг/нед — это ~12 недель», и внимательный человек ловит нас на
+ 5782|   // арифметике (5.2/0.4 = 13): доверие рушится быстрее, чем строится.
+ 5783|   const use=r1(byPlan?(Math.abs(plan)>=0.05?plan:null):act)||null;
+ 5784|   if(use==null) return{g,cur,left,stall:1,byPlan};
+ 5785|   if(use*left<0) return{g,cur,left,wrongWay:1,rate:use,byPlan};
+ 5786|   const weeks=Math.abs(left/use);
+ 5787|   if(weeks>104) return{g,cur,left,tooFar:1,rate:use,weeks,byPlan};
+ 5788|   return{g,cur,left,rate:use,weeks,date:ds(dn(td())+Math.round(weeks*7)),byPlan};
+ 5789| }
+ 5790| function goalETAText(){
+ 5791|   /* Строка-данные, а не абзац. До 27.08 она читалась как предложение
+ 5792|      («при темпе −0.5 кг/нед это ~13 недель, ориентировочно 20 ноября») и
+ 5793|      была самой длинной прозой на «Коуче». Цифры от этого не изменились —
+ 5794|      изменилось только то, сколько времени нужно, чтобы их прочитать. */
+ 5795|   const e=goalETA(); if(!e) return '';
+ 5796|   const src=e.byPlan?' · темп плановый':'';
+ 5797|   if(e.done) return 'Ты на цели · дальше удержание';
+ 5798|   const go='Осталось '+(e.left>0?'набрать ':'сбросить ')+r1(Math.abs(e.left))+' кг';
+ 5799|   const rt=(e.rate>0?'+':'')+r1(e.rate)+' кг/нед';
+ 5800|   if(e.stall) return go+' · темп нулевой · даты нет';
+ 5801|   if(e.wrongWay) return go+' · вес идёт в другую сторону ('+rt+')'+src+' · даты нет';
+ 5802|   if(e.tooFar) return go+' · при '+rt+' это больше двух лет'+src;
+ 5803|   const w=Math.round(e.weeks);
+ 5804|   return go+' · '+rt+' · ~'+w+' '+plural(w,'неделя','недели','недель')+' · ориентир '+fd(e.date)+src;
+ 5805| }
+ 5806| async function setGoalW(){
+ 5807|   const cur=+S.wGoal||'';
+ 5808|   const v=await askText({title:'Целевой вес',label:'кг · пусто — убрать цель',value:cur,type:'number',ok:'Сохранить'});
+ 5809|   if(v===null) return;
+ 5810|   const n=num(v);
+ 5811|   if(!(n>0)){ delete S.wGoal; await put('settings',S,'main').catch(()=>{}); rCoach(); return toast('Цель по весу убрана'); }
+ 5812|   if(n<35||n>250) return toast('Похоже на опечатку: цель 35–250 кг');
+ 5813|   S.wGoal=r1(n);
+ 5814|   await put('settings',S,'main').catch(()=>{});
+ 5815|   rCoach();
+ 5816|   toast('Целевой вес: '+r1(n)+' кг');
+ 5817| }
+ 5818| /* Множитель активности для ПЕРВОЙ прикидки расхода — до того, как наберутся
+ 5819|    две недели весов и адаптивный расчёт заменит её фактом.
+ 5820|    Раньше здесь стояло глухое 1.5 для всех, и приложение спорило само с собой:
+ 5821|    цель по шагам оно ставило честно (сидячему 6000, работающему на ногах
+ 5822|    10000), а калории считало всем как ходящему десять тысяч. Человеку с
+ 5823|    сидячей работой это дарит лишних 250–350 ккал в день: он две недели ест
+ 5824|    «по цели», не худеет и уходит — ровно в те первые четырнадцать дней, за
+ 5825|    которые и решается, останется он или нет (аудит 20.08).
+ 5826|    База — от занятости, надбавки — за тренировочные дни и за реальную ходьбу,
+ 5827|    которую человек сам отметил в анкете. */
+ 5828| function actK(){
+ 5829|   // Про кого ничего не известно — умеренная середина: занизить цель тоже плохо,
+ 5830|   // слишком жёсткий дефицит кончается срывом, а не результатом.
+ 5831|   const base=S.workType==='feet'?1.5:S.workType==='free'?1.4:S.workType==='desk'?1.3:1.4;
+ 5832|   const days=Math.min(6,+((S.prog&&S.prog.cfg&&S.prog.cfg.days))||0);
+ 5833|   const walk=Math.min(4,(S.walkSlots||[]).length);
+ 5834|   return Math.min(1.8, base+days*0.03+walk*0.015);
+ 5835| }
+ 5836| function seed(){
+ 5837|   const kg=curW(); if(!kg) return;
+ 5838|   const bmr=bmrOf(kg); if(!bmr) return;
+ 5839|   /* Та же граница, что и в tg(): при ИМТ ниже 18.5 снижение не строим. Раньше
+ 5840|      она жила только в tg() и включалась лишь с появлением адаптивного расхода,
+ 5841|      а цель ставится вот здесь и прямо сейчас — стартовым пакетом, первым
+ 5842|      взвешиванием, кнопкой «Сохранить» в настройках (аудит 22.08). */
+ 5843|   const _bmi=bmiNow();
+ 5844|   const _rate=(_bmi!=null&&_bmi<18.5&&(+S.rate||0)<0)?0:(+S.rate||0);
+ 5845|   S.target=Math.max(kcalFloor(), bmr*actK()+_rate*KPK/7);
+ 5846| }
+ 5847| 
+ 5848| /* ══════════════ EXERCISES ══════════════ */
+ 5849| const MUS={chest:'Грудь',back:'Спина',delts:'Плечи',biceps:'Бицепс',triceps:'Трицепс',
+ 5850| quads:'Квадрицепс',hams:'Бицепс бедра',glutes:'Ягодицы',calves:'Икры',abs:'Пресс'};
+ 5851| /* Половина тела для каждой группы: блок специализации не должен класть икры
+ 5852|    в день «Верх», а жим лёжа — в «Низ» (полевая находка 19.08). Пресс
+ 5853|    нейтрален: его добирают в любой день. */
+ 5854| const HALF={chest:'up',back:'up',delts:'up',biceps:'up',triceps:'up',
+ 5855| quads:'dn',hams:'dn',glutes:'dn',calves:'dn',abs:'any'};
+ 5856| /* Weekly hard-set landmarks — heuristics (Israetel et al.), huge individual variance. */
+ 5857| const LM={chest:[8,12,20,22],back:[10,14,22,25],delts:[8,16,22,26],biceps:[8,14,20,26],
+ 5858| triceps:[6,10,14,18],quads:[8,12,18,20],hams:[6,10,16,20],glutes:[4,8,16,20],calves:[8,12,16,20],abs:[0,16,20,25]};
+ 5859| /* Подгруппы мышц для навигации и акцентов: Спина → широчайшие/трапеции/разгибатели и т.д.
+ 5860|    База по-прежнему считает объём по 10 основным группам — подгруппы уточняют, а не заменяют. */
+ 5861| const SUBM={
+ 5862|  back:{lats:'Широчайшие',traps:'Трапеции',erect:'Разгибатели спины'},
+ 5863|  delts:{d_f:'Передняя дельта',d_s:'Средняя дельта',d_r:'Задняя дельта'},
+ 5864|  chest:{ch_u:'Верх груди',ch_m:'Середина груди',ch_l:'Низ груди'},
+ 5865|  abs:{ab_r:'Прямая мышца',ab_o:'Косые',ab_c:'Кор-статика'},
+ 5866|  calves:{ca_g:'Икроножная (стоя)',ca_s:'Камбаловидная (сидя)'},
+ 5867|  /* Добавлено 21.08 по замечанию владельца («спина — это группа, в которую
+ 5868|     входит куча других»). Делим только там, где деление МЕНЯЕТ решение: у
+ 5869|     подгруппы должно быть своё семейство упражнений, которое ничем другим не
+ 5870|     заменяется. Иначе это не подгруппа, а украшение экрана.
+ 5871|     Трицепс: длинная головка тянется только при поднятом плече — программа из
+ 5872|       одних жимов вниз её недогружает, а она самая крупная из трёх.
+ 5873|     Квадрицепс: прямая мышца идёт через два сустава, в приседе она укорочена
+ 5874|       сверху и работает вполсилы; разгибания ног — единственный её вход.
+ 5875|     Бицепс бедра: сгибание колена и разгибание бедра — разные функции, и
+ 5876|       программа из одних румынских тяг оставляет короткую головку без работы.
+ 5877|     Ягодицы: средняя и малая включаются только на отведении; их слабость —
+ 5878|       обычная причина заваливания колена внутрь, а присед их не чинит.
+ 5879|     Бицепс: длинная и короткая головки нагружаются по положению плеча, а
+ 5880|       брахиалис — обратным и нейтральным хватом.
+ 5881|     Глубже (пучки трапеции, головки квадрицепса) не идём: на этом уровне уже
+ 5882|     нет ни отдельных упражнений, ни решений, которые от него зависят. */
+ 5883|  triceps:{tr_lg:'Длинная головка (руки над головой)',tr_lat:'Боковая и медиальная (жимы вниз)'},
+ 5884|  quads:{q_rf:'Прямая мышца бедра',q_vas:'Широкие мышцы бедра'},
+ 5885|  hams:{h_kn:'Сгибание колена',h_hip:'Разгибание бедра'},
+ 5886|  glutes:{g_max:'Большая ягодичная',g_med:'Средняя и малая (отведение)'},
+ 5887|  biceps:{bi_l:'Длинная головка',bi_s:'Короткая головка',bi_br:'Брахиалис и предплечье',bi_f:'Хват и сгибатели запястья'}
+ 5888| };
+ 5889| const SUBN=Object.assign({},...Object.values(SUBM));
+ 5890| const EX=[
+ 5891| {n:'Приседания со штангой',m:{quads:1,glutes:1,hams:.5,abs:.5},sub:['q_vas','g_max'],
+ 5892|  c:['Штанга на верхней части трапеций, лопатки сведены и «выключены»','Стопа полностью на полу, вес по центру свода','Вдох в живот, напряги пресс — жёсткий корпус перед стартом','Колени идут ровно по линии носков, не заваливаются внутрь','Опускайся до глубины, где таз ещё не подворачивается'],
+ 5893|  e:['«Клевок» тазом внизу — опускаешься глубже своей подвижности','Колени внутрь на подъёме — слабые ягодичные или слишком большой вес','Подъём таза раньше плеч — превращается в наклон со штангой','Отрыв пяток — не хватает подвижности голеностопа']},
+ 5894| {n:'Жим лёжа',m:{chest:1,triceps:.5,delts:.5},sub:['ch_m'],
+ 5895|  c:['Лопатки сведены и опущены, грудь вверх — это фундамент','Пять точек опоры: голова, лопатки, таз, две стопы','Хват чуть шире плеч, запястья прямые над локтями','Штанга опускается к низу груди, не к ключицам','Локти под ~45–70° к корпусу, не в стороны на 90°'],
+ 5896|  e:['Отбив от груди — теряешь контроль и грузишь рёбра','Локти строго в стороны — лишний стресс на плечевой сустав','Отрыв таза до полного моста без нужды','Неравномерный подъём — одна сторона обгоняет']},
+ 5897| {n:'Становая тяга',m:{back:1,hams:1,glutes:1,quads:.5},sub:['erect','h_hip','g_max'],rr:[4,8],
+ 5898|  c:['Штанга над серединой стопы, голень почти касается грифа','Спина нейтральная — не прогнута и не круглая','«Выдави пол ногами», а не «тяни спиной»','Штанга скользит по бедру, не уходит вперёд','Локти прямые, плечи чуть впереди грифа на старте'],
+ 5899|  e:['Круглая поясница — самый быстрый путь к грыже, останови подход','Рывок со старта вместо плавного набора натяжения','Гиперэкстензия в конце — откидывание назад ничего не даёт','Штанга уезжает вперёд от голени — плечо силы растёт']},
+ 5900| {n:'Подтягивания',m:{back:1,biceps:.5},sub:['lats'],
+ 5901|  c:['Возьмись за перекладину чуть шире плеч, хват сверху, большой палец обхватывает гриф — так кисть не соскользнёт','Из виса опусти лопатки вниз и сведи к позвоночнику — движение стартует со спины, а не с рук','Подтягивайся, ведя грудь к перекладине и разводя локти вниз-назад, а не сгибая только бицепс','В верхней точке подбородок над грифом, грудь почти касается — задержись на миг и сожми лопатки','Опускайся подконтрольно до полного выпрямления рук — эксцентрика растит спину не хуже подъёма','Держи корпус слегка напряжённым, ноги вместе — не раскачивайся, чтобы не читинговать инерцией'],
+ 5902|  e:['Рывок и раскачка корпусом — нагрузка уходит с широчайших, растёт риск сорвать бицепс и плечо','Неполная амплитуда, подбородок не доходит до грифа — спина недорабатывает и не растёт','Полностью расслабленные плечи в нижней точке — виснешь на связках, а не на мышцах, травма плеча','Тянешь только руками, локти вперёд — работает бицепс вместо спины, широчайшие выключены']},
+ 5903| {n:'Жим гантелей на наклонной',m:{chest:1,delts:.5,triceps:.5},sub:['ch_u'],
+ 5904|  c:['Выставь спинку на 30–45°, сядь и закинь гантели на бёдра, затем ляг, забросив их к плечам','Лопатки сведи и прижми к скамье, грудь колесом, поясница в естественном прогибе — это опора','Гантели на уровне верха груди, локти под запястьями, слегка увести их от корпуса градусов на 45','Опускай подконтрольно, пока гантели не окажутся по бокам груди и не почувствуешь растяжение','Выжимай вверх по слегка сходящейся дуге, гантели идут навстречу, но не стукаются — сожми грудь сверху','Не разгибай локти в замок жёстко и не пожимай плечами — держи лопатки прижатыми весь подход'],
+ 5905|  e:['Слишком крутой наклон под 60° и выше — нагрузка уходит в передние дельты, верх груди недополучает','Локти строго в стороны на 90° — плечевой сустав в зоне удара, риск импинджмента и травмы','Отрыв лопаток и плеч от скамьи в погоне за весом — теряешь стабильность, грудь работает вполсилы','Стук гантелей вверху и бросок вниз — теряешь контроль и растяжение, толку от повтора мало']},
+ 5906| {n:'Тяга штанги в наклоне',m:{back:1,biceps:.5},sub:['lats', 'traps'],
+ 5907|  c:['Стопы на ширине таза, возьми штангу хватом сверху чуть шире плеч, колени мягко согни','Наклонись от таза до угла 45° или ниже, спина прямая, поясница в прогибе, взгляд в пол перед собой','Штанга висит под плечами, лопатки распусти вниз — стартуй тягу с подведения лопаток к позвоночнику','Тяни гриф к низу живота/поясу, локти скользят вдоль корпуса назад, а не в стороны','В верхней точке сожми лопатки и задержись на миг — почувствуй сокращение спины, не рук','Опускай штангу подконтрольно до полного растяжения широчайших, корпус держи неподвижным'],
+ 5908|  e:['Круглая спина под нагрузкой — прямая дорога к грыже и срыву поясницы, самая опасная ошибка','Рывок корпусом вверх и раскачка — тянешь инерцией, спина недорабатывает, читинг вместо тяги','Тяга к груди с локтями в стороны при узкой задаче на широчайшие — акцент уходит в задние дельты','Выпрямление корпуса почти вертикально по ходу подхода — амплитуда рушится, спина выключается']},
+ 5909| {n:'Армейский жим стоя',m:{delts:1,triceps:.5,abs:.5},sub:['d_f', 'd_s'],
+ 5910|  c:['Стопы на ширине таза, штанга на верхе груди, хват чуть шире плеч, локти чуть впереди грифа','Напряги пресс и ягодицы, рёбра вниз — жёсткий корпус не даёт прогнуться в пояснице','Убери подбородок и выжимай штангу строго вверх по прямой над серединой стопы','Как гриф прошёл лоб — верни голову на место, штанга идёт над макушкой, локти под грифом','Вверху полностью выпрями руки и уведи плечи к ушам, гриф над центром тела — это замок','Опускай подконтрольно на верх груди, не роняй — эксцентрика тоже часть работы дельт'],
+ 5911|  e:['Прогиб в пояснице и жим корпусом назад — превращаешь в наклонный жим и грузишь позвоночник','Жим по дуге вперёд перед лицом — плечо в невыгодной позиции, теряешь силу и рискуешь суставом','Помощь ногами (толчок коленями) без задачи на швунг — читинг, дельты недополучают нагрузку','Неполный локаут вверху — плечи недорабатывают в самой продуктивной верхней фазе']},
+ 5912| {n:'Румынская тяга',m:{hams:1,glutes:1,back:.5},sub:['h_hip','g_max'],rr:[6,10],
+ 5913|  c:['Сними штангу со стоек, встань, стопы на ширине таза, гриф у бёдер, хват чуть шире таза','Колени слегка согни и зафиксируй угол — они почти не двигаются всю тягу','Отведи таз назад и опускай штангу вдоль ног, гриф скользит по бёдрам — веди тазом, не спиной','Спина прямая, лопатки сведены, штанга близко к ногам — опускайся, пока не поймаешь растяжение бицепса бедра','Дошёл до середины голени или куда пускает растяжка — не гонись за полом, спина важнее','Выйди наверх, толкая таз вперёд и сжимая ягодицы, до полного выпрямления — без переразгибания'],
+ 5914|  e:['Округление поясницы при опускании — критическая нагрузка на диски, риск грыжи','Тяга за счёт приседа с уходом коленей вперёд — превращаешь в становую, бицепс бедра выключается','Штанга уходит далеко от ног — плечо рычага растёт, поясница перегружена','Переразгибание корпуса назад вверху с прогибом — лишний стресс на поясницу без пользы']},
+ 5915| {n:'Жим ногами',m:{quads:1,glutes:.5,hams:.5},sub:['q_vas','g_max'],   // 45° платформа с блинами; ролик machine-leg-press — это она (постер проверен 24.09, v654; в v547 его ошибочно сочли сидячим стеком)
+ 5916|  c:['Сядь в тренажёр, спина и таз плотно к спинке, стопы на платформе на ширине плеч по центру','Носки чуть развёрнуты наружу, колени по линии носков — не заваливай внутрь','Сними платформу со стопоров, выпрями ноги почти полностью, но колени не защёлкивай в замок','Опускай платформу подконтрольно, сгибая ноги, пока бёдра не подойдут к животу под прямым углом','Держи поясницу прижатой — как только таз начинает подкручиваться, ты опустил слишком глубоко','Выжимай через пятки, ведя колени наружу, до почти прямых ног — не отрывай пятки от платформы'],
+ 5917|  e:['Отрыв таза и скругление поясницы в нижней точке — прямая нагрузка на позвоночник, риск травмы','Заваливание коленей внутрь под весом — перегрузка связок колена, износ сустава','Защёлкивание коленей в замок вверху — удар по суставу и потеря напряжения в мышцах','Давление носками с оторванными пятками — колени уходят вперёд, нагрузка с ног уходит на сустав']},
+ 5918| {n:'Подъём на бицепс со штангой',m:{biceps:1},sub:['bi_l','bi_s'],
+ 5919|  c:['Встань прямо, стопы на ширине таза, возьми штангу хватом снизу на ширине плеч','Прижми локти к бокам корпуса — они точка вращения и не должны гулять вперёд-назад','Плечи расправь, корпус напряги — стартуй сгибание без раскачки, работает только предплечье','Поднимай штангу до сокращения бицепса, не доводя предплечье до вертикали — сохрани напряжение','Вверху сожми бицепс на миг, не закидывай гриф к плечам движением локтей вперёд','Опускай подконтрольно до полного выпрямления рук — медленная эксцентрика даёт рост'],
+ 5920|  e:['Раскачка корпусом и заброс веса инерцией — бицепс недорабатывает, грузишь поясницу','Вынос локтей вперёд в верхней фазе — нагрузка уходит с бицепса, превращается в передний мах','Неполное выпрямление рук внизу — режешь амплитуду, бицепс не растягивается и не растёт','Кисти заламываются назад под весом — нагрузка утекает в предплечья, риск тендинита запястья']},
+ 5921| {n:'Французский жим',m:{triceps:1},sub:['tr_lg','tr_lat'],
+ 5922|  c:['Ляг на скамью, возьми EZ-гриф узким хватом сверху, выжми руки вертикально над плечами','Сведи лопатки, зафиксируй плечи вертикально — двигается только предплечье, локти на месте','Согни руки, опуская гриф ко лбу или чуть за голову — локти держи параллельно, не разводи','Опускай подконтрольно до растяжения трицепса, чувствуй нагрузку по задней стороне руки','Разгибай руки, выжимая гриф вверх в исходную, и сожми трицепс в верхней точке','Не выпрямляй локти в жёсткий замок рывком — контроль важнее, сустав скажет спасибо'],
+ 5923|  e:['Разведение локтей в стороны — нагрузка размазывается, трицепс теряет акцент, страдает локоть','Движение плечами (локти гуляют вперёд-назад) — превращается в жим, трицепс недорабатывает','Слишком тяжёлый вес с рывком у лба — реальный риск уронить гриф на лицо, опасно','Неполное разгибание вверху — теряешь пиковое сокращение, самую важную фазу для трицепса']},
+ 5924| {n:'Разведения гантелей в стороны',m:{delts:1},sub:['d_s'],
+ 5925|  c:['Встань прямо, гантели по бокам, корпус чуть наклони вперёд, локти слегка согнуты и зафиксированы','Плечи опусти от ушей, лопатки нейтральны — веди движение локтями, а не кистями','Разводи руки в стороны через локти, будто выливаешь воду из кувшинов — мизинец чуть выше большого','Поднимай до уровня плеч, не выше — над горизонталью включается трапеция и крадёт нагрузку','В верхней точке пауза на миг, почувствуй среднюю дельту, затем опускай медленно','Не роняй гантели вниз — подконтрольная эксцентрика важнее веса, держи напряжение в дельтах'],
+ 5926|  e:['Заброс гантелей рывком и раскачка корпусом — мах инерцией, средняя дельта почти не работает','Подъём локтей выше плеч — нагрузка уходит в трапецию, плечи недополучают','Ведёшь кистями вперёд локтей, руки прямые — грузишь передний пучок и связки, а не средний','Слишком большой вес с согнутыми почти в тягу руками — превращается в подтягивание, техника рушится']},
+ 5927| {n:'Сгибание ног лёжа',m:{hams:1},sub:['h_kn'],
+ 5928|  c:['Ляг лицом вниз, валик ложится на заднюю сторону голени чуть выше пяток, колени за краем скамьи','Возьмись за рукояти, таз прижми к скамье — не давай ему отрываться в ходе движения','Стопы держи нейтрально или носки на себя — так лучше включается бицепс бедра','Сгибай ноги, подводя валик к ягодицам за счёт бицепса бедра, без рывка','В верхней точке сожми заднюю поверхность бедра на миг — пик сокращения решает','Опускай подконтрольно почти до прямых ног, сохраняя напряжение — не бросай валик вниз'],e:['Отрыв таза от скамьи при сгибании — читинг поясницей, бицепс бедра недорабатывает, стресс на спину','Рывок и заброс веса инерцией — теряешь контроль, риск потянуть заднюю поверхность','Неполное опускание, работа в четверть амплитуды — мышца не растягивается и растёт медленно','Слишком тяжёлый вес с отрывом корпуса — колено в невыгодной позиции, износ сустава']},
+ 5929| {n:'Подъём на носки',eq:'свой вес',m:{calves:1},sub:['ca_g'],
+ 5930|  c:['Встань носками на возвышение, пятки на весу, вес тела распредели на подушечки стоп','Корпус держи прямо, колени почти выпрямлены и зафиксированы — работает только голеностоп','Опусти пятки вниз до максимального растяжения икры — почувствуй тянущее внизу голени','Поднимись на носки максимально высоко, выталкивая тело через большие пальцы','В верхней точке пауза на секунду и сильное сжатие икры — амплитуда без паузы бесполезна','Опускайся медленно и подконтрольно — икры любят долгую эксцентрику и полную растяжку'],
+ 5931|  e:['Пружинящие короткие качки без амплитуды — икра работает в четверть, роста почти нет','Сгибание коленей и подсед — нагрузка уходит с икроножной, помогаешь квадрицепсом','Заваливание на внешнюю сторону стоп — перегрузка голеностопа, риск подвернуть','Отсутствие растяжки внизу — режешь нижнюю фазу, где икра нагружена сильнее всего']},
+ 5932| {n:'Планка',m:{abs:1},sub:['ab_c'],
+ 5933|  c:['Обопрись на предплечья под плечами и носки, тело в одну прямую линию от макушки до пяток','Подверни таз, напряги пресс и ягодицы — поясница нейтральна, без провала и без горба','Сведи лопатки от ушей, толкайся предплечьями в пол — плечи стабильны, грудь не проваливается','Смотри в пол перед руками, шея — продолжение позвоночника, не задирай и не роняй голову','Дыши ровно и держи всё тело в тонусе — планка это напряжение, а не просто вис на времени','Держи до момента, когда таз начинает падать — сорвалась линия, заканчивай подход'],e:['Провал поясницы и таза вниз — нагрузка уходит на позвоночник, пресс выключен, риск для спины','Задранный вверх таз горкой — облегчаешь себе задачу, кор почти не работает','Задранная или уронённая голова — перенапряжение шеи, ломается линия позвоночника','Задержка дыхания ради удержания — растёт давление, теряешь контроль над корпусом']},
+ 5934| {n:'Скручивания',m:{abs:1},sub:['ab_r'],
+ 5935|  c:['Встань на колени спиной или лицом к верхнему блоку, возьми канат у макушки, локти согнуты','Зафиксируй канат у головы или шеи, таз и бёдра неподвижны — двигается только корпус','Начни движение со скручивания рёбер к тазу, округляя спину, а не с наклона от бёдер','Тяни локтями к бёдрам за счёт пресса, подкручивая таз навстречу — выдох на усилии','В нижней точке сожми пресс на миг, почувствуй сокращение, а не тягу руками','Возвращайся подконтрольно, разгибая позвоночник позвонок за позвонком, сохраняя напряжение'],e:['Тяга веса руками и плечами вместо скручивания корпусом — пресс почти не работает','Движение от тазобедренного сустава прямой спиной — превращается в наклон, а не в скручивание','Рывки и раскачка ради веса — теряешь напряжение пресса, грузишь поясницу','Полное распрямление вверху с расслаблением — напряжение уходит, эффективность падает']},
+ 5936| {n:'Тяга верхнего блока',m:{back:1,biceps:.5},sub:['lats'],
+ 5937|  c:['Сядь, зафиксируй бёдра валиками, возьми гриф хватом сверху шире плеч, руки прямые вверху','Слегка отклони корпус назад градусов на 15–20 и зафиксируй, грудь подай вверх к грифу','Стартуй тягу с опускания лопаток вниз — сначала лопатки, потом руки, а не наоборот','Тяни гриф к верху груди, ведя локти вниз и назад вдоль корпуса — не за голову','В нижней точке коснись груди и сожми лопатки на миг — почувствуй широчайшие','Возвращай гриф вверх подконтрольно до полного растяжения спины, не роняй рывком'],e:['Тяга за голову — плечи в уязвимой позиции, риск импинджмента, а широчайшие работают хуже','Заброс корпуса назад и раскачка — тянешь весом тела, спина недорабатывает, читинг','Тяга согнутыми первыми руками без лопаток — работает бицепс вместо спины','Неполное растяжение вверху, руки не выпрямляются — режешь амплитуду, широчайшие недорабатывают']},
+ 5938| {n:'Отжимания на брусьях',m:{chest:1,triceps:1,delts:.5},sub:['ch_l','tr_lat'],
+ 5939|  c:['Запрыгни на брусья на прямые руки, хват по ширине плеч, плечи опущены от ушей','Для акцента на грудь наклони корпус вперёд, ноги слегка выведи назад и скрести','Опускайся подконтрольно, разводя локти назад, пока плечо не дойдёт до параллели с полом','Не проваливайся ниже комфортного растяжения груди — глубже плечо уходит в опасную зону','Выжимайся вверх через ладони, сохраняя наклон корпуса, и сожми грудь и трицепс сверху','Вверху почти выпрями руки, но не роняй плечи и не пожимай ими — держи лопатки стабильными'],
+ 5940|  e:['Слишком глубокий провал ниже параллели — растяжение передней дельты и связок, риск травмы плеча','Пожимание плечами вверху и проваленные лопатки внизу — нестабильный сустав под нагрузкой','Раскачка и рывки ногами для инерции — читинг, целевые мышцы недорабатывают','Строго вертикальный корпус при задаче на грудь — вся нагрузка уходит в трицепс, грудь молчит']},
+ 5941| {n:'Гиперэкстензия',m:{glutes:1,hams:1,back:.5},sub:['erect','h_hip','g_max'],
+ 5942|  c:['Настрой тренажёр: валики чуть ниже гребней таза, стопы упри в платформу, пятки зафиксированы','Скрести руки на груди или убери за голову, тело вытяни в прямую линию','Опускай корпус вниз, сгибаясь в тазобедренном суставе, спина остаётся прямой — гнёшься от таза','Опустись до угла около 60–90°, пока не поймаешь растяжение бицепса бедра и ягодиц','Поднимайся за счёт ягодиц и задней поверхности бедра до линии тела — без переразгибания','Вверху сожми ягодицы на миг и остановись на прямой линии — не прогибайся назад с ротацией'],e:['Переразгибание корпуса назад с прогибом вверху — компрессия поясничных дисков, лишний риск','Округление спины при опускании — нагрузка с ягодиц уходит на позвоночник, опасно','Рывки и раскачка корпусом — теряешь контроль, целевые мышцы недорабатывают','Слишком высокая посадка валиков на живот — блокирует сгибание в тазобедренном, гнёшься поясницей']},
+ 5943| {n:'Болгарские выпады',m:{quads:1,glutes:1},sub:['q_vas','g_max'],
+ 5944|  c:['Встань спиной к скамье, закинь на неё носок задней ноги, рабочая нога в шаге впереди','Корпус слегка наклони вперёд, пресс в тонусе, взгляд перед собой — так стабильнее','Опускайся вниз, сгибая переднюю ногу, колено идёт по направлению носка над стопой','Опустись, пока переднее бедро не станет параллельно полу, заднее колено тянется к полу','Держи вес на пятке передней ноги — не заваливай колено внутрь и не выноси далеко за носок','Выжимайся вверх через пятку передней ноги, сохраняя равновесие, без толчка задней'],
+ 5945|  e:['Заваливание переднего колена внутрь под нагрузкой — перегрузка связок, износ сустава','Слишком короткий шаг, колено уходит далеко за носок — сдвиг нагрузки на сустав и надколенник','Перенос веса на заднюю ногу и толчок ею — целевая передняя нога недорабатывает','Заваленный вбок или скрученный корпус ради баланса — теряешь стабильность, страдает поясница']},
+ 5946| {n:'Жим гантелей лёжа',m:{chest:1,triceps:.5,delts:.5},sub:['ch_m'],
+ 5947|  c:['Сядь на горизонтальную скамью, гантели на бёдрах, ляг, закинув их к плечам коленями','Сведи лопатки и прижми к скамье, грудь колесом, стопы плотно в пол — создай жёсткую опору','Гантели на уровне середины груди, локти под запястьями, уведи их от корпуса на 45°, не в стороны','Опускай подконтрольно, пока гантели не окажутся по бокам груди и не поймаешь растяжение','Выжимай вверх по сходящейся дуге, гантели идут навстречу, не стукаясь — сожми грудь сверху','Держи лопатки прижатыми весь подход, не пожимай плечами и не разгибай локти в жёсткий замок'],
+ 5948|  e:['Локти строго в стороны под 90° — плечевой сустав под ударом, риск импинджмента','Отрыв лопаток и таза от скамьи ради веса — теряешь опору и стабильность, грудь недорабатывает','Стук гантелей вверху и бросок вниз — теряешь контроль и растяжение, повтор впустую','Неполное опускание без растяжения груди — режешь амплитуду, грудные не прорабатываются полностью']},
+ 5949| {n:'Тяга гантели одной рукой',m:{back:1,biceps:.5},sub:['lats'],
+ 5950|  c:['Упри одноимённые колено и ладонь в скамью, свободную ногу поставь на пол — три точки опоры дают жёсткую платформу','Спина ровная, почти параллельна полу, гантель висит на прямой руке под плечом','Веди локоть вдоль корпуса назад и вверх, тяни к поясу, а не к плечу','Наверху доводи лопатку к позвоночнику — сокращай спину, а не докручивай бицепсом','Опускай подконтрольно до полного растяжения широчайшей, чувствуй, как лопатка уходит вперёд','Таз и плечи держи параллельно полу — не разворачивай корпус вслед за рукой'],
+ 5951|  e:['Проворот корпуса и рывок поясницей — нагрузка уходит со спины, риск для позвоночника','Тяга к плечу вместо пояса — включается дельта и бицепс, широчайшая недорабатывает','Круглая спина в наклоне — компрессия дисков под весом','Короткая амплитуда без опускания вниз — теряешь растяжение и половину роста мышцы']},
+ 5952| {n:'Отжимания от пола',m:{chest:1,triceps:.5,delts:.5,abs:.5},sub:['ch_m'],
+ 5953|  c:['Ладони чуть шире плеч на уровне груди, пальцы вперёд, руки строго под нагрузкой','Тело — прямая линия от макушки до пяток, ягодицы и пресс в тонусе — не проваливай таз','Локти веди назад под углом ~45° к корпусу, не растопыривай в стороны — береги плечи','Опускайся до касания грудью в 2-3 см от пола, локоть уходит за линию спины','Выжимай мощно, в верхней точке подай лопатки вперёд — протракция добивает грудь','Взгляд чуть вперёд, шею не роняй и не задирай — держи затылок продолжением позвоночника'],
+ 5954|  e:['Провисшая поясница и таз — нагрузка с груди уходит в поясничный прогиб, боль в спине','Локти в стороны на 90° — травмоопасно для плечевого сустава, слабый упор','Неполная амплитуда «клевками» головой — грудь не растягивается, толку мало','Задранный вверх таз домиком — превращает движение в подобие жима плечами, грудь выключена']},
+ 5955| {n:'Приседания с гантелями (гоблет)',m:{quads:1,glutes:1,abs:.5},sub:['q_vas','g_max'],
+ 5956|  c:['Держи одну гантель вертикально у груди за верхний блин, локти вниз под снарядом','Стопы чуть шире плеч, носки слегка развёрнуты, вес по всей стопе','Уходи тазом назад и вниз одновременно, колени идут по направлению носков — не заваливай внутрь','Опускайся минимум до параллели бедра с полом, спина прямая, грудь раскрыта','Локти скользят внутри коленей в нижней точке — это твой контроль глубины и осанки','Вставай через пятки, разгибая колени и таз вместе, вверху полностью выпрямись без переразгиба поясницы'],
+ 5957|  e:['Колени валятся внутрь — перегруз связок колена, утечка силы ягодиц','Отрыв пяток и перенос веса на носки — теряешь баланс, колено уходит вперёд','Круглая спина внизу («подмигивание таза») — компрессия поясницы под весом','Полуприсед выше параллели — ягодицы и квадрицепс недогружены, движение впустую']},
+ 5958| {n:'Румынская тяга с гантелями',m:{hams:1,glutes:1},sub:['h_hip','g_max'],rr:[6,12],
+ 5959|  c:['Гантели у бёдер, ноги на ширине таза, колени чуть согнуты и зафиксированы в этом угле','Спина ровная с естественным прогибом, лопатки собраны, гантели скользят вплотную к ногам','Уводи таз назад, наклоняясь корпусом — это тазобедренный шарнир, а не присед','Опускай до ощущения сильного растяжения бицепса бедра, обычно чуть ниже колена','Не гонись за полом — глубина ограничена тем, где спина ещё держит прогиб','Возвращайся, проталкивая таз вперёд и сжимая ягодицы, вверху не прогибай поясницу назад'],
+ 5960|  e:['Сгибание коленей и превращение в присед — нагрузка уходит с задней цепи в квадрицепс','Круглая спина при опускании — прямой путь к травме поясницы под нагрузкой','Гантели уходят от ног вперёд — рычаг на позвоночник растёт, бицепс бедра недогружен','Переразгибание поясницы вверху рывком — гиперэкстензия под весом бьёт по дискам']},
+ 5961| {n:'Жим гантелей сидя',m:{delts:1,triceps:.5},sub:['d_f', 'd_s'],
+ 5962|  c:['Сядь, прижми поясницу к спинке, стопы плотно в пол — жёсткая опора под жим','Выведи гантели на уровень ушей, локти чуть впереди корпуса, предплечья вертикально','Хват нейтральный или прямой, запястья не заламывай — кулак над предплечьем','Выжимай вверх по слегка сходящейся дуге, не стукай гантели друг о друга наверху','Вверху не выпрямляй локти в замок и не поднимай плечи к ушам — держи дельту под нагрузкой','Опускай подконтрольно до угла чуть ниже 90° в локте, чувствуй растяжение дельты'],
+ 5963|  e:['Отрыв поясницы от спинки и жим за счёт прогиба — превращается в наклонный жим, риск для спины','Разведённые широко локти за спину — перегруз плечевого сустава на растяжении','Заваленные назад запястья под весом — боль в кистях, потеря вертикали усилия','Подъём плеч к ушам (шраг) в каждом повторе — трапеция крадёт работу у дельт']},
+ 5964| {n:'Ягодичный мост со штангой',m:{glutes:1,hams:.5},sub:['g_max'],
+ 5965|  c:['Сядь на пол спиной к скамье, штанга на сгибе бёдер, лопатками упрись в край скамьи','Стопы поставь так, чтобы в верхней точке голень была вертикальна, чуть шире таза','Подбородок к груди, рёбра вниз — нейтральный корпус, работаешь тазом, а не поясницей','Толкай штангу вверх через пятки, разгибая таз, пока бёдра не выйдут в линию с корпусом','В верхней точке жёстко сожми ягодицы и задержись на счёт — пик сокращения','Опускай подконтрольно, не роняй таз на пол между повторами, держи мышцы под напряжением'],
+ 5966|  e:['Продавливание вверх поясницей вместо таза — переразгиб поясницы, боль вместо ягодиц','Стопы слишком далеко — работу перехватывает бицепс бедра, ягодицы недорабатывают','Неполное разгибание таза наверху — не достаёшь до пикового сокращения ягодиц','Толчок с носков — теряешь вектор через пятку, нагрузка сползает в квадрицепс']},
+ 5967| {n:'Австралийские подтягивания',m:{back:1,biceps:.5},sub:['lats', 'traps'],
+ 5968|  c:['Возьмись за низкую перекладину чуть шире плеч, повисни под ней с прямым телом','Тело — жёсткая струна от пяток до макушки, пресс и ягодицы в тонусе, пятки в пол','Начинай тягу со сведения лопаток, потом подключай руки — веди локти назад','Подтягивайся, пока грудь не коснётся или почти не дойдёт до грифа','В верхней точке собери лопатки и задержись — сожми спину','Опускайся подконтрольно до полного выпрямления рук и растяжения широчайших'],
+ 5969|  e:['Провисший таз и ломаная линия тела — корпус не держит, спина недогружена','Тяга одними руками без лопаток — бицепс забивается, широчайшие спят','Рывки и раскачка корпусом — читинг крадёт нагрузку у целевых мышц','Неполная амплитуда, грудь далеко от грифа — спина сокращается на половину']},
+ 5970| {n:'Обратные отжимания от скамьи',m:{triceps:1,delts:.5},sub:['tr_lat'],
+ 5971|  c:['Обопрись ладонями о край скамьи чуть уже плеч, пальцы вперёд, таз у самой скамьи','Ноги вынеси вперёд, вес на пятках или всей стопе, спина скользит вплотную к скамье','Опускайся, сгибая локти строго назад — не разводи в стороны, береги плечи','Иди вниз до угла ~90° в локте, глубже не нужно — плечи не любят переразгиб на весу','Выжимай вверх усилием трицепса, вверху не защёлкивай локти в жёсткий замок','Плечи держи опущенными от ушей — не проваливайся в плечевые суставы внизу'],
+ 5972|  e:['Локти разъезжаются в стороны — нагрузка с трицепса уходит, растёт риск для плеча','Слишком глубокий провал ниже 90° — травмоопасное растяжение переднего плеча под весом','Таз уезжает вперёд от скамьи — теряешь вертикаль, трицепс недогружается','Подъём плеч к ушам внизу — компрессия плечевого сустава, боль вместо работы трицепса']},
+ 5973| {n:'Тяга горизонтального блока',m:{back:1,biceps:.5},sub:['lats', 'traps'],
+ 5974|  c:['Сядь, упрись стопами в платформу, колени чуть согнуты, возьми рукоять нейтральным хватом','Корпус вертикально, спина прямая с лёгким прогибом, грудь раскрыта — не сутулься','Начни тягу со сведения лопаток, затем веди локти назад вдоль корпуса','Тяни рукоять к низу живота, локти уходят за спину, не разводи их в стороны','В конце сожми лопатки к позвоночнику — работает спина, а не только руки','Отпускай подконтрольно, дай лопаткам растянуться вперёд, но не сутуль спину под весом'],
+ 5975|  e:['Раскачка корпусом взад-вперёд — читинг поясницей, спина недорабатывает','Круглая спина и плечи вперёд под нагрузкой — риск для поясницы и грудного отдела','Тяга только руками без лопаток — бицепс забирает работу у широчайших','Локти в стороны и тяга к груди — акцент сползает на задние дельты вместо толщины спины']},
+ 5976| {n:'Молотки',m:{biceps:1},sub:['bi_br'],
+ 5977|  c:['Встань прямо, гантели по бокам нейтральным хватом — ладони смотрят друг на друга','Локти прижми к корпусу и зафиксируй — они точка вращения, не выноси вперёд','Держи запястье нейтральным весь подход — большой палец сверху, кисть не крути','Сгибай руку, поднимая гантель к плечу, вверху коротко сожми брахиалис','Опускай медленно до полного выпрямления — эксцентрика растит руку','Корпус неподвижен, не помогай спиной и раскачкой — работают только руки'],
+ 5978|  e:['Раскачка корпусом и вынос локтей вперёд — читинг, нагрузка уходит с бицепса','Разворот кисти в супинацию — превращается в обычный подъём, теряется акцент на брахиалис','Неполное выпрямление внизу — рука не растягивается, амплитуда обрезана','Инерционный бросок вниз без контроля — теряешь эксцентрику, главный стимул роста']},
+ 5979| {n:'Жим лёжа узким хватом',m:{triceps:1,chest:.5,delts:.5},sub:['tr_lat'],
+ 5980|  c:['Ляг на скамью, возьми гриф хватом на ширине плеч — уже не нужно, кисти заболят','Лопатки сведи и прижми к скамье, ноги упри в пол, лёгкий естественный прогиб','Сними штангу и выведи над нижней частью груди, запястья прямые над локтями','Опускай к низу груди, локти веди близко к корпусу под ~45° — это акцент на трицепс','Слегка коснись груди и выжимай вверх, разгибая локти, без отбива от рёбер','Вверху дожимай трицепсом почти в замок, но плечи от скамьи не отрывай'],
+ 5981|  e:['Слишком узкий хват уже плеч — заламываются запястья и перегружаются кисти','Локти в стороны как в классике — нагрузка сползает на грудь, трицепс недорабатывает','Отбив штанги от груди — читинг рёбрами, риск и потеря напряжения на трицепсе','Отрыв таза и лопаток от скамьи — теряешь опору, жмёшь спиной вместо рук']},
+ 5982| {n:'Жим от груди в тренажёре',m:{chest:1,triceps:.5},sub:['ch_m'],
+ 5983|  c:['Настрой сиденье так, чтобы рукоятки были на уровне середины груди','Прижми спину и лопатки к спинке, стопы плотно в пол — жёсткая опора','Возьми рукоятки, локти чуть ниже линии плеч, не задирай их вверх','Выжимай вперёд плавно, сводя усилие к центру, но не защёлкивай локти в замок','Вверху коротко сожми грудь — пиковое сокращение','Возвращай подконтрольно до растяжения груди, но не роняй вес до стука плит'],
+ 5984|  e:['Локти задраны выше плеч — акцент уходит на плечи, перегруз сустава','Отрыв лопаток и плеч от спинки при жиме — теряешь опору, грудь недогружена','Резкий сброс веса на эксцентрике — упускаешь растяжение, где мышца растёт','Защёлкивание локтей в замок под весом — снимаешь напряжение с груди, грузишь сустав']},
+ 5985| {n:'Разгибания ног в тренажёре',m:{quads:1},sub:['q_rf','q_vas'],
+ 5986|  c:['Сядь, прижми спину к спинке, валик ляг на голень чуть выше подъёма стопы','Настрой ось вращения тренажёра под линию коленного сустава','Возьмись за ручки, таз зафиксируй — работай только голенью, не помогай корпусом','Разгибай ноги плавно до почти полного выпрямления, вверху сожми квадрицепс на счёт','Опускай подконтрольно, не роняй вес — эксцентрика важнее рывка вверх','Не бей коленом в жёсткий замок с большим весом — доводи до мягкого выпрямления'],
+ 5987|  e:['Рывок и раскачка тазом — читинг, квадрицепс недогружается','Сброс веса вниз без контроля — теряешь эксцентрику и грузишь сустав ударно','Неполное разгибание — не достаёшь пикового сокращения квадрицепса','Ось валика не совпала с коленом — срезающая нагрузка на связки колена']},
+ 5988| {n:'Гакк-приседания',m:{quads:1,glutes:.5},sub:['q_vas','g_max'],
+ 5989|  c:['Встань в тренажёр, спину и таз прижми к платформе, плечи под упоры','Стопы на ширине плеч по центру платформы, носки слегка развёрнуты','Сними стопоры, вдохни и уходи вниз, сгибая колени по направлению носков','Опускайся минимум до параллели бедра с полом, спина всё время прижата','Не отрывай таз и поясницу от спинки в нижней точке — держи контакт','Выжимай через пятки, разгибая колени, вверху не защёлкивай их в жёсткий замок'],
+ 5990|  e:['Отрыв поясницы от спинки внизу — срезающая нагрузка на позвоночник','Колени валятся внутрь — перегруз связок колена','Стопы слишком низко на платформе — колени уходят далеко вперёд, растёт нагрузка на сустав','Полуприсед выше параллели — квадрицепс и ягодицы недорабатывают']},
+ 5991| {n:'Разведения в наклоне (задняя дельта)',m:{delts:1,back:.5},sub:['d_r'],
+ 5992|  c:['Наклони корпус почти до параллели с полом, спина прямая, гантели под грудью','Колени чуть согни, взгляд в пол, гантели держи нейтральным хватом','Локти слегка согни и зафиксируй этот угол на весь подход','Разводи руки в стороны, ведя движение локтями, а не кистями','Вверху сведи лопатки и коротко сожми задние дельты — не выше линии плеч','Опускай подконтрольно, не роняй руки вниз рывком, держи натяжение'],
+ 5993|  e:['Разгибание рук в локтях по ходу — превращается в мах, дельта теряет акцент','Подъём корпуса вверх рывком — читинг поясницей, задняя дельта недогружена','Сведение только лопатками без разведения — работу забирает трапеция и ромбовидные','Слишком большой вес и заброс гантелей инерцией — цель мелкая, техника рушится первой']},
+ 5994| {n:'Разведение рук назад в тренажёре',m:{delts:1,back:.4},sub:['d_r'],
+ 5995|  c:['Настрой сиденье так, чтобы рукоятки были на уровне плеч, грудью прижмись к подушке','Возьмись за рукоятки нейтральным хватом, руки почти прямые с лёгким сгибом в локте','Начинай движение, отводя руки назад через сведение лопаток','Веди локтями по дуге, не выше линии плеч — акцент на задние дельты','В крайней задней точке сожми лопатки и дельты на счёт','Возвращай подконтрольно вперёд до растяжения, но не роняй вес до стука плит'],
+ 5996|  e:['Сгибание и разгибание локтей по ходу — превращается в тягу, дельта теряется','Резкое возвращение вперёд со сбросом веса — упускаешь эксцентрику','Отрыв груди от подушки и помощь корпусом — читинг, нагрузка размазывается','Заброс рук выше плеч — включается трапеция вместо задней дельты']},
+ 5997| {n:'Икры сидя',m:{calves:1},sub:['ca_s'],
+ 5998|  c:['Сядь, валик положи на нижнюю часть бедра над коленями, стопы носками на платформу','Пятки свободно свисают — им нужен ход вниз для полной амплитуды','Опусти пятки максимально вниз, чувствуй растяжение камбаловидной мышцы','Поднимайся на носки как можно выше, вверху сожми икру и задержись на счёт','Работай в полной амплитуде, без пружинящих полудвижений','Темп подконтрольный, особенно вниз — не отбивай пятками по нижней точке'],
+ 5999|  e:['Короткая амплитуда без опускания пяток — икра не растягивается, роста нет','Пружинящий отбив внизу за счёт связок — нагрузка уходит с мышцы, риск ахилла','Нет паузы и сжатия вверху — упускаешь пиковое сокращение камбаловидной','Валик слишком высоко на бедре — давит и мешает, снижает контроль над движением']},
+ 6000| {n:'Подъём ног в упоре',m:{abs:1},sub:['ab_r'],

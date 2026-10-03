@@ -1,0 +1,1501 @@
+// ИЗВЛЕЧЕНИЕ ДЛЯ ЧТЕНИЯ: index.html, строки 16501–18000 из 31008. Номера строк совпадают с оригиналом. Код не менялся.
+16501|   b.innerHTML=Object.keys(byEx).length?Object.entries(byEx).map(([e,ss])=>`
+16502|     <div style="margin-bottom:14px">
+16503|       <div style="font-weight:var(--fwm);font-size:var(--fs2);line-height:var(--lh2);margin-bottom:8px">${esc(e)}
+16504|         <span class="mini" style="font-weight:400">· ${ss.length} подх · ${r0(ss.reduce((a,s)=>a+s.w*s.r,0))} кг тоннаж</span></div>
+16505|       ${ss.map(s=>`<div class="item" style="padding:8px 0">
+16506|         <div class="g"><div class="t" style="font-weight:var(--fwm)">${s.w} ${exUnit(s.e)} × ${s.r}${s.rpe?' @ RPE '+s.rpe:''}</div></div>
+16507|         <button class="x" data-dst="${s.id}">×</button></div>`).join('')}
+16508|     </div>`).join(''):'<div class="empty">Подходов сегодня ещё нет.<br>Отметь первый — вес и повторы подставятся сами из прошлой тренировки.</div>';
+16509|   b.querySelectorAll('[data-dst]').forEach(x=>x.onclick=async()=>{
+16510|     await del('sets',+x.dataset.dst);SETS=await all('sets');rTrain()});
+16511|   const wk=SETS.filter(s=>dn(s.d)>=dn(td())-6&&!s.wu);
+16512|   $('wkStat').textContent=`${wk.length} подх. за 7 дней`;
+16513| 
+16514|   // авто-время сегодняшней сессии: сводка + заполнение полей (не затирая ручной ввод).
+16515|   // При смене календарного дня поля сбрасываются — PWA живёт без перезагрузки
+16516|   // сутками, и «Начал в 23:06» позавчерашней сессии лез в новый день (кейс 02.08)
+16517|   if(typeof window.__ssDay==='undefined') window.__ssDay=null;
+16518|   if(window.__ssDay!==td()){ ['ss_start','ss_end','ss_rpe'].forEach(id=>{const e=$(id); if(e) e.value='';}); window.__ssDay=td(); window.__ssEditD=null; }
+16519|   // __ssEditD: тап по строке в истории переводит форму в правку ИМЕННО той сессии.
+16520|   // Раньше «правка 30.07» молча писала в сегодняшнюю (полевой отчёт 02.08).
+16521|   const _ts=gymSess(window.__ssEditD||td())||{};
+16522|   if($('ssAuto')) $('ssAuto').textContent=(window.__ssEditD?('правка '+fd(window.__ssEditD)+' · '):'')+(_ts.start?(_ts.start+(_ts.end?(' → '+_ts.end+(_ts.min?' · '+_ts.min+' мин':'')):' · идёт')):'старт при первом подходе');
+16523|   if($('ss_start')&&!$('ss_start').value) $('ss_start').value=_ts.start||'';
+16524|   if($('ss_end')&&!$('ss_end').value) $('ss_end').value=_ts.end||'';
+16525|   if($('ss_rpe')&&!$('ss_rpe').value&&_ts.rpe) $('ss_rpe').value=_ts.rpe;
+16526|   if(typeof ssPrev==='function') ssPrev();
+16527| 
+16528| 
+16529| 
+16530| 
+16531| 
+16532|   /* v615: rTrain_ рисует только «Тренировку» и «Программу». Справочник, объём,
+16533|      опросник, история сессий, рычаги, активность и чипы инвентаря живут в своих
+16534|      местах и рисуются там (rCoach_, rAskStatus, rSessList, rBody_, openSet). */
+16535|   rNext(); rProg(); rLag(); gymNudge();
+16536| }
+16537| /* Стилизованная фигура с подсветкой мышц. Основная (вес 1) — акцент, вспомогательная (0.5) — приглушённо. */
+16538| const BODY_F={ // вид спереди: [svg-фрагменты]
+16539|  delts:'<ellipse cx="32" cy="40" rx="6.5" ry="5.5"/><ellipse cx="68" cy="40" rx="6.5" ry="5.5"/>',
+16540|  chest:'<path d="M38 44 h24 v11 q-12 6 -24 0 z"/>',
+16541|  biceps:'<ellipse cx="28" cy="59" rx="4.5" ry="9"/><ellipse cx="72" cy="59" rx="4.5" ry="9"/>',
+16542|  abs:'<rect x="42" y="60" width="16" height="30" rx="5"/>',
+16543|  quads:'<ellipse cx="42" cy="118" rx="7" ry="20"/><ellipse cx="58" cy="118" rx="7" ry="20"/>',
+16544|  calves:'<ellipse cx="41" cy="163" rx="5" ry="13"/><ellipse cx="59" cy="163" rx="5" ry="13"/>'};
+16545| const BODY_B={ // вид сзади
+16546|  delts:'<ellipse cx="32" cy="40" rx="6.5" ry="5.5"/><ellipse cx="68" cy="40" rx="6.5" ry="5.5"/>',
+16547|  back:'<path d="M37 40 h26 l-4 30 q-9 6 -18 0 z"/>',
+16548|  traps:'<path d="M40 34 h20 l-4 12 h-12 z"/>',
+16549|  lats:'<path d="M38 47 l8 4 v16 l-6 -3 z M62 47 l-8 4 v16 l6 -3 z"/>',
+16550|  erect:'<path d="M46 62 h8 v22 h-8 z"/>',
+16551|  triceps:'<ellipse cx="28" cy="59" rx="4.5" ry="9"/><ellipse cx="72" cy="59" rx="4.5" ry="9"/>',
+16552|  glutes:'<ellipse cx="43" cy="95" rx="8" ry="9"/><ellipse cx="57" cy="95" rx="8" ry="9"/>',
+16553|  hams:'<ellipse cx="42" cy="126" rx="7" ry="18"/><ellipse cx="58" cy="126" rx="7" ry="18"/>',
+16554|  calves:'<ellipse cx="41" cy="163" rx="5" ry="13"/><ellipse cx="59" cy="163" rx="5" ry="13"/>'};
+16555| /* ── Анимация движения: фигурка из суставов, две позы, SMIL туда-обратно ──
+16556|    Позы — координаты суставов (вид сбоку, смотрит вправо): hd голова, nk шея,
+16557|    hp таз, kn/ak/to колено-лодыжка-носок, el/wr локоть-кисть; kn2... вторая нога.
+16558|    prop: bar (гриф в кистях), db (гантель), none. bench: скамья. */
+16559| const EXVID=true;
+16560| /* Видео упражнений: Cloudflare R2 (перенос 04.08, 412 файлов / 438 МБ) —
+16561|    нулевой egress вместо будущих $25+/мес на Supabase. После покупки домена
+16562|    переключим на media.<домен> (Custom Domain бакета) — снова одна константа. */
+16563| /* Медиа ходит тем же путём, что и всё приложение — через наш домен
+16564|    (rewrite /media/* → R2 в vercel.json). Поле 18.08: pub-*.r2.dev — адреса
+16565|    Cloudflare, мобильные операторы их режут — видео «пропадало» на LTE.
+16566|    Открылось приложение — откроются и видео: один маршрут, одна судьба. */
+16567| const EXBASE='/media/';
+16568| // Наши упражнения → slug MoveKit. Только уверенные соответствия движения; где точного
+16569| // аналога нет (специфичные тренажёры/Смит/гакк/дэдбаг и т.п.) — записи нет, видео не показываем.
+16570| const MKV={
+16571|  'Приседания со штангой':'barbell-squat','Жим лёжа':'barbell-bench-press','Становая тяга':'barbell-deadlift',
+16572|  'Подтягивания':'pull-ups','Жим гантелей на наклонной':'dumbbell-incline-bench-press','Тяга штанги в наклоне':'barbell-bent-over-row',
+16573|  'Армейский жим стоя':'barbell-overhead-press','Румынская тяга':'barbell-stiff-leg-deadlifts',
+16574|  'Подъём на бицепс со штангой':'barbell-curl','Французский жим':'dumbbell-skullcrusher','Разведения гантелей в стороны':'dumbbell-lateral-raise',
+16575|  'Планка':'hand-plank','Скручивания':'machine-crunch',
+16576|  'Отжимания на брусьях':'parralel-bar-dips','Гиперэкстензия':'machine-45-degree-back-extension',
+16577|  'Болгарские выпады':'dumbbell-bulgarian-split-squat','Жим гантелей лёжа':'dumbbell-bench-press','Тяга гантели одной рукой':'dumbbell-single-arm-row',
+16578|  'Отжимания от пола':'push-up','Приседания с гантелями (гоблет)':'dumbbell-goblet-squat','Румынская тяга с гантелями':'dumbbell-cross-body-romanian-deadlift',
+16579|  'Жим гантелей сидя':'dumbbell-seated-overhead-press','Австралийские подтягивания':'inverted-row',
+16580|  'Обратные отжимания от скамьи':'bench-dips','Тяга горизонтального блока':'machine-seated-cable-row','Молотки':'dumbbell-hammer-curl',
+16581|  'Жим лёжа узким хватом':'barbell-close-grip-bench-press','Жим от груди в тренажёре':'machine-chest-press','Разгибания ног в тренажёре':'machine-leg-extension',
+16582|  'Разведения в наклоне (задняя дельта)':'dumbbell-rear-delt-fly','Жим гантелей стоя':'dumbbell-seated-overhead-press','Тяга к подбородку':'barbell-upright-row','Шраги':'dumbbell-shrug',
+16583|  'Разведение в кроссовере':'cable-pec-fly','Сведение в тренажёре (бабочка)':'machine-pec-fly','Пуловер':'barbell-pullover','Разгибание на трицепс канатом':'cable-rope-pushdown','Сгибание рук на скамье Скотта':'ez-bar-preacher-curl','Концентрированный подъём на бицепс':'dumbbell-concentration-curl','Выпады':'dumbbell-alternating-forward-lunge',
+16584|  'Гуд-морнинг':'good-mornings','Подъём коленей в висе':'hanging-knee-raises',
+16585|  'Русский твист':'bodyweight-russian-twist','Разведение гантелей лёжа':'dumbbell-chest-fly','Сгибание рук с гантелями':'dumbbell-curl','Тяга штанги к подбородку широким хватом':'barbell-upright-row',
+16586|  'Жим штанги на наклонной':'barbell-incline-bench-press','Тяга к лицу (канат)':'machine-face-pulls','Тяга в рычажном тренажёре (Хаммер)':'machine-neutral-row',
+16587|  'Сгибание рук на нижнем блоке':'cable-bar-curl','Мёртвая тяга на прямых ногах':'barbell-stiff-leg-deadlifts','Ходьба выпадами с гантелями':'dumbbell-alternating-forward-lunge',
+16588|  'Приседания плие с гантелью':'dumbbell-sumo-squat','Разведение кроссовер снизу вверх':'cable-pec-fly','Кроссовер снизу вверх':'cable-pec-fly',
+16589|  'Подтягивания обратным хватом':'chin-ups','Шраги с гантелями':'dumbbell-shrug','Жим в тренажёре на плечи':'machine-front-military-press',
+16590|  'Приседания сумо со штангой':'dumbbell-sumo-squat','Подъём гантелей перед собой':'dumbbell-front-raise','Сгибание рук на наклонной скамье':'dumbbell-incline-curl',
+16591|  'Кикбэк на трицепс':'dumbbell-tricep-kickback','Алмазные отжимания':'diamond-push-ups','Отжимания с ногами на возвышении':'decline-push-up',
+16592|  'Супермен':'supermans','Ситап':'decline-sit-up','Боковая планка':'elbow-side-plank','Дровосек на верхнем блоке':'cable-wood-chopper',
+16593|  'Тяга верхнего блока узким хватом':'narrow-pulldown','Разгибание спины в тренажёре':'machine-45-degree-back-extension',
+16594|  'Подъём штанги на бицепс обратным хватом':'ez-bar-reverse-preacher-curl','Шраги в Смите':'smith-machine-standing-shrugs','Тяга одной рукой в нижнем блоке':'cable-single-arm-neutral-grip-row',
+16595|  'Приседания без веса':'bodyweight-squat','Выпады назад':'bodyweight-reverse-lunge','Скалолаз':'mountain-climber',
+16596|  'Отжимания с колен':'bodyweight-knee-push-ups','Жим штанги сидя':'barbell-overhead-press',
+16597|  'Сгибания запястий со штангой':'barbell-wrist-curl','Разгибания запястий со штангой':'dumbbell-wrist-extension','Прогулка фермера':'kettlebell-farmers-carry',
+16598|  'Наклоны в стороны с гантелью':'dumbbell-side-bend','Икры на одной ноге с гантелью':'dumbbell-single-leg-calf-raise',
+16599|  // Близкие по технике видео (снаряд на ролике может отличаться — помечено VAPPROX)
+16600|  'Подъём на носки':'bodyweight-donkey-calf-raise','Икры со штангой стоя':'smith-machine-calf-raise','Скручивания в тренажёре':'machine-crunch',   // v550: точный ролик; «Скручивания» своим весом показывают его как чужой
+16601|  /* v552 — библиотека выросла с 206 до 412 роликов (бессрочные обновления
+16602|     в паке владельца). Сорок три движения получили СВОЙ ролик вместо чужого,
+16603|     общего или пустого места; файлы проверены в бакете перед правкой. */
+16604|  'Жим ногами':'machine-leg-press',                      // v654: 45°-платформа, постер проверен
+16605|  'Жим ногами сидя в тренажёре':'machine-horizontal-leg-press',   // v654: сидячий стек; у Хаммера своего ролика нет
+16606|  'Гакк-приседания':'machine-hack-squat',
+16607|  'Сведение ног в тренажёре':'machine-hip-adduction',
+16608|  'Подъём на носки в жиме ногами':'horizontal-leg-press-calf-press',
+16609|  'Сисси-присед':'sissy-squat',
+16610|  'Нордическое сгибание':'nordic-hamstring-curl',
+16611|  'Сгибание ног скольжением':'towel-slide-leg-curl',
+16612|  'Тяга верхнего блока одной рукой':'single-arm-lat-pulldown',
+16613|  'Вис на перекладине':'dead-hang',
+16614|  'Дэдбаг':'dead-bug',
+16615|  'Паллоф-пресс':'pallof-press',
+16616|  'Икры сидя с гантелями на коленях':'seated-calf-raise',
+16617|  'Жим Арнольда':'arnold-press',
+16618|  'Сгибание ног сидя':'seated-leg-curl',
+16619|  'Фронтальный присед':'front-squat',
+16620|  'Присед в Смите':'smith-machine-squat',
+16621|  'Жим лёжа в Смите':'smith-machine-bench-press',
+16622|  'Тяга гантелей лёжа на наклонной':'chest-supported-dumbbell-row',
+16623|  'Махи в стороны в тренажёре':'machine-lateral-raise',
+16624|  'Икры стоя в тренажёре':'standing-calf-raise-machine',
+16625|  'Разведение ног в тренажёре':'machine-hip-abduction',
+16626|  'Сгибание рук в тренажёре':'machine-preacher-curl',
+16627|  'Тяга сверху в Хаммере':'hammer-strength-high-row',
+16628|  'Тяга в Хаммере одной рукой':'hammer-strength-iso-lateral-row',
+16629|  'Тяга верхнего блока параллельным хватом':'neutral-grip-lat-pulldown',
+16630|  'Сгибания Зоттмана':'zottman-curl',
+16631|  'Подъём на носки на одной ноге':'single-leg-standing-calf-raise',
+16632|  'Сгибание ног лёжа':'lying-leg-curl',
+16633|  'Ягодичный мост со штангой':'barbell-hip-thrust',
+16634|  'Хип-траст в тренажёре':'machine-hip-thrust',
+16635|  'Ягодичный мост':'glute-bridge',
+16636|  'Ягодичный мост на одной ноге':'single-leg-glute-bridge',
+16637|  'Отведение бедра в кроссовере':'standing-cable-hip-abduction',
+16638|  'Отведение ноги в тренажёре (ягодичные)':'machine-hip-abduction',
+16639|  'Икры стоя в Смите':'smith-machine-calf-raise',
+16640|  'Подтягивания в гравитроне':'machine-assisted-pull-up',
+16641|  'Зашагивания на тумбу с гантелями':'dumbbell-step-up-low',
+16642|  'Разведение рук назад в тренажёре':'reverse-pec-deck',
+16643|  'Разгибание на трицепс над головой':'cable-rope-overhead-tricep-extension',
+16644|  'Тяга верхнего блока':'lat-pulldown',
+16645|  'Тяга верхнего блока обратным хватом':'wide-grip-lat-pulldown',
+16646|  'Тяга Т-грифа':'chest-supported-t-bar-row',
+16647|  'Подъём ног в упоре':'captains-chair-knee-raise',
+16648|  'Тяга Пендли':'pendlay-row',
+16649|  'Тяга лёжа на скамье':'seal-row',
+16650|  'Тяга Медоуза':'meadows-row',
+16651|  'Становая с трэп-грифом':'trap-bar-deadlift',
+16652|  'Присед Зерхера':'zercher-squat',
+16653|  'Обратный гакк-присед':'reverse-hack-squat',
+16654|  'Присед в маятнике':'pendulum-squat-v-squat',
+16655|  'Присед с поясом':'belt-squat',
+16656|  'Пулловер на прямых руках':'straight-arm-lat-pulldown',
+16657|  'JM-жим':'jm-press',
+16658|  'Сгибания паука':'spider-curl',
+16659|  'Тяга бедром на блоке':'cable-pull-through',
+16660|  'Складка':'v-up',
+16661|  'Носки к перекладине':'toes-to-bar',
+16662|  'Присед казака':'cossack-squat',
+16663|  'Сплит-присед с возвышения':'front-foot-elevated-split-squat',
+16664|  'Подтягивания с весом':'weighted-pull-ups',
+16665|  'Подтягивания нейтральным хватом':'neutral-grip-pull-up',
+16666| };
+16667| /* Близкие ролики (v550): движение показывает клип ДРУГОГО имени или снаряда — то же
+16668|    движение, другой хват, положение или снаряд. Отдельно от MKV намеренно: точный
+16669|    ролик определяет снаряд (exEquip) и считается «владельцем» клипа, близкий — нет. */
+16670| const MKNEAR={
+16671|  'Обратная гиперэкстензия':'reverse-hyperextension',
+16672|  'Икры сидя':'seated-calf-raise',
+16673|  'Жим от груди в Хаммере':'machine-chest-press','Жим над головой в Хаммере':'machine-front-military-press',
+16674|  'Австралийские подтягивания широким хватом':'inverted-row','Австралийские подтягивания обратным хватом':'inverted-row',
+16675|  'Разгибание ног с гантелей между стоп':'machine-leg-extension','Отжимания «щучкой»':'decline-push-up',
+16676|  'Отжимания домиком':'decline-push-up','Выпады в Смите':'barbell-split-squat',
+16677|  'Разведение на заднюю дельту в кроссовере':'reverse-pec-deck','Тяга под столом':'inverted-row',
+16678|  'Скручивания на наклонной скамье':'decline-crunch','Подъём ног лёжа':'hanging-knee-raises',
+16679|  'Сгибание ног стоя':'dumbbell-leg-curl',
+16680| };
+16681| // Движения, где показан близкий по технике ролик (иной снаряд/вариант) — под видео идёт пометка.
+16682| /* Причина «близкого ролика» словами там, где её не вычислить по снаряду и слагу
+16683|    (v550): ролик того же класса снаряда, но другое положение или стойка. */
+16684| const VAPPROX={
+16685|  'Икры сидя':'в ролике гантели на коленях, здесь тренажёр',
+16686|  'Обратная гиперэкстензия':'в ролике без отягощения',
+16687|  'Скручивания на наклонной скамье':'в ролике скамья без наклона',
+16688|  };
+16689| function exVideoHTML(slug){
+16690|   if(!EXVID||!slug) return '';
+16691|   const s=slug;
+16692|   // Автозапуску не доверяем (полевой отчёт 04.08 «только картинка»): iOS в
+16693|   // энергосбережении блокирует autoplay — тогда поверх постера виден ▶,
+16694|   // тап запускает/ставит на паузу. Пошёл сам — значок прячется мгновенно.
+16695|   return `<div style="position:relative;margin-bottom:12px">
+16696|     <video src="${EXBASE}${esc(s)}.mp4" poster="${EXBASE}${esc(s)}.webp" muted loop autoplay playsinline
+16697|     style="width:100%;border-radius:14px;display:block;background:none;aspect-ratio:1/1;object-fit:cover;border:0;box-shadow:none"
+16698|     onloadeddata="try{this.muted=true;this.play().catch(function(){})}catch(e){}"
+16699|     onclick="try{this.muted=true;this.paused?this.play():this.pause()}catch(e){}"
+16700|     onplay="var b=this.nextElementSibling;if(b)b.style.display='none'"
+16701|     onpause="var b=this.nextElementSibling;if(b)b.style.display='flex'"
+16702|     onerror="this.parentNode.style.display='none'"></video>
+16703|     <div class="vpb" style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;pointer-events:none">
+16704|       <span style="width:56px;height:56px;border-radius:50%;background:rgba(10,12,16,.55);display:flex;align-items:center;justify-content:center;font-size:var(--fs5);line-height:var(--lh5);color:#fff;backdrop-filter:blur(2px)">▶</span>
+16705|     </div></div>`;
+16706| }
+16707| /* Есть ли у движения видео (свой slug MoveKit или ручной маппинг MKV).
+16708|    ИИ-тренер предлагает и заменяет ТОЛЬКО такие — без видео пользы мало.
+16709|    Не влияет на распознавание уже существующей программы пользователя. */
+16710| function exSlug(e){ return (e&&(e.mk||MKV[e.n]||(typeof MKNEAR!=='undefined'&&MKNEAR[e.n])))||''; }
+16711| function exHasVid(e){ return !!exSlug(e); }
+16712| /* Ролик «близкого варианта» — считается, а не помечается руками (полевой
+16713|    отчёт владельца 09.09: «ваши видео — это не то»). Ручной набор VAPPROX
+16714|    держал 4 имени, а по факту 22 движения делили ролик с другим именем и у
+16715|    23 снаряд ролика не тот, что у движения (ягодичный мост со штангой — ролик
+16716|    с гирей). Возвращает причину словами или null, если ролик ровно тот. */
+16717| function exVidApprox(e){
+16718|   try{
+16719|     if(!e) return null; const n=e.n, sl=exSlug(e); if(!sl) return null;
+16720|     if(typeof VAPPROX!=='undefined'&&VAPPROX[n]) return VAPPROX[n];
+16721|     const EQRU={bar:'штанга',machine:'тренажёр',cable:'блок',db:'гантели',kb:'гиря',bw:'свой вес',band:'резина'};
+16722|     const HERE={gym:'штанга, блок или тренажёр',db:'гантели',bw:'свой вес',kb:'гиря'};
+16723|     const fits=name=>{ const c=(EM[name]||{}).eq, k=MKEQ[sl]; return !(c&&k&&EQFIT[c]&&EQFIT[c].indexOf(k)<0); };
+16724|     // владельцы клипа — имена из MKV, чей снаряд совпадает со снарядом ролика
+16725|     const owners=Object.keys(MKV).filter(k=>k!==n&&MKV[k]===sl&&fits(k));
+16726|     if(!fits(n)) return 'в ролике '+(EQRU[MKEQ[sl]]||MKEQ[sl])+', здесь '+HERE[(EM[n]||{}).eq];
+16727|     const near=typeof MKNEAR!=='undefined'&&!!MKNEAR[n]&&!(e.mk||MKV[n]);
+16728|     if(owners.length) return 'тот же ролик у «'+owners[0]+'» — хват или положение отличаются';
+16729|     if(near) return 'ролик близкого варианта';
+16730|     return null;
+16731|   }catch(_){ return null; }
+16732| }
+16733| const MKEQ={"abdominals-stretch-variation-four":"bw","abdominals-stretch-variation-one":"bw","abdominals-stretch-variation-three":"bw","abdominals-stretch-variation-two":"bw","arc-trainer":"machine","arnold-press":"db","assault-bike":"machine","b-stance-hip-thrust":"bw","back-extension":"bw","backstroke-swim":"bw","band-assisted-pull-up":"band","band-curl":"band","band-external-rotation":"band","band-glute-bridge":"band","band-high-face-pull":"band","band-hip-abduction":"band","band-kneeling-pulldown":"band","band-lateral-raise":"band","band-leg-curl":"band","band-overhead-press":"band","band-pullover":"band","band-romanian-deadlift":"band","band-row":"band","band-seated-pulldown":"band","band-shrug":"band","band-single-arm-lateral-raise":"band","band-squat":"band","band-wood-chopper":"band","barbell-banded-back-squat":"bar","barbell-behind-the-back-30-degree-shrug":"bar","barbell-bench-press":"bar","barbell-bent-over-row":"bar","barbell-bent-over-row-overhand":"bar","barbell-clean-and-press":"bar","barbell-close-grip-bench-press":"bar","barbell-curl":"bar","barbell-deadlift":"bar","barbell-drag-curl":"bar","barbell-floor-press":"bar","barbell-front-rack-step-up-knee-drive":"bar","barbell-high-incline-bench-press":"bar","barbell-hip-thrust":"bar","barbell-incline-bench-press":"bar","barbell-muscle-snatch":"bar","barbell-overhead-press":"bar","barbell-power-snatch":"bar","barbell-pullover":"bar","barbell-rack-pull":"bar","barbell-reverse-lunge":"bar","barbell-romanian-deadlift":"bar","barbell-shrug":"bar","barbell-snatch":"bar","barbell-spinal-jefferson-curl":"bar","barbell-split-squat":"bar","barbell-squat":"bar","barbell-step-up-knee-drive":"bar","barbell-stiff-leg-deadlifts":"bar","barbell-thruster":"bar","barbell-upright-row":"bar","barbell-wrist-curl":"bar","battle-ropes":"bw","bayesian-curl":"cable","behind-the-neck-press":"bar","belt-squat":"machine","bench-dips":"bw","bird-dog":"bw","bodyweight-alternating-lateral-lunge":"bw","bodyweight-alternating-reverse-lunges":"bw","bodyweight-box-squat":"bw","bodyweight-deadlift":"bw","bodyweight-donkey-calf-raise":"bw","bodyweight-elevated-push-up":"bw","bodyweight-hip-abduction":"bw","bodyweight-knee-push-ups":"bw","bodyweight-reverse-lunge":"bw","bodyweight-russian-twist":"bw","bodyweight-spinal-jefferson-curl":"bw","bodyweight-squat":"bw","box-jump":"bw","breaststroke-swim":"bw","bulgarian-split-squat":"bw","burpee":"bw","butterfly-swim":"bw","cable-30-degree-shrug":"cable","cable-bar-curl":"cable","cable-bar-face-pull":"cable","cable-bar-pushdown":"cable","cable-bench-chest-fly":"cable","cable-bench-press":"cable","cable-bench-straight-leg-kickback":"cable","cable-chest-press":"cable","cable-decline-bench-press":"cable","cable-external-rotation":"cable","cable-front-raise":"cable","cable-high-to-low-fly":"cable","cable-hip-abduction":"cable","cable-incline-bench-press":"cable","cable-kickback":"cable","cable-low-single-arm-lateral-raise":"cable","cable-low-to-high-fly":"cable","cable-overhead-press":"cable","cable-pec-fly":"cable","cable-pull-through":"cable","cable-rope-hammer-curl":"cable","cable-rope-kneeling-face-pull":"cable","cable-rope-overhead-tricep-extension":"cable","cable-rope-pullover":"cable","cable-rope-pushdown":"cable","cable-row-bar-standing-row":"cable","cable-seated-rope-face-pull":"cable","cable-side-bend":"cable","cable-single-arm-neutral-grip-row":"cable","cable-single-arm-rope-pushdown":"cable","cable-single-arm-underhand-grip-row":"cable","cable-single-leg-laying-leg-curl":"cable","cable-standing-low-to-high-wood-chopper":"cable","cable-standing-single-arm-chest-press":"cable","cable-supinating-row":"cable","cable-wood-chopper":"cable","cable-wrist-curl":"cable","captains-chair-knee-raise":"bw","chest-supported-dumbbell-row":"db","chest-supported-t-bar-row":"machine","chin-ups":"bw","close-grip-barbell-curl":"bar","cossack-squat":"bw","cross-body-hammer-curl":"db","cuban-press":"db","cycling-cooldown":"bw","cycling-intervals":"bw","cycling-sprint":"bw","cycling-warmup":"bw","dead-bug":"bw","dead-hang":"bw","decline-barbell-bench-press":"bar","decline-crunch":"bw","decline-machine-chest-press":"machine","decline-push-up":"bw","decline-sit-up":"bw","deficit-deadlift":"bar","deficit-dumbbell-romanian-deadlift":"db","diamond-push-ups":"bw","dumbbell-alternating-forward-lunge":"db","dumbbell-back-extension":"db","dumbbell-bench-press":"db","dumbbell-bulgarian-split-squat":"db","dumbbell-chest-fly":"db","dumbbell-concentration-curl":"db","dumbbell-cossack-squat":"db","dumbbell-cross-body-romanian-deadlift":"db","dumbbell-curl":"db","dumbbell-deadlift":"db","dumbbell-decline-bench-press":"db","dumbbell-decline-chest-fly":"db","dumbbell-decline-skullcrusher":"db","dumbbell-feet-elevated-glute-bridge":"db","dumbbell-figure-four-heels-elevated-hip-thrust":"db","dumbbell-front-raise":"db","dumbbell-front-squat":"db","dumbbell-front-squat-tempo":"db","dumbbell-goblet-alternating-curtsy-lunge":"db","dumbbell-goblet-bulgarian-split-squat":"db","dumbbell-goblet-forward-lunge":"db","dumbbell-goblet-reverse-lunge":"db","dumbbell-goblet-split-squat":"db","dumbbell-goblet-squat":"db","dumbbell-hammer-curl":"db","dumbbell-heels-elevated-hip-thrust":"db","dumbbell-incline-bench-press":"db","dumbbell-incline-chest-fly":"db","dumbbell-incline-curl":"db","dumbbell-incline-front-raise":"db","dumbbell-incline-hammer-curl":"db","dumbbell-lateral-lunge":"db","dumbbell-lateral-raise":"db","dumbbell-laying-reverse-fly":"db","dumbbell-leg-curl":"db","dumbbell-overhead-squat":"db","dumbbell-preacher-curl":"db","dumbbell-push-press":"db","dumbbell-rear-delt-fly":"db","dumbbell-row-bilateral":"db","dumbbell-row-unilateral":"db","dumbbell-russian-twist":"db","dumbbell-seated-overhead-press":"db","dumbbell-seated-overhead-tricep-extension":"db","dumbbell-seated-rear-delt-fly":"db","dumbbell-seated-shrug":"db","dumbbell-shrug":"db","dumbbell-side-bend":"db","dumbbell-single-arm-chest-press":"db","dumbbell-single-arm-clean-and-press":"db","dumbbell-single-arm-row":"db","dumbbell-single-leg-calf-raise":"db","dumbbell-single-leg-hip-thrust":"db","dumbbell-situp":"db","dumbbell-skullcrusher":"db","dumbbell-spinal-jefferson-curl":"db","dumbbell-standing-single-arm-curl":"db","dumbbell-standing-single-arm-hammer-curl":"db","dumbbell-step-up-low":"db","dumbbell-sumo-squat":"db","dumbbell-superman":"db","dumbbell-thruster":"db","dumbbell-tricep-kickback":"db","dumbbell-upright-row":"db","dumbbell-wrist-curl":"db","dumbbell-wrist-extension":"db","elbow-side-plank":"bw","elliptical":"machine","ez-bar-preacher-curl":"bar","ez-bar-reverse-preacher-curl":"bar","floor-press":"db","forward-lunge":"bw","freestyle-swim":"bw","frog-pump":"bw","front-foot-elevated-split-squat":"db","front-plank":"bw","front-squat":"bar","glute-bridge":"bw","glute-kickback-machine":"machine","good-mornings":"bw","hammer-strength-high-row":"machine","hammer-strength-iso-lateral-row":"machine","hamstring-curl":"db","hand-plank":"bw","hang-clean":"bar","hang-power-clean":"bar","hang-snatch":"bar","hanging-knee-raises":"bw","hiking":"bw","hill-climb-repeats":"bw","hip-hinge-speed-romanian-deadlift":"db","horizontal-leg-press-calf-press":"machine","incline-machine-chest-press":"machine","incline-push-up":"bw","incline-treadmill-walk":"machine","indoor-cycling-spin":"machine","inverted-row":"bw","jm-press":"bar","jump-rope":"bw","jump-squats":"bw","jumping-jack":"bw","kettlebell-alternating-curtsy-lunge":"kb","kettlebell-assisted-bulgarian-split-squat":"kb","kettlebell-bench-press":"kb","kettlebell-calf-raise":"kb","kettlebell-curl":"kb","kettlebell-farmers-carry":"kb","kettlebell-front-raise":"kb","kettlebell-goblet-curl":"kb","kettlebell-goblet-squat":"kb","kettlebell-gorilla-row":"kb","kettlebell-hip-thrust":"kb","kettlebell-incline-bench-press":"kb","kettlebell-push-press":"kb","kettlebell-romanian-deadlift":"kb","kettlebell-row":"kb","kettlebell-row-single":"kb","kettlebell-seated-overhead-press":"kb","kettlebell-shrug":"kb","kettlebell-single-arm-row":"kb","kettlebell-spinal-jefferson-curl":"kb","kettlebell-sumo-deadlift":"kb","kettlebell-swing":"kb","kettlebell-thruster":"kb","kettlebell-turkish-get-up":"kb","kettlebell-windmill":"kb","kickstand-dumbbell-romanian-deadlift":"db","kneeling-cable-crunch":"cable","landmine-press":"bar","landmine-t-bar-rows":"bar","lat-pulldown":"cable","leaning-cable-lateral-raise":"cable","long-run":"machine","lunge-walking":"bw","lying-leg-curl":"machine","machine-45-degree-back-extension":"machine","machine-assisted-pull-up":"machine","machine-cable-v-bar-push-downs":"cable","machine-chest-press":"machine","machine-crunch":"machine","machine-dips":"machine","machine-face-pulls":"cable","machine-front-military-press":"machine","machine-hack-squat":"machine","machine-hip-abduction":"machine","machine-hip-adduction":"machine","machine-hip-thrust":"machine","machine-horizontal-leg-press":"machine","machine-lat-pullover":"machine","machine-lateral-raise":"machine","machine-leg-extension":"machine","machine-leg-press":"machine","machine-neutral-row":"machine","machine-pec-fly":"machine","machine-plate-loaded-leg-extension":"machine","machine-plate-loaded-t-bar-row":"machine","machine-preacher-curl":"machine","machine-pulldown":"machine","machine-seated-cable-row":"cable","machine-tricep-extension":"machine","machine-underhand-row":"machine","man-maker":"db","meadows-row":"bar","mountain-climber":"bw","narrow-pulldown":"machine","neck-curl":"bw","neck-extension":"bw","neutral-grip-dumbbell-bench-press":"db","neutral-grip-lat-pulldown":"cable","neutral-grip-pull-up":"bw","nordic-hamstring-curl":"bw","pallof-press":"cable","parralel-bar-dips":"bw","pause-squat":"bw","pendlay-row":"bar","pendulum-squat-v-squat":"machine","plate-forward-lunge":"bar","plate-front-raise":"bar","plate-pinch":"bar","power-clean":"bar","pull-ups":"bw","push-jerk":"bar","push-up":"bw","reverse-grip-barbell-bench-press":"bar","reverse-grip-barbell-curl":"bar","reverse-grip-tricep-pushdown":"cable","reverse-hack-squat":"machine","reverse-hyperextension":"bw","reverse-pec-deck":"machine","romanian-deadlift-hamstring-sweeps":"bw","rowing-intervals":"machine","rowing-machine-steady-state":"machine","rowing-sprint":"machine","running-cooldown":"bw","running-intervals":"bw","seal-row":"bar","seated-calf-raise":"db","seated-dumbbell-curl":"db","seated-leg-curl":"machine","shadow-boxing":"bw","single-arm-cable-fly":"cable","single-arm-dumbbell-overhead-press":"db","single-arm-landmine-press":"bar","single-arm-lat-pulldown":"cable","single-arm-overhead-cable-extension":"cable","single-arm-tricep-extension":"db","single-leg-back-extension":"bw","single-leg-dumbbell-romanian-deadlift":"db","single-leg-glute-bridge":"bw","single-leg-hip-thrust":"bw","single-leg-kettlebell-romanian-deadlift-deficit":"db","single-leg-press":"machine","single-leg-standing-calf-raise":"bw","single-leg-step-down":"bw","single-legged-romanian-deadlifts":"bw","sissy-squat":"bw","ski-erg":"machine","sled-pull":"machine","sled-push":"machine","smith-machine-bench-press":"machine","smith-machine-bent-over-row":"machine","smith-machine-calf-raise":"machine","smith-machine-close-grip-bench-press":"machine","smith-machine-front-squat":"machine","smith-machine-incline-bench-press":"machine","smith-machine-seated-overhead-press":"machine","smith-machine-squat":"machine","smith-machine-standing-shrugs":"machine","smith-machine-sumo-romanian-deadlift":"machine","snatch-grip-deadlift":"bar","snatch-grip-high-pull":"bar","snatch-pull":"bar","spider-curl":"db","split-jerk":"bar","split-squat-isometric-hold":"bw","stability-ball-leg-curl":"bw","stair-climber":"machine","standing-cable-hip-abduction":"cable","standing-calf-raise-machine":"machine","steady-state-ride":"bw","straight-arm-lat-pulldown":"cable","supermans":"bw","swim-kick-drill":"bw","swim-pull-drill":"bw","swim-sprint-intervals":"bw","tate-press":"db","tempo-run":"machine","tibialis-raise":"bw","toes-to-bar":"bw","towel-slide-leg-curl":"bw","trail-run":"bw","trap-bar-deadlift":"bar","trap-bar-shrug":"bar","treadmill-run":"machine","underhand-barbell-row":"bar","v-up":"bw","versaclimber":"machine","wall-ball":"bw","wall-sit":"bw","weighted-pull-ups":"bw","wide-grip-barbell-bench-press":"bar","wide-grip-barbell-curl":"bar","wide-grip-lat-pulldown":"cable","wide-grip-pull-up":"bw","wide-grip-seated-cable-row":"cable","wrist-roller":"db","yates-row":"bar","z-press":"db","zercher-squat":"bar","zottman-curl":"db"};
+16734| /* ══════════ ОБОРУДОВАНИЕ: инвентарь + автозамена ══════════
+16735|    7 типов снаряда. Пользователь один раз отмечает, что доступно (S.equip).
+16736|    Упражнение на недоступном снаряде приложение предлагает заменить на аналог
+16737|    с видео на ту же мышцу. Если S.equip не задан — считаем, что есть всё. */
+16738| const EQL={bar:'Штанга',db:'Гантели',kb:'Гиря',cable:'Блок',machine:'Тренажёр',band:'Резина',bw:'Свой вес'};
+16739| const EQ_ORDER=['bar','db','kb','cable','machine','band','bw'];
+16740| const EQNAME2K={'штанга':'bar','гантели':'db','гиря':'kb','блок':'cable','тренажёр':'machine','резина':'band','свой вес':'bw'};
+16741| function exEquipInfer(n){
+16742|   const s=(n||'').toLowerCase();
+16743|   if(s.includes('смит'))return 'machine';
+16744|   if(s.includes('гантел'))return 'db';
+16745|   if(s.includes('гир'))return 'kb';
+16746|   if(s.includes('штанг'))return 'bar';
+16747|   if(s.includes('блок')||s.includes('кроссовер'))return 'cable';
+16748|   if(s.includes('тренажёр')||s.includes('тренажер')||s.includes('хаммер')||s.includes('гакк')||s.includes('гравитрон'))return 'machine';
+16749|   if(s.includes('резин'))return 'band';
+16750|   return 'bw';
+16751| }
+16752| /* Снаряд — свойство упражнения, а не его видеоролика. Слаг ролика и слово в
+16753|    названии остаются подсказками, но последнее слово за классом снаряда,
+16754|    который у нас уже записан в EM (нужен зал / гантели / гиря / свой вес).
+16755|    Раньше решал слаг, и он врал: «Сгибание ног лёжа» получало dumbbell-leg-curl
+16756|    и становилось парой гантелей с шагом 2 кг — на станке со стеком таких
+16757|    делений нет; «Икры сидя», «Гуд-морнинг» и «Фронтальный присед» становились
+16758|    своим весом и лишались шага вовсе; «Ягодичный мост со штангой» — гирей с
+16759|    шагом 4. Расхождений было 34 из 135 (аудит 22.08). */
+16760| const EQFIT={gym:['bar','machine','cable'],db:['db'],kb:['kb'],bw:['bw']};
+16761| function exEquip(e){
+16762|   if(e&&e.eq){const k=EQNAME2K[e.eq];if(k)return k;}
+16763|   const s=e&&(e.mk||MKV[e.n]);
+16764|   let k=(s&&MKEQ[s])||exEquipInfer(e&&e.n);
+16765|   const cls=((typeof EM!=='undefined'&&EM[e&&e.n])||{}).eq;
+16766|   if(cls&&EQFIT[cls]&&EQFIT[cls].indexOf(k)<0){
+16767|     if(cls==='gym'){
+16768|       const n=String((e&&e.n)||'').toLowerCase();
+16769|       k=/штанг|гриф|присед|морнинг/.test(n)?'bar':(/блок|кроссовер/.test(n)?'cable':'machine');
+16770|     } else k=EQFIT[cls][0];
+16771|   }
+16772|   return k;
+16773| }
+16774| function userEquip(){ return (S&&S.equip&&S.equip.length)?new Set(S.equip):new Set(EQ_ORDER); }
+16775| function exEquipOK(e){ return userEquip().has(exEquip(e)); }
+16776| // Схожесть по мышцам: сумма минимальных весов по общим группам.
+16777| function msim(a,b){ let s=0; for(const k in (a.m||{})) if(b.m&&b.m[k]) s+=Math.min(a.m[k],b.m[k]); return s; }
+16778| // Лучшая замена на доступном снаряде: та же ведущая мышца, есть видео, максимум совпадения.
+16779| function bestSwap(e){
+16780|   const av=userEquip();
+16781|   const dom=Object.entries(e.m||{}).sort((a,b)=>b[1]-a[1])[0]; if(!dom) return null;
+16782|   const domK=dom[0];
+16783|   const c=EX.filter(x=>x.n!==e.n&&exHasVid(x)&&av.has(exEquip(x))&&!gymOffHas(x.n)&&!painHas(x.n)&&x.m&&x.m[domK]);
+16784|   if(!c.length) return null;
+16785|   c.sort((a,b)=>msim(e,b)-msim(e,a));
+16786|   return c[0];
+16787| }
+16788| /* Чипы инвентаря: тап переключает наличие снаряда, сразу сохраняет и перерисовывает. */
+16789| function rEqChips(){
+16790|   const ch=$('eqChips'); if(!ch) return;
+16791|   const av=userEquip();
+16792|   ch.innerHTML=EQ_ORDER.map(k=>`<button class="chip ${av.has(k)?'on':''}" data-eqk="${k}">${av.has(k)?'✓ ':''}${EQL[k]}</button>`).join('');
+16793|   const sum=$('eqSum'); if(sum) sum.textContent=av.size>=EQ_ORDER.length?'· всё':('· '+av.size+' из '+EQ_ORDER.length);
+16794|   ch.querySelectorAll('[data-eqk]').forEach(b=>b.onclick=async()=>{
+16795|     const k=b.dataset.eqk, cur=userEquip();
+16796|     if(cur.has(k)) cur.delete(k); else cur.add(k);
+16797|     if(!cur.size) cur.add(k);                    // не даём выключить всё
+16798|     S.equip=EQ_ORDER.filter(x=>cur.has(x));
+16799|     await put('settings',S,'main'); rEqChips(); rTrain();
+16800|   });
+16801| }
+16802| /* ── Мой зал: какие ТРЕНАЖЁРЫ реально стоят в клубе пользователя ──
+16803|    S.equip отвечает на «какой снаряд есть вообще» (дом/зал), а S.gymOff — на
+16804|    «какой конкретной машины нет в МОЁМ зале» (полевой отчёт 02.08: программа
+16805|    предлагала тренажёры, которых в клубе не существует). Единица — упражнение-
+16806|    машина из рабочей базы EM. Пусто = есть всё; новые упражнения доступны
+16807|    по умолчанию — выключение только явное, руками или подтверждением фото. */
+16808| const GYMMACH_EXTRA=new Set(['Жим ногами','Икры сидя','Гиперэкстензия','Обратная гиперэкстензия']);
+16809| function gymMach(n){
+16810|   const m=EM[n]; if(!m||m.eq!=='gym'||m.legacy) return false;
+16811|   return /тренаж|блок|хаммер|гакк|смит|кроссовер|гравитрон|бабочк|скотт|канат/i.test(n)||GYMMACH_EXTRA.has(n);
+16812| }
+16813| const gymMachList=()=>EX.filter(e=>gymMach(e.n));
+16814| const gymOffHas=n=>!!(S&&S.gymOff&&S.gymOff[n]);
+16815| function rGymChips(){
+16816|   const box=$('gymChips'); if(!box) return;
+16817|   const off=S.gymOff||{};
+16818|   const nOff=gymMachList().filter(e=>off[e.n]).length;
+16819|   const sum=$('gymSum'); if(sum) sum.textContent=nOff?('· нет '+nOff):'';
+16820|   const nm=$('gymName');
+16821|   if(nm&&!nm._init){ nm._init=1; nm.onchange=async()=>{ S.gymN=nm.value.trim(); await put('settings',S,'main'); }; }
+16822|   if(nm&&document.activeElement!==nm) nm.value=S.gymN||'';
+16823|   const bs=$('bGymScan'); if(bs&&!bs._init){ bs._init=1; bs.onclick=()=>gymScan(false); }
+16824|   /* Резина — отдельный инвентарь, а не тренажёр: без явной отметки разминка
+16825|      показывает варианты без неё (поле 18.08: «резины нет, а он её ставит») */
+16826|   let html='<div class="mini" style="margin:0 0 4px;color:var(--t3)">Мелкий инвентарь</div>'
+16827|     +'<div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:8px">'
+16828|     +'<button class="chip'+(S.hasBand?' on':'')+'" data-hasband="1">'+(S.hasBand?'✓ ':'')+'Резина есть</button></div>';
+16829|   for(const mk of Object.keys(MUS)){
+16830|     const items=gymMachList().filter(e=>exPrimMus(e)===mk);
+16831|     if(!items.length) continue;
+16832|     html+='<div class="mini" style="margin:8px 0 4px;color:var(--t3)">'+esc(MUS[mk])+'</div>'
+16833|       +'<div style="display:flex;flex-wrap:wrap;gap:6px">'
+16834|       +items.map(e=>{const on=!off[e.n];
+16835|         return '<button class="chip'+(on?' on':'')+'" data-gymx="'+esc(e.n)+'">'+(on?'✓ ':'')+esc(e.n)+'</button>';}).join('')
+16836|       +'</div>';
+16837|   }
+16838|   box.innerHTML=html;
+16839|   box.querySelectorAll('[data-hasband]').forEach(b=>b.onclick=async()=>{
+16840|     S.hasBand=S.hasBand?0:1; await put('settings',S,'main');
+16841|     rGymChips(); try{ rTrain(); }catch(e){}
+16842|     toast(S.hasBand?'Резина есть — верну упражнения с ней':'Резины нет — в разминке буду давать варианты без неё');
+16843|   });
+16844|   box.querySelectorAll('[data-gymx]').forEach(b=>b.onclick=async()=>{
+16845|     const n=b.dataset.gymx; S.gymOff=S.gymOff||{};
+16846|     if(S.gymOff[n]) delete S.gymOff[n]; else S.gymOff[n]=1;
+16847|     await put('settings',S,'main'); rGymChips();
+16848|     /* Пометил «нет в зале» — приложение обязано убрать движение САМО.
+16849|        Раньше оно знало, что тренажёра нет, знало, чем его заменить (тот же
+16850|        swapPick, что и в быстрой замене), и всё равно отвечало «открой день и
+16851|        замени её на аналог» — то есть перекладывало на человека работу,
+16852|        которую умеет делать. Полевое замечание владельца 25.08 про гакк-присед:
+16853|        «у меня в зале нет нормального гакка, я просто его заменю» — заменять
+16854|        вручную каждую пересборку он не должен.
+16855|        Причина не «больно», а «нет снаряда»: нужен ближайший аналог. */
+16856|     if(S.gymOff[n]&&S.prog&&(S.prog.plan||[]).some(d=>(d.ex||[]).some(it=>!it.hidden&&it.n===n)))
+16857|       try{ await painRebuild(n,null,false); }catch(_){ toast('«'+n+'» в твоей программе — замени её в дне'); }
+16858|   });
+16859| }
+16860| 
+16861| /* Почему у ЭТОГО движения такой диапазон (полевой вопрос владельца 09.09:
+16862|    «почему диапазон считается 4–8, 6–10, 10–15, если целевая для прогресса
+16863|    6–12, как ты сам говоришь»). Лист отвечал общим «6–12 повторов — главный
+16864|    диапазон гипертрофии» и не объяснял ни 4–8 у становой, ни 10–15 у
+16865|    подсобки. Ответ — по источнику диапазона: своя схема движения, база,
+16866|    подсобка, сила, выносливость. Чистая функция, её стережёт смоук. */
+16867| function rangeWhy(item,name){
+16868|   try{
+16869|     if(exTimed(name)) return 'статика — растим время под нагрузкой, а не повторы';
+16870|     const lo=+item.lo||0, hi=+item.hi||lo, rr=lo+(hi>lo?'–'+hi:'');
+16871|     const e=EX.find(x=>x.n===name);
+16872|     if(e&&e.rr) return rr+' — своя схема движения: тяжёлое многосуставное, много повторов ломают технику. Гипертрофия работает во всём коридоре 6–15, а здесь важнее техника';
+16873|     if(hi<=6) return rr+' — сила: тяжело и мало, техника и нервная система, не объём';
+16874|     /* v664: ответ по классу движения, а не по слоту */
+16875|     const cls=exClass(name,!!item.main);
+16876|     if(cls==='iso') return rr+' — изоляция: один сустав и малый вес, рост даёт близость к отказу на многих повторах, а не рекорд. Подсобка, вес растёт медленно и это нормально';
+16877|     if(cls==='comp'&&!item.main) return rr+' — составное в тренажёре: траектория задана, техника не сыплется, средний коридор. Подсобка к базе, но вес здесь растёт';
+16878|     return rr+(item.main?' — база: нижняя кромка коридора 6–15, ближе к силе, здесь растёт вес':' — подсобка: верхняя кромка коридора 6–15, объём без рекорда')+'. Обе кромки — гипертрофия, «6–12» лишь середина коридора';
+16879|   }catch(e){ return '6–15 повторов — коридор гипертрофии'; }
+16880| }
+16881| /* История и разбор веса для листа упражнения. Отдельной функцией, а не
+16882|    куском разметки внутри showEx: то же самое нужно правилу гейта, и оно
+16883|    должно уметь спросить это без открытия листа. */
+16884| /* ── СУТЬ ПОДХОДА: ЗАЧЕМ ЭТО ДВИЖЕНИЕ СЕГОДНЯ ──
+16885|    Жила раскрывашкой на карточке вместе с урезанной техникой. Техника в листе
+16886|    полнее, а суть — то же самое «про это движение», и её место рядом. */
+16887| function exGist(name,item,ex){
+16888|   if(!item) return '';
+16889|   ex=ex||EX.find(x=>x.n===name);
+16890|   const dom=ex?Object.entries(ex.m||{}).sort((a,b)=>b[1]-a[1]).slice(0,2).map(kv=>(MUS[kv[0]]||kv[0]).toLowerCase()).join(', '):'';
+16891|   const role=item.main
+16892|     ?`<b>База дня</b>${dom?' — главный стимул: '+esc(dom):''}. Здесь строится прогрессия, сюда — свежие силы.`
+16893|     :`<b>Подсобка</b>${dom?' — добирает объём: '+esc(dom):''}. Работа на качество движения, не на рекорд.`;
+16894|   const stat0=exStatic(name);
+16895|   const range=rangeWhy(item,name);
+16896|   const _rir=(item.rir!=null&&+item.rir>=0)?+item.rir:effRIR();   // v664: запас — у строки плана, не у режима
+16897|   const rir=stat0
+16898|     ?' Заканчивай, когда форма начинает сыпаться: таз провис или поясница прогнулась — подход окончен.'
+16899|     :(_rir===0?' Работа до отказа: подход окончен, когда последний повтор не выходит чисто.'
+16900|       :` RIR ${_rir}: заканчивай подход, оставляя в запасе ${_rir===1?'один повтор':_rir+' повтора'}.`);
+16901|   let msg=''; try{ msg=(nextTarget(name,item)||{}).msg||''; }catch(e){}
+16902|   return `<div class="tech" style="margin-top:14px">${role}<br>
+16903|     <b>Схема:</b> ${item.sets}×${repsTxt(item)}${stat0?' сек':''} — ${range}.${rir}${
+16904|     item.prehab&&item.fix?`<br><b>Зачем здесь:</b> ${esc(item.fix)}. Это работа на слабое звено из анкеты — она не убирается при пересборке.`:''}${
+16905|     msg?`<br><b>Задача сегодня:</b> ${msg}`:''}</div>`;
+16906| }
+16907| function exSheetHist(name){
+16908|   /* Две вкладки листа (v520): «Сегодня» — суть подхода; «История» —
+16909|      подходы, почему такой вес, как вешать. Строкой, как и раньше. */
+16910|   const today=[], out=[];
+16911|   {
+16912|     const _it=(function(){ try{
+16913|       return ((dayToday()||{ex:[]}).ex.find(i=>i.n===name))
+16914|         ||(S.prog?S.prog.plan:[]).flatMap(d=>d.ex).find(i=>i.n===name)||null;
+16915|     }catch(_){ return null; } })();
+16916|     const g=exGist(name,_it); if(g) today.push(g);
+16917|   }
+16918|   const all=SETS.filter(s=>s.e===name);
+16919|   if(all.length){
+16920|     const byDay={}; all.forEach(s=>{ (byDay[s.d]=byDay[s.d]||[]).push(s); });
+16921|     const days=Object.keys(byDay).sort((a,b)=>a<b?1:-1).slice(0,8);
+16922|     const u=exUnit(name), st=exStatic(name);
+16923|     const top=all.filter(s=>s.w>0).reduce((a,s)=>!a||s.w>a.w?s:a,null);
+16924|     const best=(function(){try{return bestLift(name)}catch(_){return null}})();
+16925|     out.push(`<div class="tech" style="margin-top:14px"><b>История</b>
+16926|       <div style="margin-top:8px">${days.map(d=>{
+16927|         const ss=byDay[d].filter(x=>!x.wu).map(x=>(x.w>0?r1(x.w)+' ':'')+'×'+x.r).join(' · ');
+16928|         if(!ss) return '';
+16929|         return `<div class="mini" style="color:var(--t2);margin:3px 0"><b style="color:var(--t3)">${fd(d)}</b> — ${esc(ss)}${st?' сек':''}</div>`;
+16930|       }).join('')}</div>
+16931|       ${top?`<div class="mini" style="margin-top:8px;color:var(--ac2)">Лучший подход: ${r1(top.w)} ${u}×${top.r}${best?` · оценка 1ПМ ~${r0(best)} ${u}`:''}</div>`:''}
+16932|       ${(function(){try{return exChartHTML(name)}catch(_){return ''}})()}</div>`);
+16933|   }
+16934|   /* «Почему такой вес» — провенанс подсказки. Живёт здесь же: вопрос задают
+16935|      редко, но ответ обязан быть, и искать его человек будет там же, где
+16936|      остальное про это движение. */
+16937|   const it=(function(){ try{
+16938|     return ((dayToday()||{ex:[]}).ex.find(i=>i.n===name))
+16939|       ||(S.prog?S.prog.plan:[]).flatMap(d=>d.ex).find(i=>i.n===name)||null;
+16940|   }catch(_){ return null; } })();
+16941|   if(it){
+16942|     const w=(function(){ try{ return whyWeight(it,vDay||td()); }catch(_){ return ''; } })();
+16943|     if(w) out.push(`<div class="tech" style="margin-top:14px"><b>Почему такой вес</b><div style="margin-top:8px">${w}</div></div>`);
+16944|   }
+16945|   /* ── РАСКЛАДКА БЛИНОВ ЖИВЁТ ЗДЕСЬ, А НЕ В КАРТОЧКЕ (v496) ──
+16946|      Решение владельца 01.09: «пусть там ничего не будет — лучше, чем куча
+16947|      этих строк». Второй серой строкой под заданием блины стояли у КАЖДОГО
+16948|      из восьми упражнений и нужны ровно один раз — когда вешаешь штангу.
+16949|      Здесь они рядом с историей и разбором веса: всё про это движение. */
+16950|   {
+16951|     const _pl=(function(){ try{
+16952|       const _w=(it&&(function(){ const ns=nextSet(it,vDay||td()); return ns&&ns.w>0?ns.w:0; })())||0;
+16953|       return _w>0?plateHTML(name,+_w):'';
+16954|     }catch(_){ return ''; } })();
+16955|     if(_pl) out.push(`<div class="tech" style="margin-top:14px"><b>Как вешать</b><div class="wc-sub" style="margin-top:8px">${_pl.replace(/^<br>/,'')}</div></div>`);
+16956|   }
+16957|   return (today.length?`<div data-expane="today">${today.join('')}</div>`:'')+(out.length?`<div data-expane="hist">${out.join('')}</div>`:'');
+16958| }
+16959| let _exShown=null;      // упражнение открытого листа — чтобы перерисовать его при смене дня (v594)
+16960| function showEx(e){
+16961|   _exShown=e;
+16962|   $('exT').textContent=e.n;
+16963|   const main=Object.entries(e.m).filter(([,w])=>w>=1).map(([k])=>MUS[k]);
+16964|   const sec=Object.entries(e.m).filter(([,w])=>w<1).map(([k])=>MUS[k]);
+16965|   const eq=(EM[e.n]&&({gym:'Зал: штанга / блок / тренажёр',db:'Гантели',bw:'Свой вес'})[EM[e.n].eq])||(e.eq?e.eq.charAt(0).toUpperCase()+e.eq.slice(1):'');
+16966|   const acc=(e.sub||[]).map(k=>SUBN[k]).filter(Boolean);
+16967|   // pendvid — «запланированное» видео: если файл ещё не залит, onerror его прячет.
+16968|   // Как только <slug>.mp4/.webp появятся в бакете — ролик показывается сам.
+16969|   const _slug=exSlug(e)||e.pendvid||'';
+16970|   const _alt=exEquipOK(e)?null:bestSwap(e);
+16971|   $('exBody').innerHTML=`
+16972|     ${exVideoHTML(_slug)}
+16973|     ${(_slug&&exVidApprox(e))?`<div class="mini" style="color:var(--t3);margin:-6px 0 12px;text-align:center">Видео — близкий вариант: ${esc(exVidApprox(e))}</div>`:''}
+16974|     ${!exEquipOK(e)?`<div class="wb" style="margin-bottom:12px;border-left:3px solid var(--wn)">
+16975|       <b>Нет снаряда «${EQL[exEquip(e)]}»?</b> ${_alt?`Аналог с видео на ту же мышцу:
+16976|       <button class="btn sm" id="exSwap" style="margin-top:8px">Заменить на «${esc(_alt.n)}»</button>`:'Похожего с доступным снарядом не нашлось — отметь оборудование выше.'}</div>`:''}
+16977|     ${/* ── ЧИПЫ СТАЛИ СТРОКАМИ ──
+16978|           Полевой отчёт владельца 01.09 со скриншотом чужого приложения:
+16979|           «ну нет же фона; функций меньше, но всё же красиво и чётко указано».
+16980|           Шесть лаймовых плашек с рамками сверху листа — это шесть объектов
+16981|           там, где нужны две строки данных. У них: «Основные мышцы: Трицепс».
+16982|           Плашка не несёт ничего сверх слова, а стоит рамки, фона и ряда. */''}
+16983|     ${/* ── ВКЛАДКИ ВНУТРИ ЛИСТА (владелец 05.09: «удобно, чтоб это было внутри
+16984|           карточки отдельными вкладками») — три: Техника (мышцы, шаги, ошибки),
+16985|           Сегодня (база дня, схема, задача), История (подходы, почему такой
+16986|           вес, как вешать). Так устроена страница движения в Hevy: About ·
+16987|           History · Charts. Лист стал короче на две трети без потери строки. */''}
+16988|     <div class="seg exseg" id="exTabs" style="margin-bottom:12px"><button class="on" data-extab="tech">Техника</button><button data-extab="today">Сегодня</button><button data-extab="hist">История</button></div>
+16989|     <div data-expane="tech">
+16990|     <div class="exmeta">
+16991|       ${main.length||acc.length?`<div><span class="l">Основные мышцы</span><span class="v">${esc(main.concat(acc).join(' · '))}</span></div>`:''}
+16992|       ${sec.length?`<div><span class="l">Дополнительно</span><span class="v">${esc(sec.join(' · '))}</span></div>`:''}
+16993|       ${eq?`<div><span class="l">Оборудование</span><span class="v">${eq}</span></div>`:''}
+16994|     </div>
+16995|     <div class="tech" style="margin-top:8px">
+16996|       <b>Техника</b><ol>${e.c.map(c=>`<li><span>${esc(c)}</span></li>`).join('')}</ol>
+16997|       <b style="color:var(--bd)">Частые ошибки</b><ul>${e.e.map(c=>`<li><span>${esc(c)}</span></li>`).join('')}</ul>
+16998|     </div>
+16999|     ${(function(){ const c=prehabCue(e.n); return c?`<div class="wb" style="margin-top:8px;border-left:3px solid var(--wn)" data-prehabcue="1">${esc(c)}</div>`:''; })()}
+17000|     </div>
+17001|     ${/* ── ВСЁ ПРО УПРАЖНЕНИЕ — ВНУТРИ УПРАЖНЕНИЯ ──
+17002|           Решение владельца 01.09: «я бы вообще думал внутрь упражнения
+17003|           упаковать историю, почему такой вес и прочее, чтоб не раздувать
+17004|           нашу карточку». Он прав, и это ровно то, как устроены Hevy и
+17005|           Strong: карточка на экране тренировки — это таблица подходов,
+17006|           а тап по названию открывает всё про движение.
+17007|           До этого история и разбор веса жили ДВУМЯ раскрывашками в самой
+17008|           карточке и стоили 80 px пути до первого подхода каждому упражнению
+17009|           каждого дня — при том, что открывают их редко. */''}
+17010|     ${(function(){ try{ return exSheetHist(e.n); }catch(_){ return ''; } })()}
+17011|     <div class="note">Текст не заменяет живого тренера, который видит именно тебя. Если что-то болит — не «терпи технику», останови подход.</div>`;
+17012|   if(_alt){ const bs=$('exSwap'); if(bs) bs.onclick=()=>showEx(_alt); }
+17013|   /* Вкладки: пустая вкладка (нет плана на сегодня, нет истории) не показывается. */
+17014|   try{
+17015|     const body=$('exBody'), tabs=body.querySelectorAll('[data-extab]'), panes=body.querySelectorAll('[data-expane]');
+17016|     const has=k=>[...panes].some(p=>p.dataset.expane===k&&p.textContent.trim());
+17017|     tabs.forEach(b=>{ if(!has(b.dataset.extab)) b.hidden=true; });
+17018|     const show=k=>{ panes.forEach(p=>{ p.hidden=p.dataset.expane!==k; }); tabs.forEach(b=>b.classList.toggle('on',b.dataset.extab===k)); };
+17019|     tabs.forEach(b=>b.onclick=()=>show(b.dataset.extab));
+17020|     show('tech');
+17021|   }catch(e){}
+17022|   sheet('sh-ex',true);
+17023| }
+17024| /* КЭШ ГРАФИКА ГОТОВНОСТИ (v597). Профиль 14.09 на 20×: канвас съедал 556 из
+17025|    1251 мс отрисовки «Зала» — при том, что данные меняются раз в день, а
+17026|    вкладку открывают десятки раз. Подпись — ширина, dpr, цвет темы и 14
+17027|    точек; совпала — не перерисовываем ни канвас, ни подпись под ним. */
+17028| let _rdSig='', _rdWarn='';
+17029| function drawRd(){
+17030|   const cv=$('rdChart'); if(!cv||!cv.clientWidth) return;
+17031|   const dpr=devicePixelRatio||1,w=cv.clientWidth,h=150;
+17032|   const t=dn(td()),pts=[];
+17033|   for(let i=t-13;i<=t;i++){const r=RDY.find(y=>y.d===ds(i));pts.push({d:i,v:r?rdScore(r):null})}
+17034|   /* Тему берём по атрибуту, а не через getComputedStyle: тот после innerHTML
+17035|      вкладки заставляет браузер пересчитать стили прямо здесь (профиль: 179 мс
+17036|      на кэш-попадании). Цвет читается только когда рисуем. */
+17037|   const sig=w+'|'+dpr+'|'+((document.documentElement.dataset||{}).theme||'')+'|'+pts.map(p=>p.v==null?'-':Math.round(p.v)).join(',');
+17038|   const wb0=$('rdWarn');
+17039|   if(sig===_rdSig&&cv.width===Math.round(w*dpr)){ if(wb0&&wb0.innerHTML!==_rdWarn) wb0.innerHTML=_rdWarn; return; }
+17040|   _rdSig=sig;
+17041|   cv.width=w*dpr;cv.height=h*dpr;cv.style.height=h+'px';
+17042|   const x=cv.getContext('2d');x.scale(dpr,dpr);x.clearRect(0,0,w,h);
+17043|   const has=pts.filter(p=>p.v!=null);
+17044|   if(has.length<2){x.fillStyle='#8E8E93';x.font='12px Inter,sans-serif';x.textAlign='center';
+17045|     x.fillText('Заполни опросник хотя бы 2 дня',w/2,h/2);_rdWarn='';if(wb0) wb0.innerHTML='';return}
+17046|   const pad={l:28,r:8,t:12,b:18};
+17047|   const X=i=>pad.l+(i)/13*(w-pad.l-pad.r), Y=v=>pad.t+(1-v/100)*(h-pad.t-pad.b);
+17048|   x.strokeStyle='#2C2C2E';x.lineWidth=1;x.fillStyle='#8E8E93';x.font='10px Inter,sans-serif';x.textAlign='right';
+17049|   [0,50,100].forEach(v=>{const y=Y(v);x.beginPath();x.moveTo(pad.l,y);x.lineTo(w-pad.r,y);x.stroke();x.fillText(v,pad.l-5,y+3)});
+17050|   x.beginPath();x.strokeStyle=C_AC();x.lineWidth=2.2;x.lineJoin='round';
+17051|   let started=0;
+17052|   pts.forEach((p,i)=>{if(p.v==null)return;
+17053|     if(!started){x.moveTo(X(i),Y(p.v));started=1}else x.lineTo(X(i),Y(p.v))});
+17054|   x.stroke();
+17055|   pts.forEach((p,i)=>{if(p.v==null)return;
+17056|     x.beginPath();x.arc(X(i),Y(p.v),3,0,7);
+17057|     x.fillStyle=p.v<40?C_BD():p.v<60?C_WN():C_AC();x.fill()});
+17058|   const last3=pts.slice(-4).filter(p=>p.v!=null);
+17059|   const wb=$('rdWarn');
+17060|   if(last3.length>=3&&last3.slice(-3).every(p=>p.v<45)){
+17061|     wb.innerHTML=`<div class="eb"><b>Три дня подряд низкая готовность.</b> Это уже не шум. Самое частое объяснение — не «перетрен», а банальный недосып и накопленный дефицит калорий. Проверь по порядку: сон меньше 7 часов? дефицит держится больше 10–12 недель? Если да — начни с этого, а не с урезания тренировок.</div>`;
+17062|   }else if(has.length>=3){
+17063|     const avg=r0(has.slice(-7).reduce((a,p)=>a+p.v,0)/Math.min(7,has.length));
+17064|     wb.innerHTML=`<div class="ob">Средняя готовность за неделю: <b>${avg}/100</b>. Один плохой день — шум, три подряд — сигнал.</div>`;
+17065|   }else wb.innerHTML='';
+17066|   _rdWarn=wb.innerHTML;
+17067| }
+17068| 
+17069| /* ══════════════ АЛЬТЕРНАТИВНЫЕ РЫЧАГИ ══════════════
+17070|    Дефицит создаётся тремя способами, и они НЕ равнозначны:
+17071|      1. Есть меньше — сильнейший, но упирается в голод и жизнь.
+17072|      2. Ходить больше (NEAT) — почти бесплатен для восстановления. Главный запасной рычаг.
+17073|      3. Кардио — работает, но ест ресурс восстановления.
+17074|      4. «Тренироваться интенсивнее» — САМЫЙ СЛАБЫЙ и может сработать в минус:
+17075|         силовая жжёт 150–250 ккал/час (ты полсессии отдыхаешь), зато усталость растёт,
+17076|         и весь остаток дня ты двигаешься меньше. Эффект компенсации съедает прибавку.
+17077|         Ни одно приложение вам этого не скажет, потому что «тренируйся больше» продаётся лучше. */
+17078| const KCAL_PER_1000_STEPS = kg => 0.40*kg;      // 85 кг → ~34 ккал, консервативно (нетто)
+17079| const KCAL_PER_MIN_CARDIO = kg => 0.090*kg;     // спокойное кардио, зона 2 → ~7.6 ккал/мин
+17080| const KCAL_PER_MIN_LIFT   = kg => 0.030*kg;     // силовая, УСРЕДНЁННО по сессии с отдыхом → ~2.5
+17081| 
+17082| function intakeGap(){
+17083|   const t=tg(); if(!t||S.tdee==null) return null;
+17084|   const K=dayK(), days=[];
+17085|   for(let i=1;i<=14;i++){const d=dstr(dn(td())-i); if(K[d]>0) days.push(K[d])}
+17086|   if(days.length<5) return null;
+17087|   const avg=days.reduce((a,b)=>a+b,0)/days.length;
+17088|   return {avg,target:t.k,gap:avg-t.k,n:days.length};
+17089| }
+17090| function rLever(){
+17091|   const c=$('leverCard'), box=$('leverBox');
+17092|   const g=intakeGap(), kg=curW();
+17093|   if(!g||!kg||g.gap<80){ c.style.display='none'; return }
+17094|   c.style.display='block';
+17095|   const need=g.gap;                                   // сколько ккал не хватает до цели
+17096|   const st=KCAL_PER_1000_STEPS(kg), cd=KCAL_PER_MIN_CARDIO(kg), lf=KCAL_PER_MIN_LIFT(kg);
+17097|   const steps=Math.round(need/st*1000/500)*500;
+17098|   const cardio=Math.round(need/cd/5)*5;
+17099|   const lift=Math.round(need/lf/5)*5;
+17100|   const _tdy=td();
+17101|   const base=[...STEPS].filter(x=>x.d<=_tdy).sort((a,b)=>a.d<b.d?1:-1).slice(0,14);
+17102|   const avgSteps=base.length?Math.round(base.reduce((a,x)=>a+x.n,0)/base.length):null;
+17103|   const km=Math.round(steps/1300*10)/10;                 // ~1300 шагов на км
+17104|   const walkMin=Math.round(km/5*60/5)*5;                 // спокойная ходьба ~5 км/ч
+17105|   const stepsReal=4000;                                  // реалистичная ежедневная прибавка
+17106|   const stepsRealKcal=Math.round(stepsReal/1000*st);
+17107|   const combo=need>stepsRealKcal+30;                     // движением в одиночку не закрыть
+17108|   /* ── ЭКРАН РЫЧАГОВ ОЧИЩЕН ОТ ШУМА (замечание владельца 11.09) ──
+17109|      Здесь под каждой цифрой стояла строка-пояснение, а под всеми четырьмя —
+17110|      простыня на пол-экрана. Человек приходит сюда с одним вопросом «что
+17111|      сделать», а получал лекцию; четыре цифры тонули в словах. Теперь на
+17112|      экране только название и цифра, премиса одной строкой, а всё «почему» —
+17113|      целиком, ни слова не выброшено — за раскрывашкой. */
+17114|   box.innerHTML=`
+17115|     <div class="wb">
+17116|       Ел в среднем <b>${r0(g.avg)} ккал</b> при цели <b>${g.target}</b> — перебор
+17117|       <b>${r0(need)} ккал/день</b>, темп ${S.rate>0?'+':''}${S.rate} кг/нед так не выйдет.
+17118|     </div>
+17119| 
+17120|     <div class="mk crit" style="margin-top:12px"><div class="g">
+17121|       <div class="n">Есть меньше</div></div>
+17122|       <div class="v ok">−${r0(need)}<small>ккал в день</small></div></div>
+17123| 
+17124|     <div class="mk"><div class="g">
+17125|       <div class="n">Ходить больше</div></div>
+17126|       <div class="v">+${steps.toLocaleString('ru')}<small>шагов в день</small></div></div>
+17127| 
+17128|     <div class="mk"><div class="g">
+17129|       <div class="n">Спокойное кардио</div></div>
+17130|       <div class="v">+${cardio}<small>минут в день</small></div></div>
+17131| 
+17132|     <div class="mk"><div class="g">
+17133|       <div class="n">Больше силовой</div></div>
+17134|       <div class="v hi">+${lift}<small>минут в день</small></div></div>
+17135| 
+17136|     <details class="det" style="margin-top:12px"><summary>Почему еда — главный рычаг</summary>
+17137|     <div class="ob" style="margin-top:12px">
+17138|       <b>Что выбрать — и почему это не очевидно.</b><br><br>
+17139|       <b>Еда — главный рычаг.</b> Убрать ${r0(need)} ккал из еды — это обычно один пункт:
+17140|       перекус, сладкие напитки или вечерний «дожор». Ноль минут времени. Всё остальное —
+17141|       добавка к этому рычагу, а не замена.
+17142|       <br><br>
+17143|       <b>Шаги — лучший из добавочных.</b> ${steps.toLocaleString('ru')} лишних шагов — это ${km} км,
+17144|       ~${walkMin>=60?Math.floor(walkMin/60)+' ч '+(walkMin%60?walkMin%60+' мин':''):walkMin+' минут'} ходьбы${steps>5500?' — столько СВЕРХ обычного каждый день нереально, движением в одиночку такой перебор не закрыть':''}.
+17145|       Восстановление они <b>не трогают</b>: завтра ты присядешь ровно столько же.
+17146|       ${avgSteps?`<br>Сейчас ты ходишь <b>${avgSteps.toLocaleString('ru')}</b> шагов; реалистичная прибавка — 3–4 тысячи.`:'<br>Начни записывать шаги (Тело → Режим), чтобы видеть базу.'}
+17147|       ${combo?`<br><br><b>Связка, которая работает без подвигов:</b> −${r0(need-stepsRealKcal)} ккал из еды + ${stepsReal.toLocaleString('ru')} шагов (−${stepsRealKcal} ккал) — перебор закрыт.`:''}
+17148|       <br><br>
+17149|       <b>Больше силовой — худший рычаг, и вот почему.</b> Чтобы сжечь те же ${r0(need)} ккал,
+17150|       тебе пришлось бы добавить <b>${lift} минут зала каждый день</b> — потому что силовая жжёт
+17151|       мало: полсессии ты стоишь и отдыхаешь. А дальше включается <b>эффект компенсации</b>:
+17152|       после тяжёлой тренировки человек весь остаток дня двигается меньше, и прибавка в 100 ккал
+17153|       съедается падением бытовой активности на 200. <b>Итог может выйти в ноль или в минус</b> —
+17154|       только вымотанный и с просевшими рабочими весами.
+17155|       <br><br>
+17156|       <b>Кардио — компромисс.</b> Работает, но ест восстановление. ${cardio} мин в день — терпимо,
+17157|       если это ходьба или велосипед в лёгком темпе, а не интервалы.
+17158|     </div>
+17159|     <div class="note">
+17160|       Цифры — <b>оценка нетто</b> и намеренно консервативная. Трекеры и тренажёры завышают расход
+17161|       на 20–40%. Но точность тут и не нужна: адаптивный алгоритм всё равно померит твой реальный
+17162|       расход по тренду веса через две недели и поправит таргет сам. Это просто ориентир, куда крутить.
+17163|     </div></details>`;
+17164| }
+17165| 
+17166| /* ══════════════ RENDER: BODY ══════════════ */
+17167| /* ── ОДИН СЛУШАТЕЛЬ НА СПИСОК (v617, эталон — qListDelegate из v610) ──
+17168|    Было: после каждой перерисовки «Тело» вешало обработчик на КАЖДЫЙ крестик и
+17169|    КАЖДУЮ строку — замер на истории в полгода дал 119 подписок за один рендер
+17170|    (60 удалений веса + 26 удалений замера + 26 правок + 7 чипов). Слушатель на
+17171|    контейнере переживает любую пересборку innerHTML, ставится один раз и не
+17172|    зависит от того, кто и когда перерисовал список. */
+17173| function bodyDelegate(box){
+17174|   if(!box||box._bdlg) return; box._bdlg=1;
+17175|   box.onclick=e=>{
+17176|     const t=e&&e.target&&e.target.closest?e.target:null; if(!t) return;
+17177|     const dw=t.closest('[data-dw]'); if(dw) return bodyAct('dw',dw.dataset.dw);
+17178|     const dm=t.closest('[data-dm]'); if(dm) return bodyAct('dm',dm.dataset.dm);
+17179|     const me=t.closest('[data-medit]'); if(me) return bodyAct('medit',me.dataset.medit);
+17180|     const ma=t.closest('[data-mall]'); if(ma) return bodyAct('mall',box);
+17181|     const mc=t.closest('[data-mck]'); if(mc) return bodyAct('mck',mc.dataset.mck);
+17182|     const dz=t.closest('[data-dz]'); if(dz) return bodyAct('dz',dz.dataset.dz);        // v618: удалить ночь
+17183|     const ze=t.closest('[data-zedit]'); if(ze) return bodyAct('zedit',ze.dataset.zedit);// v618: правка ночи (крестик спрашиваем раньше)
+17184|   };
+17185| }
+17186| async function bodyAct(k,v){
+17187|   if(k==='dw'){ await del('weight',v); W=await all('weight'); rBody(); rFood(); rCoach(); return; }
+17188|   if(k==='dm'){ await del('meas',v); M=await all('meas'); rBody(); return; }
+17189|   if(k==='mall'){ v.dataset.all='1'; rBody(); return; }
+17190|   if(k==='mck'){ msSel=v; rMeasChart(MEAS_NM); return; }
+17191|   if(k==='dz'){ await del('sleep',v); SLP=await all('sleep'); rSleep(); return; }
+17192|   if(k==='zedit'){ if($('zPick')) $('zPick').value=v; rSleep(); window.scrollTo({top:0,behavior:'smooth'}); toast('Правка ночи '+fd(v)); return; }
+17193|   if(k==='medit'){
+17194|     const m=M.find(x=>x.d===v)||{};
+17195|     $('mPick').value=v;['waist','shoulders','chest','hips','arm','thigh','neck'].forEach(x=>$('m_'+x).value=m[x]!=null?m[x]:'');
+17196|     const mf=$('mForm'); if(mf) mf.open=true;   // правка = форма должна быть видна
+17197|     window.scrollTo({top:0,behavior:'smooth'}); toast('Правка замера '+fd(v));
+17198|   }
+17199| }
+17200| function rBody_(){
+17201|   if(!$('wCnt')) return;   // вью «Тело» не смонтирован — рендерить нечего (был краш v53)
+17202|   try{ rLev(); }catch(_){}        // v615: рычаги — в «Замерах»
+17203|   try{ rActChips(); }catch(_){}   // v615: активность вне зала — в «Шагах»
+17204|   /* Предпросмотр тренда — ровно там, где раньше была дыра. Появилась первая
+17205|      запись — призрак уходит, приходит настоящий график. */
+17206|   { const g=$('trGhost'); if(g) g.style.display=(W&&W.length)?'none':''; }
+17207|   /* Пока взвешиваний нет, карточку тренда не показываем вовсе: пустой график
+17208|      на пол-экрана с надписью «нужно минимум 2 взвешивания» и два прочерка над
+17209|      ним — это не «данных нет», а «сломано» (прогон первого запуска 19.08).
+17210|      Форма записи прямо над ней остаётся, и человеку понятно, что делать. */
+17211|   {
+17212|     const tc=$('trCard');
+17213|     if(tc) tc.style.display=(W&&W.length)?'':'none';
+17214|   }
+17215|   /* ── ПОЛЕ ГОВОРИТ, СКОЛЬКО БЫЛО В ПРОШЛЫЙ РАЗ ──
+17216|      Человек встал на весы, увидел 92.4 и открыл приложение. Поле спрашивало
+17217|      «кг, натощак» — то есть просило ввести число, ничего не сказав о том, с
+17218|      чем оно сравнится. А главный вопрос у весов один: больше или меньше, чем
+17219|      вчера. Ответ у нас есть, и он должен стоять там, где задан вопрос, а не
+17220|      в карточке ниже. Тот же приём уже применён к полю шагов (v481).
+17221|      Именно ПОДСКАЗКА, а не подставленное значение: подставленное число можно
+17222|      записать не глядя, и в базу уедет вчерашний вес сегодняшним днём. */
+17223|   { const f=$('wIn2');
+17224|     if(f&&!f.value){
+17225|       const last=[...(W||[])].filter(x=>x&&x.kg>0).sort((a,b)=>a.d<b.d?1:-1)[0];
+17226|       f.placeholder=last?(fd(last.d)+' было '+r1(last.kg)):'кг, натощак';
+17227|     } }
+17228|   const T=trend(), tv=$('trV'), tdl=$('trD');
+17229|   if(T.length){
+17230|     const L=T[T.length-1]; tv.innerHTML=r1(L.tr)+'<span class="bnu"> кг</span>';
+17231|     /* Одна величина — одно число (обход ролей 06.09, редактор): бейдж
+17232|        «+0.5 кг за 7 дней» и строкой ниже «факт +0.4 кг/нед» — два «за
+17233|        неделю» с разными цифрами и тремя цветами. Бейдж берёт тот же
+17234|        actRate и тот же цвет rateCol, что строка «факт»; пока темпа нет —
+17235|        разница за 7 дней нейтральным цветом, без красного. */
+17236|     const ar=(function(){ try{ return actRate(); }catch(e){ return null; } })();
+17237|     const lbl=$('trDL');
+17238|     const wk=T.filter(x=>dn(x.d)>=dn(L.d)-7);
+17239|     /* ── ЧУЖАЯ НЕДЕЛЯ ──
+17240|        Окно «за 7 дней» считалось от ПОСЛЕДНЕЙ записи, а не от сегодня:
+17241|        человек, пропавший на три недели, видел «Тренд 84.6 кг · за 7 дней
+17242|        +0.1» — цифру месячной давности, выданную за свежую (замер на
+17243|        сценарии «вернулся после пропуска», 12.09). Число тренда честно
+17244|        остаётся последним известным, но подпись обязана сказать, когда его
+17245|        мерили, иначе приложение врёт молча. */
+17246|     const _age=dn(td())-dn(L.d);
+17247|     if(_age>7){
+17248|       if(lbl) lbl.textContent='последнее';
+17249|       tdl.textContent=_age+' '+plural(_age,'день','дня','дней')+' назад';
+17250|       tdl.className='dl nu'; tdl.style.color='';
+17251|     } else if(ar!=null){
+17252|       if(lbl) lbl.textContent='в неделю';
+17253|       tdl.textContent=(ar>0?'+':'')+r1(ar)+' кг';
+17254|       tdl.className='dl nu'; tdl.style.color=rateCol(ar);
+17255|       if(cycOn()&&cycWater(td())&&Math.abs(ar)>=0.1){ tdl.textContent+=' · вода'; tdl.style.color=''; }
+17256|     } else if(wk.length>=3){const d=L.tr-wk[0].tr;
+17257|       if(lbl) lbl.textContent='за 7 дней';
+17258|       tdl.textContent=(d>0?'+':'')+r1(d)+' кг'+(cycOn()&&cycWater(td())&&Math.abs(d)>=0.1?' · вода':'');
+17259|       tdl.className='dl nu'; tdl.style.color='';}
+17260|     else{ if(lbl) lbl.textContent='за 7 дней'; tdl.textContent='мало данных';tdl.className='dl nu'; tdl.style.color='';}
+17261|   }else{tv.textContent='—';tdl.textContent='—';tdl.className='dl nu'}
+17262|   chartW(T);
+17263|   try{ rCyc(); }catch(e){}
+17264|   // Цель против факта: ради этой строки человек и взвешивается каждый день.
+17265|   // Совпадение подсвечиваем лаймом, расхождение — жёлтым, без драмы.
+17266|   {const rr=$('trRate');
+17267|    if(rr){ const ar=actRate();
+17268|      /* ── ВЕС ПО ЦИКЛУ, А НЕ ПО НЕДЕЛЕ ──
+17269|         В дни задержки воды недельный темп измеряет воду, а не жир: разница
+17270|         доходит до 3 кг. Показывать в такие дни «факт +1.5 кг/нед» значит
+17271|         говорить человеку «ты набираешь», когда он не набирает, — и толкать
+17272|         его резать калории на ровном месте. Честное сравнение здесь одно:
+17273|         тот же день прошлого цикла. Если прошлого цикла ещё нет — не
+17274|         придумываем, а честно говорим, что мерить пока не с чем. */
+17275|      let cyc='';
+17276|      if(cycOn()&&cycWater(td())){
+17277|        const pd=cycPrevSame(td()), T2=trend();
+17278|        const now=T2.length?T2[T2.length-1].tr:null;
+17279|        const was=pd?(T2.find(x=>x.d===pd)||{}).tr:null;
+17280|        const d0=cycDay(td());
+17281|        if(now!=null&&was!=null){
+17282|          const dd=now-was;
+17283|          cyc='<div class="mini" style="margin-top:4px;color:var(--t2)">'
+17284|            +'сейчас вода: '+d0+'-й день цикла. Честное сравнение — тот же день прошлого цикла: '
+17285|            +'<b>'+r1(was)+'</b> → <b style="color:'+rateCol(dd/4)+'">'+r1(now)+'</b> кг ('
+17286|            +(dd>0?'+':'')+r1(dd)+')</div>';
+17287|        } else {
+17288|          cyc='<div class="mini" style="margin-top:4px;color:var(--t2)">'
+17289|            +'сейчас вода: '+d0+'-й день цикла, вес держит до 1–3 кг. Сравню с тем же днём, '
+17290|            +'когда пройдёт ещё один цикл.</div>';
+17291|        }
+17292|      }
+17293|      /* «Это вода, не жир» говорим только когда есть о чём: при темпе около
+17294|         нуля фраза звучит как объяснение того, чего не произошло. */
+17295|      const мутно=cycOn()&&cycWater(td())&&ar!=null&&Math.abs(ar)>=0.1;
+17296|      rr.innerHTML=(ar==null)?cyc
+17297|        :((мутно
+17298|           ? 'темп: цель '+(S.rate>0?'+':'')+S.rate+' · за неделю <b style="color:var(--t3)">'+(ar>0?'+':'')+r1(ar)+'</b> кг — это вода, не жир'
+17299|           : 'темп: цель '+(S.rate>0?'+':'')+S.rate+' · факт <b style="color:'+rateCol(ar)+'">'+(ar>0?'+':'')+r1(ar)+'</b> кг/нед')+cyc);
+17300|      // прогноз — цифра, ради которой человек и взвешивается (дизайн-аудит 01.08)
+17301|      const fc=$('trFc'), cw=curW();
+17302|      /* Прогноз «через 4 недели ≈ X» строится из недельного темпа. В дни
+17303|         задержки воды этот темп — вода, и прогноз из него получается пугающий
+17304|         и неверный. Молчим: лучше ничего, чем цифра без здравого смысла. */
+17305|      if(fc) fc.textContent=(ar!=null&&cw&&Math.abs(ar)>=0.05&&!(cycOn()&&cycWater(td())))
+17306|        ?'если темп сохранится: через 4 недели ≈ '+r1(cw+ar*4)+' кг':'';}}
+17307|   $('wCnt').textContent=W.length+' '+plural(W.length,'запись','записи','записей');
+17308|   /* v617: тренд строки берём из карты, а не поиском по массиву. Было
+17309|      T.find(...) внутри map — шестьдесят линейных проходов по истории из ста
+17310|      восьмидесяти записей на каждый показ экрана; стало одно построение карты. */
+17311|   const wl=$('wList'), sr=[...W].sort((a,b)=>a.d<b.d?1:-1);
+17312|   const trendMap={}; T.forEach(x=>{ trendMap[x.d]=x.tr; });
+17313|   wl.innerHTML=sr.length?sr.slice(0,60).map(x=>{const tr=trendMap[x.d];
+17314|     return '<div class="item"><div class="g"><div class="t">'+r1(x.kg)+' кг</div>'
+17315|       +'<div class="s">'+fd(x.d)+' · тренд '+(tr!=null?r1(tr):'—')+'</div></div>'
+17316|       +'<button class="x" data-dw="'+x.d+'"><svg class="ic"><use href="#i-close"/></svg></button></div>';}).join('')
+17317|     :'<div class="empty">Записей пока нет.<br>Запиши вес в карточке выше — здесь появятся тренд, график и адаптивный расход.</div>';
+17318|   bodyDelegate(wl);
+17319| 
+17320|   {const sb=$('stScBox'); if(sb) sb.style.display=S.stepsKey?'':'none';}
+17321|   const NM=MEAS_NM;
+17322|   rMeasChart(NM); rNavyBF();
+17323|   const ml=$('mList'), ms=[...M].sort((a,b)=>a.d<b.d?1:-1);
+17324|   // Свёрнутая форма не должна прятать суть: последний замер виден сразу
+17325|   {const mb=$('mLast');
+17326|    if(mb){ const m0=ms[0];
+17327|      mb.innerHTML=m0
+17328|        ?('последний — '+fd(m0.d)+['waist','chest','arm'].filter(k=>m0[k]!=null)
+17329|            /* Сантиметровой лентой «86.78» не измерить: два знака после запятой —
+17330|               ложная точность, а цифра без здравого смысла хуже её отсутствия.
+17331|               Хвосты приезжают из слияния и старых импортов (скриншот 23.08). */
+17332|            .map(k=>' · '+NM[k].toLowerCase()+' <b>'+r1(m0[k])+'</b>').join(''))
+17333|        :'';}}
+17334|   /* v617: на виду последние 24 замера (полгода еженедельной ленты), остальное —
+17335|      по тихой кнопке. У истории веса предел стоял с самого начала (60 строк), у
+17336|      замеров его не было: через два года ведения это сто с лишним строк, которые
+17337|      человек не листает, но которые он каждый раз рисует и прокручивает. */
+17338|   const _mLim=24, _mAll=!!ml.dataset.all, _mShow=_mAll?ms:ms.slice(0,_mLim);
+17339|   ml.innerHTML=ms.length?_mShow.map((m,i)=>{
+17340|     const p=ms[i+1];   // _mShow — префикс ms, поэтому предыдущий замер берётся по тому же индексу
+17341|     const parts=Object.keys(NM).filter(k=>m[k]!=null).map(k=>{
+17342|       let s=`${NM[k]} ${m[k]}`;
+17343|       /* v282: раньше ЛЮБОЙ прирост обхвата красился тревожным — то есть
+17344|          выросший бицепс приложение считало плохой новостью. Направление
+17345|          имеет смысл только у талии; остальные обхваты показываем нейтрально,
+17346|          знак числа и так говорит, куда движется. */
+17347|       if(p&&p[k]!=null){const d=m[k]-p[k];
+17348|         if(Math.abs(d)>=.1){
+17349|           const dc=k==='waist'?(d<0?'var(--ac)':Math.abs(d)>=.5?'var(--wn)':'var(--t2)'):'var(--t2)';
+17350|           s+=` <span style="color:${dc}">(${d>0?'+':''}${r1(d)})</span>`}}
+17351|       return s}).join(' · ');
+17352|     return `<div class="item"><div class="g" data-medit="${m.d}" style="cursor:pointer"><div class="t">${fd(m.d)}</div>
+17353|       <div class="s" style="white-space:normal">${parts||'—'}</div></div>
+17354|       <button class="x" data-dm="${m.d}"><svg class="ic"><use href="#i-close"/></svg></button></div>`}).join('')
+17355|       +((!_mAll&&ms.length>_mLim)?'<button class="mmore" data-mall="1">Показать всю историю замеров · ещё '+(ms.length-_mLim)+'</button>':'')
+17356|     :'<div class="empty">Замеров пока нет.<br>Сантиметр честнее весов: вес стоит, а талия уходит — это и есть рекомпозиция.</div>';
+17357|   bodyDelegate(ml);
+17358|   // V-образность: плечи/талия. Единственная метрика «силуэта», которую можно померить лентой.
+17359|   const vt=ms.find(x=>x.shoulders&&x.waist);
+17360|   if(vt){
+17361|     const v=vt.shoulders/vt.waist;
+17362|     const q=v>=1.45?['ac','отличная']:v>=1.35?['ac','хорошая']:v>=1.25?['wn','средняя']:['bd','слабая'];
+17363|     ml.insertAdjacentHTML('afterbegin',`<div class="ob" style="margin-bottom:12px">
+17364|       <b>Плечи / талия: ${r2(v)}</b> — ${q[1]} V-образность.<br>
+17365|       Это единственная метрика «силуэта», которую можно померить лентой. Растёт двумя способами:
+17366|       <b>плечи вверх</b> (боковые дельты, широчайшие) или <b>талия вниз</b> (жир). Второе быстрее.</div>`);
+17367|   }
+17368|   if($('mPick')&&!$('mPick').value)$('mPick').value=td();
+17369|   if($('stPick')&&!$('stPick').value)$('stPick').value=td();
+17370|   const md=($('mPick')&&$('mPick').value)||td(), sd=($('stPick')&&$('stPick').value)||td();
+17371| 
+17372|   const st=STEPS.find(x=>x.d===sd); $('stIn').value=st?st.n:'';
+17373|   rSteps();
+17374| }
+17375| /* ══════════════ МОСТ К ШАГАМ ТЕЛЕФОНА (v621) ══════════════
+17376|    Сегодня шаги приходят двумя путями: команда iOS открывает приложение с
+17377|    ?steps=N и облачный приёмник api/steps.js. Оба требуют от человека настройки
+17378|    и оба врут по времени. Если приложение когда-нибудь поедет в App Store
+17379|    обёрткой Capacitor, шаги можно брать прямо у телефона.
+17380|    ЧЕСТНО ПРО СОСТОЯНИЕ: в репозитории Capacitor НЕТ — ни пакета, ни проекта
+17381|    ios/, ни конфига. В браузере (а это оба живых пользователя сегодня) весь
+17382|    этот мост — один вызов hkPlugin(), который возвращает null, и выход. Он не
+17383|    рисует, не спрашивает разрешений и ничего не пишет. Проверяется поддельным
+17384|    плагином в гейте — от первого вызова до перерисованного графика.
+17385|    ИМЕНА МЕТОДОВ. Единого API у плагинов HealthKit нет: у @perfood это
+17386|    queryHKitSampleType, у других querySteps или queryAggregated. Поэтому здесь
+17387|    переходник: спрашиваем по очереди те имена, что встречаются в живых
+17388|    плагинах, и первый ответивший выигрывает. */
+17389| let _hkAt=0;                       // когда последний раз ходили к телефону
+17390| const HK_DAYS=3;                   // окно забора — трое суток назад
+17391| const HK_GAP=10*60*1000;           // чаще раза в 10 минут не дёргаем
+17392| function hkPlugin(){
+17393|   try{
+17394|     const C=(typeof Capacitor!=='undefined'&&Capacitor)||(typeof window!=='undefined'&&window.Capacitor)||null;
+17395|     const PL=C&&C.Plugins;
+17396|     return (PL&&(PL.HealthKit||PL.CapacitorHealthkit||PL.Health))||null;
+17397|   }catch(e){ return null; }
+17398| }
+17399| async function initHealthKit(){
+17400|   if(typeof window!=='undefined'&&window._hkActive) return true;
+17401|   const P=hkPlugin();
+17402|   if(!P||typeof P.requestAuthorization!=='function') return false;
+17403|   try{
+17404|     /* Разные сборки ждут разную форму запроса; лишние поля они игнорируют,
+17405|        а недостающие ломают авторизацию молча. Отдаём все три. */
+17406|     const r=await P.requestAuthorization({all:[],read:['steps'],write:[]});
+17407|     if(r&&(r.granted===false||r.authorized===false)) return false;   // человек отказал — молча, без алертов
+17408|   }catch(e){ return false; }                                          // отказ, старый плагин, нет разрешения в Info.plist
+17409|   try{ window._hkActive=true; }catch(e){}
+17410|   return true;
+17411| }
+17412| /* Ответ плагина приводим к нашему виду: [{d:'ГГГГ-ММ-ДД', n:шаги}].
+17413|    День считаем по МЕСТНОМУ времени — как везде в приложении (td/ds). */
+17414| function hkRows(r){
+17415|   const arr=Array.isArray(r)?r:(r&&(r.resultData||r.data||r.rows||r.result||r.steps));
+17416|   if(!Array.isArray(arr)) return null;
+17417|   const by={};
+17418|   arr.forEach(x=>{
+17419|     if(!x||typeof x!=='object') return;
+17420|     let d=x.d||x.day||null;
+17421|     if(!d){ const ts=x.date||x.startDate||x.start||x.from;
+17422|       if(ts){ const dt=new Date(ts); if(!isNaN(dt)) d=dt.toLocaleDateString('sv-SE'); } }
+17423|     const raw=(x.n!=null?x.n:(x.value!=null?x.value:(x.count!=null?x.count:x.quantity)));
+17424|     const n=Math.round(+raw);
+17425|     if(!d||!isFinite(n)||n<0||n>200000) return;   // 200 000 шагов в сутки не бывает — это сбой источника
+17426|     by[d]=Math.max(by[d]||0,n);
+17427|   });
+17428|   return Object.keys(by).map(d=>({d:d,n:by[d]}));
+17429| }
+17430| async function hkSteps(P,startDate,endDate){
+17431|   const args={startDate:startDate.toISOString(),endDate:endDate.toISOString(),
+17432|     sampleName:'stepCount',dataType:'steps',unit:'count',bucket:'day',limit:0};
+17433|   const names=['queryHKitSteps','querySteps','queryAggregated','queryHKitSampleType','query'];
+17434|   for(let i=0;i<names.length;i++){
+17435|     const f=P[names[i]];
+17436|     if(typeof f!=='function') continue;
+17437|     let r=null;
+17438|     try{ r=await f.call(P,args); }catch(e){ continue; }
+17439|     const rows=hkRows(r);
+17440|     if(rows&&rows.length) return rows;
+17441|   }
+17442|   return null;
+17443| }
+17444| /* ── v634: ШАГИ БЕЗ РУЧНОГО ВЫЗОВА — ПЕРЕДНЯЯ ПОЛОВИНА ФОНОВОГО СИНКА ──
+17445|    Задание автора: фоновая синхронизация через Capacitor Background Runner и
+17446|    BGTaskScheduler. Что из этого может жить в index.html, а что нет —
+17447|    по документации Capacitor, а не по желанию:
+17448|    · раннер выполняется НЕ в WebView: у него нет DOM, нет IndexedDB и
+17449|      localStorage приложения и нет произвольных плагинов (HealthKit в том
+17450|      числе). Значит «фоновый обработчик в index.html» ОС никогда не вызовет,
+17451|      а из раннера шаги взять нечем;
+17452|    · регистрация задачи декларативная (plugins.BackgroundRunner в
+17453|      capacitor.config.json: label/src/event/repeat/interval/autoStart), а не
+17454|      методом; iOS сам решает, когда и запускать ли вообще.
+17455|    Поэтому здесь — то, что честно работает уже в веб-сборке и станет
+17456|    передней половиной нативной: забор шагов на КАЖДОЕ пробуждение
+17457|    приложения (было — только при заходе на «Тело»), квант 15 минут, тот же
+17458|    инвариант v621 (Math.max: внешний источник не затирает меньшим), без
+17459|    единого DOM-рендера — только пометка вкладки «Тело» как грязной.
+17460|    Настоящий фон, когда телефон в кармане, — это Swift
+17461|    HKObserverQuery + enableBackgroundDelivery в нативном проекте, которого
+17462|    пока нет (решение владельца, NEXT.md). Плюс приёмник для него уже стоит:
+17463|    раннер или нативный код кладут «steps:ГГГГ-ММ-ДД» в CapacitorKV, а
+17464|    stepsInboxMerge забирает при пробуждении. */
+17465| const BG_SYNC_GAP=15*60*1000;
+17466| let _bgAt=0;
+17467| async function stepsInboxMerge(){
+17468|   try{
+17469|     const C=(typeof Capacitor!=='undefined'&&Capacitor)||null;
+17470|     const KV=C&&C.Plugins&&(C.Plugins.CapacitorKV||C.Plugins.KV);
+17471|     if(!KV||typeof KV.get!=='function') return 0;
+17472|     let changed=0;
+17473|     for(let i=0;i<HK_DAYS;i++){
+17474|       const d=ds(dn(td())-i);
+17475|       let r=null; try{ r=await KV.get({key:'steps:'+d}); }catch(e){ continue; }
+17476|       const raw=(r&&typeof r==='object')?(r.value!=null?r.value:r.n):r;
+17477|       const n=Math.round(+raw);
+17478|       if(!isFinite(n)||n<=0||n>200000) continue;
+17479|       const ex=STEPS.find(x=>x.d===d), was=(ex&&ex.n)||0;
+17480|       const v=Math.max(n,was);                          // инвариант v621
+17481|       if(v===was&&ex) continue;
+17482|       await put('steps',Object.assign({},ex||{},{d:d,n:v})); changed++;
+17483|     }
+17484|     if(changed){ STEPS=await all('steps'); TAB_DIRTY.body=true; try{ rStepsCard(); }catch(e){} }
+17485|     return changed;
+17486|   }catch(e){ return 0; }
+17487| }
+17488| async function bgHealthTick(force){
+17489|   const now=Date.now();
+17490|   if(!force&&_bgAt&&now-_bgAt<BG_SYNC_GAP) return 0;   // квант 15 минут: пробуждение — не повод дёргать датчики
+17491|   _bgAt=now;
+17492|   let n=0;
+17493|   try{ n+=await stepsInboxMerge(); }catch(e){}
+17494|   try{ n+=await syncHealthKit(force); }catch(e){}
+17495|   if(n) TAB_DIRTY.body=true;
+17496|   return n;
+17497| }
+17498| async function initBackgroundHealthSync(){
+17499|   if(typeof Capacitor==='undefined'||!Capacitor) return;   // обычный Safari PWA — тихо (правило 12)
+17500|   try{ if(window._bgWired) return; window._bgWired=1; }catch(e){}
+17501|   try{
+17502|     document.addEventListener('visibilitychange',()=>{ if(!document.hidden) bgHealthTick(false); });
+17503|     const App=Capacitor.Plugins&&Capacitor.Plugins.App;
+17504|     if(App&&typeof App.addListener==='function')
+17505|       App.addListener('appStateChange',s=>{ if(s&&s.isActive) bgHealthTick(false); });
+17506|   }catch(e){}
+17507|   try{ await bgHealthTick(true); }catch(e){}
+17508| }
+17509| async function syncHealthKit(force){
+17510|   if(typeof window==='undefined') return 0;
+17511|   if(!window._hkActive){
+17512|     if(!(await initHealthKit())) return 0;    // плагина нет или человек отказал — тихо
+17513|   }
+17514|   const now=Date.now();
+17515|   if(!force&&_hkAt&&now-_hkAt<HK_GAP) return 0;   // тап по вкладке не повод опрашивать телефон
+17516|   _hkAt=now;
+17517|   const P=hkPlugin(); if(!P) return 0;
+17518|   const startDate=new Date(now-HK_DAYS*24*60*60*1000), endDate=new Date(now);
+17519|   let rows=null;
+17520|   try{ rows=await hkSteps(P,startDate,endDate); }catch(e){ return 0; }
+17521|   if(!rows||!rows.length) return 0;
+17522|   /* ЗАКОН ЭТОГО ПРИЛОЖЕНИЯ: источник извне не затирает записанное МЕНЬШИМ
+17523|      числом. Он уже дважды записан в коде — для команды iOS (?steps=) и для
+17524|      облачного приёмника. Причина та же и здесь: HealthKit честно отдаёт 0 за
+17525|      день, когда часы не надевали, а телефон лежал дома. Перезаписать этим
+17526|      нулём руками введённые 12 000 значит молча стереть факт. */
+17527|   let changed=0;
+17528|   for(let i=0;i<rows.length;i++){
+17529|     const row=rows[i], ex=STEPS.find(x=>x.d===row.d), was=(ex&&ex.n)||0;
+17530|     const n=Math.max(row.n,was);
+17531|     if(n===was&&ex) continue;
+17532|     await put('steps',{...(ex||{}),d:row.d,n:n});
+17533|     changed++;
+17534|   }
+17535|   if(!changed) return 0;
+17536|   STEPS=await all('steps');
+17537|   /* Точечно: карточка шагов и диагностика с графиком. Перерисовывать всё
+17538|      приложение из фонового моста нельзя — человек может быть в подходе. */
+17539|   try{ rStepsCard(); }catch(e){}
+17540|   try{ rSteps(); }catch(e){}
+17541|   return changed;
+17542| }
+17543| function rSteps(){
+17544|   const srt=[...STEPS].sort((a,b)=>a.d<b.d?-1:1);
+17545|   if(srt.length<3){
+17546|     $('st14').textContent='—';$('stBase').textContent='—';
+17547|     $('stBox').innerHTML='<div class="wb">Нужно хотя бы 3 записи шагов, чтобы начать; надёжные выводы — от 18 дней.</div>';
+17548|     return;
+17549|   }
+17550|   const t=dn(td());
+17551|   const rec=srt.filter(x=>dn(x.d)>=t-13);
+17552|   if(!rec.length){
+17553|     $('st14').textContent='—';$('stBase').textContent='—';
+17554|     $('stBox').innerHTML='<div class="ib">За последние 14 дней записей нет — начни записывать снова, и диагностика оживёт.</div>';
+17555|     chartSt(srt); return;
+17556|   }
+17557|   const m14=rec.reduce((a,x)=>a+x.n,0)/rec.length;
+17558|   const base=srt.slice(0,14);
+17559|   const mb=base.reduce((a,x)=>a+x.n,0)/base.length;
+17560|   $('st14').textContent=r0(m14).toLocaleString('ru');
+17561|   $('stBase').textContent=r0(mb).toLocaleString('ru');
+17562|   const drop=mb-m14, pct=mb>0?drop/mb*100:0;
+17563|   const box=$('stBox');
+17564|   if(srt.length<18) box.innerHTML='<div class="ib">Пока база и текущее окно пересекаются — цифры станут осмысленными после ~4 недель записей.</div>';
+17565|   else if(pct>12) box.innerHTML=`<div class="wb"><b>Шаги упали на ${r0(pct)}% (−${r0(drop).toLocaleString('ru')} в день).</b>
+17566|     Это классическое падение NEAT на дефиците: организм тихо экономит энергию, ты меньше двигаешься, и расход падает.
+17567|     Примерно <b>${r0(drop*0.04)} ккал/день</b> ты просто перестал тратить.<br><br>
+17568|     Важно: адаптивный алгоритм это уже <b>увидел</b> и учёл в TDEE — таргет не врёт. Но у тебя есть выбор:
+17569|     либо снижать калории дальше, либо вернуть шаги. Второе почти всегда лучше.</div>`;
+17570|   else if(pct<-12) box.innerHTML=`<div class="ob"><b>Шаги выросли на ${r0(-pct)}%.</b> Активность выше базовой — расход тоже. Алгоритм это учтёт.</div>`;
+17571|   /* В норме не пишем ничего: две цифры выше — «сейчас» и «база» — уже
+17572|      показали, что ничего не изменилось (31.08). */
+17573|   else box.innerHTML='';
+17574|   chartSt(srt);
+17575| }
+17576| let _stchSig='';
+17577| function chartSt(srt){
+17578|   const cv=$('stCh'); if(!cv||!cv.clientWidth) return;   // свёрнутая раскрывашка — ширины нет, рисовать нечего
+17579|   const dpr=devicePixelRatio||1,w=cv.clientWidth,h=130;
+17580|   /* v617: та же подпись, что у веса и замеров (v601) — 60 последних дней,
+17581|      ширина, плотность пикселей и тема. Совпала — не трогаем канвас. */
+17582|   const D0=srt.slice(-60);
+17583|   const sig=w+'|'+dpr+'|'+((document.documentElement.dataset||{}).theme||'')+'|'+D0.map(p=>p.d+':'+p.n).join(',');
+17584|   if(sig===_stchSig&&cv.width===Math.round(w*dpr)) return;
+17585|   _stchSig=sig;
+17586|   cv.width=w*dpr;cv.height=h*dpr;cv.style.height=h+'px';
+17587|   const x=cv.getContext('2d');x.scale(dpr,dpr);x.clearRect(0,0,w,h);
+17588|   const D=srt.slice(-60); if(D.length<2) return;
+17589|   const pad={l:34,r:6,t:10,b:16}, hi=Math.max(1,...D.map(p=>p.n))*1.1;
+17590|   const x0=dn(D[0].d),x1=dn(D[D.length-1].d),sp=Math.max(1,x1-x0);
+17591|   const X=d=>pad.l+(dn(d)-x0)/sp*(w-pad.l-pad.r), Y=v=>pad.t+(1-v/hi)*(h-pad.t-pad.b);
+17592|   x.strokeStyle='#2C2C2E';x.fillStyle='#8E8E93';x.font='10px Inter,sans-serif';x.textAlign='right';
+17593|   [0,hi/2,hi].forEach(v=>{const y=Y(v);x.beginPath();x.moveTo(pad.l,y);x.lineTo(w-pad.r,y);x.stroke();
+17594|     x.fillText(r0(v/1000)+'k',pad.l-5,y+3)});
+17595|   const bw=Math.max(1.5,(w-pad.l-pad.r)/D.length*.62);
+17596|   D.forEach(p=>{const y=Y(p.n);x.fillStyle='#3ba7ff';
+17597|     x.fillRect(X(p.d)-bw/2,y,bw,h-pad.b-y)});
+17598| }
+17599| /* ── ГРАФИК ЗАМЕРОВ: метрика по чипу, линия по датам ── */
+17600| let msSel='waist';
+17601| /* v617: имена обхватов — одна константа на все места (список, чипы, делегированный обработчик) */
+17602| const MEAS_NM={waist:'Талия',shoulders:'Плечи',chest:'Грудь',hips:'Бёдра',arm:'Бицепс',thigh:'Бедро',neck:'Шея'};
+17603| function rMeasChart(NM){
+17604|   const box=$('mChips'); if(!box) return;
+17605|   const asc=[...M].sort((a,b)=>a.d<b.d?-1:1);
+17606|   const keys=Object.keys(NM).filter(k=>asc.filter(x=>x[k]!=null).length>=2);
+17607|   if(!keys.length){ box.innerHTML=''; const cv=$('mCh'); if(cv){const x=cv.getContext('2d');x&&x.clearRect&&x.clearRect(0,0,cv.width,cv.height);} return; }
+17608|   if(!keys.includes(msSel)) msSel=keys[0];
+17609|   box.innerHTML=keys.map(k=>'<div class="chip '+(k===msSel?'on':'')+'" data-mck="'+k+'">'+NM[k]+'</div>').join('');
+17610|   bodyDelegate(box);   // v617: один слушатель на ряд чипов вместо подписки на каждый
+17611|   chartM(asc.filter(x=>x[msSel]!=null).map(x=>({d:x.d,v:+x[msSel]})));
+17612|   const det=$('mDet');
+17613|   if(det&&!det.__mtg){ det.__mtg=1; det.addEventListener('toggle',()=>{ if(det.open) rMeasChart(NM); }); }
+17614| }
+17615| let _mchSig='';
+17616| function chartM(D){
+17617|   const cv=$('mCh'); if(!cv||!cv.clientWidth) return;
+17618|   const dpr=devicePixelRatio||1,w=cv.clientWidth,h=150;
+17619|   const theme=((document.documentElement.dataset||{}).theme||''), light=theme==='light';
+17620|   const sig=w+'|'+dpr+'|'+theme+'|'+msSel+'|'+D.map(p=>p.d+':'+Math.round(p.v*10)).join(',');   // v601: кэш по подписи, как у графика веса
+17621|   if(sig===_mchSig&&cv.width===Math.round(w*dpr)) return;
+17622|   _mchSig=sig;
+17623|   cv.width=w*dpr;cv.height=h*dpr;cv.style.height=h+'px';
+17624|   const x=cv.getContext('2d');x.scale(dpr,dpr);x.clearRect(0,0,w,h);
+17625|   const GRID=light?'rgba(0,0,0,.08)':'rgba(255,255,255,.08)', LBL=light?'rgba(0,0,0,.5)':'rgba(255,255,255,.5)', FONT='-apple-system,BlinkMacSystemFont,Inter,sans-serif';
+17626|   if(D.length<2){x.fillStyle=LBL;x.font='12px '+FONT;x.textAlign='center';
+17627|     x.fillText('Нужно минимум 2 замера',w/2,h/2);return}
+17628|   const pad={l:36,r:10,t:12,b:20};
+17629|   let lo=Math.min(...D.map(p=>p.v)),hi=Math.max(...D.map(p=>p.v));
+17630|   const m=Math.max(.8,(hi-lo)*.2); lo-=m;hi+=m;
+17631|   const x0=dn(D[0].d),x1=dn(D[D.length-1].d),sp=Math.max(1,x1-x0);
+17632|   const X=d=>pad.l+(dn(d)-x0)/sp*(w-pad.l-pad.r), Y=v=>pad.t+(1-(v-lo)/(hi-lo))*(h-pad.t-pad.b);
+17633|   x.strokeStyle=GRID;x.lineWidth=1;x.fillStyle=LBL;x.font='10px '+FONT;x.textAlign='right';
+17634|   for(let i=0;i<=3;i++){const v=lo+(hi-lo)*i/3,y=Y(v);
+17635|     x.beginPath();x.moveTo(pad.l,y);x.lineTo(w-pad.r,y);x.stroke();x.fillText(r1(v),pad.l-6,y+3)}
+17636|   x.textAlign='center';
+17637|   [D[0],D[D.length-1]].forEach((p,i)=>x.fillText(fd(p.d),i?w-pad.r-16:pad.l+16,h-5));
+17638|   /* График замеров был синим — единственный синий график в приложении, тогда
+17639|      как вес рисуется акцентом. Берём цвет из токена темы (19.08). */
+17640|   const AC=C_AC();
+17641|   const g=x.createLinearGradient(0,pad.t,0,h-pad.b);
+17642|   g.addColorStop(0,'rgba(216,255,0,.14)');g.addColorStop(1,'rgba(216,255,0,0)');
+17643|   x.beginPath();x.moveTo(X(D[0].d),h-pad.b);D.forEach(p=>x.lineTo(X(p.d),Y(p.v)));
+17644|   x.lineTo(X(D[D.length-1].d),h-pad.b);x.closePath();x.fillStyle=g;x.fill();
+17645|   x.beginPath();x.strokeStyle=AC;x.lineWidth=2.2;x.lineJoin='round';x.lineCap='round';
+17646|   D.forEach((p,i)=>i?x.lineTo(X(p.d),Y(p.v)):x.moveTo(X(p.d),Y(p.v)));x.stroke();
+17647|   x.fillStyle=AC;D.forEach(p=>{x.beginPath();x.arc(X(p.d),Y(p.v),3,0,7);x.fill()});
+17648|   const L=D[D.length-1],F=D[0],df=L.v-F.v;
+17649|   // подпись стояла в углу поверх верхней риски шкалы и налезала на её число
+17650|   x.fillStyle=LBL;x.font='11px '+FONT;x.textAlign='right';
+17651|   x.textBaseline='top';
+17652|   x.fillText((df>0?'+':'')+r1(df)+' см за период',w-pad.r,2);
+17653|   x.textBaseline='alphabetic';
+17654| }
+17655| /* Карточка цикла. Ничего, кроме дат начала: ни симптомов, ни настроения.
+17656|    Всё, что она делает, — объясняет весы и ловит красный флаг. */
+17657| function rCyc(){
+17658|   { const lf=$('labFerr'); if(lf) lf.style.display=(S&&S.sex==='f')?'':'none'; }
+17659|   const box=$('cycBox'); if(!box) return;
+17660|   if(!cycOn()){ box.innerHTML=''; return; }
+17661|   const d=cycDay(td()), L=cycLenAvg(), st=cycStarts(), reds=redsFlag();
+17662|   const тек=d!=null
+17663|     ? '<div class="stat" style="border-bottom:0;padding-bottom:0"><span class="l">Сейчас</span>'
+17664|       +'<span class="v">'+d+'-й день'+(L?' · цикл ~'+L+' дн':'')+'</span></div>'
+17665|     : '';
+17666|   box.innerHTML=
+17667|     (reds?'<div class="wb" style="margin-bottom:12px;white-space:normal">'
+17668|       +'<b>Цикла нет '+reds.days+' '+plural(reds.days,'день','дня','дней')+', и ты на дефиците.</b> '
+17669|       +'Это не косметика: на дефиците цикл уходит первым, а следом падает плотность костей. '
+17670|       +'Подними калории до поддержания и покажись врачу. Если ты на контрацепции без перерывов '
+17671|       +'или беременна — так и должно быть, тогда просто убери это сообщение.'
+17672|       +'<div class="row" style="margin-top:12px">'
+17673|       +'<button class="btn sm" id="cycUp">Поднять цель до поддержания</button>'
+17674|       +'<button class="btn gho sm" id="cycAck" style="flex:0 0 auto">Убрать</button></div></div>':'')
+17675|     +'<div class="card">'
+17676|     +'<div class="hd" style="margin-bottom:12px"><h2>Цикл</h2>'
+17677|     +'<span class="mini">'+(st.length?'отмечено '+st.length:'вес перестанет врать на воде')+'</span></div>'
+17678|     +тек
+17679|     /* Вторичная намеренно: главное действие этого экрана — записать вес,
+17680|        и лаймовая кнопка цикла кричала громче него. */
+17681|     +'<button class="btn sec" id="cycNew" style="margin-top:'+(тек?'12px':'0')+'">'
+17682|     +(d===1?'Отмечено сегодня':'Месячные начались сегодня')+'</button>'
+17683|     +(st.length?'<div class="lst" style="margin-top:12px"><div class="lst-h">Отметки</div>'
+17684|       +st.slice(0,6).map((x,i)=>{
+17685|         const L2=(i+1<st.length)?(dn(x)-dn(st[i+1])):null;
+17686|         return '<div class="lrow" style="cursor:default"><span class="g"><span class="t">'+fd(x)+'</span>'
+17687|           +(L2?'<span class="s">через '+L2+' '+plural(L2,'день','дня','дней')+' после прошлой</span>':'')
+17688|           +'</span><button class="x" data-cycdel="'+x+'"><svg class="ic"><use href="#i-close"/></svg></button></div>';
+17689|       }).join('')+'</div>':'')
+17690|     +'<div class="note" style="margin-bottom:0">Отмечаю только день начала — ни симптомов, ни настроения приложение не спрашивает. '
+17691|     +'Зачем: вес по циклу гуляет на 1–3 кг из-за воды, и без отметки строка «факт +1.5 кг/нед» врёт. '
+17692|     +'С отметкой вес сравнивается с тем же днём прошлого цикла, а не с прошлой неделей. '
+17693|     +'Тренировки по фазам приложение НЕ переставляет: доказательств, что это работает, нет — '
+17694|     +'объём двигает твой ответ про самочувствие, а не календарь. '
+17695|     +'Отметки лежат в том же зашифрованном хранилище, что и вес.</div>'
+17696|     +'</div>';
+17697|   const nb=$('cycNew'); if(nb) nb.onclick=async()=>{
+17698|     const t=td(); S.cyc=[...new Set([...(S.cyc||[]),t])]; S.ua=Date.now();
+17699|     delete S.redsAck;
+17700|     try{ await put('settings',S,'main'); }catch(e){}
+17701|     rBody(); toast('Отмечено — вес теперь сравнивается по циклу');
+17702|   };
+17703|   box.querySelectorAll('[data-cycdel]').forEach(b=>b.onclick=async()=>{
+17704|     S.cyc=(S.cyc||[]).filter(x=>x!==b.dataset.cycdel); S.ua=Date.now();
+17705|     try{ await put('settings',S,'main'); }catch(e){}
+17706|     rBody();
+17707|   });
+17708|   const up=$('cycUp'); if(up) up.onclick=async()=>{
+17709|     S.rate=0; S.redsAck=td(); S.ua=Date.now();
+17710|     try{ await put('settings',S,'main'); }catch(e){}
+17711|     rBody(); rFood(); toast('Цель — поддержание. Дефицит снят.');
+17712|   };
+17713|   const ak=$('cycAck'); if(ak) ak.onclick=async()=>{
+17714|     S.redsAck=td(); S.ua=Date.now();
+17715|     try{ await put('settings',S,'main'); }catch(e){}
+17716|     rBody();
+17717|   };
+17718| }
+17719| /* ── ГРАФИК ВЕСА: КЭШ ПО ПОДПИСИ (v601, как drawRd в v597) ──
+17720|    Подпись — ширина, dpr, тема по атрибуту (не getComputedStyle), точки
+17721|    последних 90 дней и коридор шума. Совпала — не рисуем: вкладка «Тело»
+17722|    перерисовывает график на каждый rBody(), а данные меняются раз в день.
+17723|    Сетка воздушная (линии 8 % белого), точки — пастельные маркеры, под линией
+17724|    тренда — мягкое затухание градиента (решение владельца 14.09; заливка
+17725|    «от линии до низа» была снята 19.08 как украшение — теперь она возвращена
+17726|    тише, 10 % → 0, и не спорит с коридором шума). */
+17727| let _wchSig='';
+17728| function chartW(T){
+17729|   const cv=$('wCh'); if(!cv||!cv.clientWidth) return;
+17730|   const dpr=devicePixelRatio||1,w=cv.clientWidth,h=170;
+17731|   const theme=((document.documentElement.dataset||{}).theme||'');
+17732|   const D=T.slice(-90);
+17733|   let шум=0; try{ шум=D.length>=2?wNoise(D):0; }catch(e){}
+17734|   const sig=w+'|'+dpr+'|'+theme+'|'+Math.round(шум*100)+'|'+D.map(p=>p.d+':'+Math.round(p.raw*10)+':'+Math.round(p.tr*10)).join(',');
+17735|   if(sig===_wchSig&&cv.width===Math.round(w*dpr)) return;
+17736|   _wchSig=sig;
+17737|   cv.width=w*dpr;cv.height=h*dpr;cv.style.height=h+'px';
+17738|   const x=cv.getContext('2d');x.scale(dpr,dpr);x.clearRect(0,0,w,h);
+17739|   const light=theme==='light';
+17740|   const GRID=light?'rgba(0,0,0,.08)':'rgba(255,255,255,.08)', LBL=light?'rgba(0,0,0,.5)':'rgba(255,255,255,.5)', DOT=light?'rgba(0,0,0,.28)':'rgba(255,255,255,.32)';
+17741|   const FONT='-apple-system,BlinkMacSystemFont,Inter,sans-serif';
+17742|   if(T.length<2){x.fillStyle=LBL;x.font='12px '+FONT;x.textAlign='center';
+17743|     x.fillText('Нужно минимум 2 взвешивания',w/2,h/2);return}
+17744|   const pad={l:34,r:8,t:12,b:20};
+17745|   const vs=D.flatMap(p=>[p.raw,p.tr]);
+17746|   let lo=Math.min(...vs),hi=Math.max(...vs);
+17747|   const m=Math.max(.6,(hi-lo)*.15); lo-=m;hi+=m;
+17748|   const x0=dn(D[0].d),x1=dn(D[D.length-1].d),sp=Math.max(1,x1-x0);
+17749|   const X=d=>pad.l+(dn(d)-x0)/sp*(w-pad.l-pad.r), Y=v=>pad.t+(1-(v-lo)/(hi-lo))*(h-pad.t-pad.b);
+17750|   x.strokeStyle=GRID;x.lineWidth=1;x.fillStyle=LBL;x.font='10px '+FONT;x.textAlign='right';
+17751|   for(let i=0;i<=3;i++){const v=lo+(hi-lo)*i/3,y=Y(v);
+17752|     x.beginPath();x.moveTo(pad.l,y);x.lineTo(w-pad.r,y);x.stroke();x.fillText(r1(v),pad.l-6,y+3)}
+17753|   x.textAlign='center';
+17754|   [D[0],D[D.length-1]].forEach((p,i)=>x.fillText(fd(p.d),i?w-pad.r-14:pad.l+14,h-5));
+17755|   const WT=C_WT();
+17756|   /* Коридор шума — свой разброс человека (см. wNoise): точка внутри — шум, снаружи — движение. Фон, не фигура. */
+17757|   if(шум>0.05){
+17758|     x.beginPath();
+17759|     D.forEach((p,i)=>i?x.lineTo(X(p.d),Y(p.tr+шум)):x.moveTo(X(p.d),Y(p.tr+шум)));
+17760|     for(let i=D.length-1;i>=0;i--) x.lineTo(X(D[i].d),Y(D[i].tr-шум));
+17761|     x.closePath(); x.fillStyle=WT+'1f'; x.fill();
+17762|   }
+17763|   /* Затухание под трендом: 10 % → 0 к нижнему полю */
+17764|   { const g=x.createLinearGradient(0,pad.t,0,h-pad.b);
+17765|     g.addColorStop(0,WT+'1a'); g.addColorStop(1,WT+'00');
+17766|     x.beginPath(); x.moveTo(X(D[0].d),h-pad.b); D.forEach(p=>x.lineTo(X(p.d),Y(p.tr)));
+17767|     x.lineTo(X(D[D.length-1].d),h-pad.b); x.closePath(); x.fillStyle=g; x.fill(); }
+17768|   x.fillStyle=DOT;D.forEach(p=>{x.beginPath();x.arc(X(p.d),Y(p.raw),2.2,0,7);x.fill()});
+17769|   x.beginPath();x.strokeStyle=WT;x.lineWidth=2.4;x.lineJoin='round';x.lineCap='round';
+17770|   D.forEach((p,i)=>i?x.lineTo(X(p.d),Y(p.tr)):x.moveTo(X(p.d),Y(p.tr)));x.stroke();
+17771|   const L=D[D.length-1];
+17772|   x.beginPath();x.arc(X(L.d),Y(L.tr),4,0,7);x.fillStyle=WT;x.fill();
+17773| }
+17774| 
+17775| /* ══════════════ RENDER: PHOTOS ══════════════ */
+17776| /* Сетка поверх фото: помогает встать так же, как в прошлый раз (та же поза/ракурс/дистанция) */
+17777| const PH_GRID=`<svg viewBox="0 0 100 150" preserveAspectRatio="none" style="position:absolute;inset:0;width:100%;height:100%;pointer-events:none">
+17778|   <g stroke="rgba(216,255,0,.55)" stroke-width=".5" fill="none">
+17779|     <line x1="50" y1="0" x2="50" y2="150"/>
+17780|     <line x1="0" y1="37.5" x2="100" y2="37.5"/><line x1="0" y1="75" x2="100" y2="75"/><line x1="0" y1="112.5" x2="100" y2="112.5"/>
+17781|     <line x1="25" y1="0" x2="25" y2="150" stroke-dasharray="2 3"/><line x1="75" y1="0" x2="75" y2="150" stroke-dasharray="2 3"/>
+17782|   </g></svg>`;
+17783| /* Когда пора делать следующее фото: раз в 2 недели — интервал, на котором изменения уже видны */
+17784| function phDue(){
+17785|   if(!PH.length) return {state:'none'};
+17786|   const last=[...PH].sort((a,b)=>a.d<b.d?1:-1)[0];
+17787|   const days=dn(td())-dn(last.d);
+17788|   return {state:days>=14?'due':'ok', days, last};
+17789| }
+17790| function rPhDue(){
+17791|   const box=$('phDueBox'); if(!box) return;
+17792|   const q=phDue();
+17793|   if(q.state==='none'){
+17794|     box.innerHTML=`<div class="ib" style="margin-bottom:12px">Первое фото — точка отсчёта.</div>`;
+17795|   }else if(q.state==='due'){
+17796|     box.innerHTML=`<div class="wb" style="margin-bottom:12px"><b>📸 Пора сделать фото</b><br>Прошло ${q.days} дн. с последнего (${fd(q.last.d)}). Оптимальный интервал — раз в 2 недели: за меньший срок разница тонет в свете, воде и пампинге.</div>`;
+17797|   }else{
+17798|     box.innerHTML=`<div class="mini" style="color:var(--t3);margin-bottom:12px">Последнее фото ${fd(q.last.d)} · ${q.days} дн. назад. Следующее — через ${14-q.days} дн.</div>`;
+17799|   }
+17800| }
+17801| /* Эталон позы: последнее фото с сеткой — встань так же перед съёмкой */
+17802| let phRefOn=false;
+17803| function rPhRef(){
+17804|   const box=$('phRefBox'); if(!box) return;
+17805|   const ps=[...PH].sort((a,b)=>a.d<b.d?1:-1);
+17806|   if(!ps.length){ box.innerHTML=''; return; }
+17807|   const p=ps[0];
+17808|   box.innerHTML=`<details class="det" style="margin-top:12px"${phRefOn?' open':''}><summary>Эталон позы — встань так же</summary>
+17809|     <div style="position:relative;max-width:220px;margin:8px auto 0">
+17810|       <img src="${p.img}" style="width:100%;border-radius:10px;display:block">${PH_GRID}
+17811|     </div>
+17812|     <div class="note" style="margin-top:8px">Сетка — чтобы повторить ракурс: центр тела на средней линии, плечи и таз на тех же горизонталях, та же дистанция до камеры.<br><br>
+17813|     Чек-лист сопоставимости: <b>то же место и свет</b> · <b>утро, натощак, до тренировки</b> · <b>та же поза и одежда</b> · телефон на той же высоте (лучше на опоре, не в руке).</div>
+17814|   </details>`;
+17815|   const d=box.querySelector('details'); if(d) d.ontoggle=()=>{phRefOn=d.open};
+17816| }
+17817| /* ── ОДИН СЛУШАТЕЛЬ НА ГАЛЕРЕЮ (v624, эталон — foodDelegate v618) ──
+17818|    Замер 19.09 на пятидесяти снимках: каждый рендер галереи ставил 251 подписку
+17819|    (51 onclick + 50 pointerdown + 150 addEventListener на pointerup/leave/cancel),
+17820|    и ставил их ЗАНОВО при каждом тапе — выбор фото для сравнения зовёт rPh().
+17821|    Долгий тап берём у готового longPressDelegate (v610): он умеет то, чего не
+17822|    умела поштучная подписка — отменяет удержание при сдвиге пальца больше
+17823|    10 px, даёт отдачу вибрацией и гасит системное меню. Глобальный перехват
+17824|    lpFired не даёт клику сработать вслед за долгим тапом. */
+17825| function photoDelegate(box){
+17826|   if(!box||box._phdlg) return; box._phdlg=1;
+17827|   box.onclick=e=>{
+17828|     const t=(e&&e.target&&e.target.closest)?e.target.closest('[data-p]'):null; if(!t) return;
+17829|     const id=+t.dataset.p;
+17830|     if(cmpSel.includes(id)) cmpSel=cmpSel.filter(i=>i!==id);
+17831|     else { cmpSel.push(id); if(cmpSel.length>2) cmpSel.shift(); }
+17832|     rPh();
+17833|   };
+17834|   longPressDelegate(box,'[data-p]',async el=>{
+17835|     const id=+el.dataset.p;
+17836|     if(await ask({title:'Удалить фото?',text:'Снимок исчезнет с этого устройства и из сравнения.',ok:'Удалить',danger:true})){
+17837|       await del('photos',id); PH=await all('photos');
+17838|       cmpSel=cmpSel.filter(i=>i!==id); rPh();
+17839|     }
+17840|   });
+17841| }
+17842| function rPh(){
+17843|   const g=$('phG'), ps=[...PH].sort((a,b)=>a.d<b.d?1:-1);
+17844|   $('phCnt').textContent=ps.length+' фото';
+17845|   {const gc=$('phGCard'); if(gc) gc.style.display=ps.length?'':'none';}
+17846|   /* ФОТО — ЕДИНСТВЕННОЕ, ЧТО НЕ УЕЗЖАЕТ В ОБЛАКО, И ЕДИНСТВЕННОЕ, ЧТО НЕЛЬЗЯ
+17847|      ВВЕСТИ ЗАНОВО. Решение не синхронизировать их верное (один снимок ~100 КБ,
+17848|      блоб шифруется целиком — записал котлету, отправил два мегабайта), и на
+17849|      экране синхронизации оно честно написано. Но там его читает только тот,
+17850|      кто туда зашёл, а после первой удачной синхронизации баннер «Данные только
+17851|      на этом устройстве» ГАСНЕТ СОВСЕМ — и человек справедливо считает, что
+17852|      теперь скопировано всё. Его полугодовая серия фото при этом живёт в одном
+17853|      экземпляре. Предупреждение должно стоять там, где человек снимает, — тот
+17854|      же принцип, что и с карточкой упражнения (23.08). */
+17855|   {const lb=$('phLocalBox');
+17856|    if(lb){
+17857|      lb.innerHTML=ps.length?`<div class="wb" style="margin:0 0 12px;white-space:normal">
+17858|        <b>${ps.length} ${plural(ps.length,'фото живёт','фото живут','фото живут')} только на этом устройстве.</b>
+17859|        В облако они не уезжают — весят слишком много${S.sbEmail?', и синхронизация аккаунта их не копирует':''}.
+17860|        Потеряешь телефон — потеряешь их: заново такое не снять.
+17861|        <button class="btn sec sm" id="phExp" style="margin-top:8px">Сохранить копию — Экспорт JSON</button></div>`:'';
+17862|      const pe=$('phExp');
+17863|      if(pe) pe.onclick=()=>{ const b=$('bExp'); if(b&&b.onclick) return b.onclick(); openSet('Data'); };
+17864|    }}
+17865|   rPhDue(); rPhRef();
+17866|   /* loading="lazy" + decoding="async" (v624): у base64 сети нет, качать
+17867|      нечего — но у браузера остаётся РАСКОДИРОВАНИЕ, и вот его он теперь
+17868|      откладывает до подхода к экрану и уводит с главного потока. */
+17869|   g.innerHTML=ps.length?ps.map(p=>'<div class="ph '+(cmpSel.includes(p.id)?'sel':'')+'" data-p="'+p.id+'">'
+17870|     +'<img loading="lazy" decoding="async" alt="Снимок '+fd(p.d)+'" src="'+p.img+'">'
+17871|     +'<div class="d">'+fd(p.d)+'</div></div>').join('')
+17872|     :'<div class="empty" style="grid-column:1/-1"><b>Фото пока нет.</b><br>Весы врут про состав тела, зеркало привыкает. Пара фото раз в 2 недели — самый честный способ увидеть, что реально меняется.</div>';
+17873|   photoDelegate(g);
+17874|   const cc=$('cmpC');
+17875|   if(cmpSel.length===2){
+17876|     const a=PH.filter(p=>cmpSel.includes(p.id)).sort((x,y)=>x.d<y.d?-1:1);
+17877|     const days=dn(a[1].d)-dn(a[0].d), wa=nearW(a[0].d), wb=nearW(a[1].d);
+17878|     cc.style.display='block';
+17879|     $('cmpB').innerHTML=a.map((p,i)=>{const ww=i?wb:wa;
+17880|       return `<figure><span style="position:relative;display:block"><img src="${p.img}" style="display:block">${cmpGrid?PH_GRID:''}</span><figcaption>${fd(p.d)}${ww!=null?' · '+r1(ww)+' кг':''}</figcaption></figure>`}).join('')
+17881|       +`<div style="grid-column:1/-1;text-align:center;font-size:var(--fs1);line-height:var(--lh1);color:var(--t2);margin-top:8px">${days} ${plural(days,'день','дня','дней')}${
+17882|         /* v282: направление веса судим по ЦЕЛИ, а не «меньше — молодец».
+17883|            На наборе +2 кг между фото — это успех, а не повод краснеть. */
+17884|         wa!=null&&wb!=null?(()=>{const dw=wb-wa,
+17885|           good=S.rate>0?dw>0:S.rate<0?dw<0:Math.abs(dw)<1;
+17886|           return ` · <b style="color:${good?'var(--ac)':'var(--t2)'}">${dw>0?'+':''}${r1(dw)} кг</b>`})():''}</div>
+17887|       <div style="grid-column:1/-1;text-align:center;margin-top:8px"><button class="btn gho sm" id="bCmpGrid">${cmpGrid?'Скрыть сетку':'Показать сетку'}</button></div>`;
+17888|     if($('bCmpGrid')) $('bCmpGrid').onclick=()=>{cmpGrid=!cmpGrid;rPh()};
+17889|   }else cc.style.display='none';
+17890| }
+17891| function nearW(d){
+17892|   const T=trend(); if(!T.length) return null;
+17893|   let best=null,bd=1e9;
+17894|   T.forEach(t=>{const g=Math.abs(dn(t.d)-dn(d));if(g<bd){bd=g;best=t.tr}});
+17895|   return bd<=4?best:null;
+17896| }
+17897| 
+17898| /* ── СПРАВОЧНИК ДОБАВОК ──
+17899|    Краткая справка: зачем, как принимать, на что смотреть. Не назначение и не замена врачу.
+17900|    Подбор по подстроке названия — банки называются по-разному. */
+17901| const SUBINFO=[
+17902|  {k:['омега','omega','рыбий жир','fish oil','эпк','дгк','epa','dha'],n:'Омега-3 (рыбий жир)',
+17903|   why:'Противовоспалительное действие, поддержка сердца, суставов, мозга. При дефиците рыбы в рационе — одна из самых оправданных добавок.',
+17904|   how:'Ориентир — <b>1–2 г ЭПК+ДГК в сутки суммарно</b> (это действующее вещество, а не вес капсулы). Принимать с едой, содержащей жир — так усваивается лучше. Время дня не принципиально, можно делить на 2 приёма.',
+17905|   note:'Главная путаница: на банке «1000 мг рыбьего жира», а ЭПК+ДГК внутри всего 300 мг. Смотри состав на обороте и считай по ЭПК/ДГК. Осторожно при приёме антикоагулянтов — обсуди с врачом.'},
+17906|  {k:['креатин','creatine'],n:'Креатин моногидрат',
+17907|   why:'Самая изученная спортивная добавка: +5–10% к силе и объёму работы, помогает набирать мышечную массу.',
+17908|   how:'<b>3–5 г каждый день</b>, включая дни отдыха. Время приёма не важно — важна регулярность. Фаза загрузки не обязательна, эффект накопительный (3–4 недели).',
+17909|   note:'Возможна задержка воды 0.5–1.5 кг — это вода в мышце, не жир. Пей достаточно воды. Моногидрат — оптимален по цене/качеству, «модные» формы преимуществ не показали.'},
+17910|  {k:['витамин d','вит d','d3','холекальциферол','cholecalciferol'],n:'Витамин D3',
+17911|   why:'Влияет на костную ткань, иммунитет, гормональный фон. Дефицит крайне распространён, особенно осенью и зимой.',
+17912|   how:'Типичная поддерживающая доза <b>1000–2000 МЕ в сутки</b>, с едой содержащей жир. Дозу выше стоит подбирать по анализу 25(OH)D.',
+17913|   note:'Это жирорастворимый витамин — накапливается, передозировка возможна. Не «чем больше, тем лучше»: ориентируйся на анализ крови.'},
+17914|  {k:['магни','magnesium','mg цитрат','глицинат'],n:'Магний',
+17915|   why:'Участвует в работе мышц и нервной системы, качестве сна, восстановлении. Дефицит частый у тренирующихся.',
+17916|   how:'Обычно <b>200–400 мг элементарного магния</b> в сутки, чаще вечером. Формы цитрат/глицинат/малат усваиваются лучше оксида.',
+17917|   note:'Смотри содержание ЭЛЕМЕНТАРНОГО магния, а не вес соли: «500 мг цитрата магния» — это far не 500 мг магния. Избыток даёт послабляющий эффект.'},
+17918|  {k:['протеин','protein','whey','сывороточ','изолят','казеин'],n:'Протеин (сывороточный/казеин)',
+17919|   why:'Не «химия», а просто удобный источник белка. Нужен, если не добираешь белок из еды.',
+17920|   how:'По потребности — обычно <b>1 порция 20–30 г белка</b>, чтобы закрыть суточную норму (ориентир 1.6–2.2 г белка на кг массы тела в сутки из всех источников).',
+17921|   note:'Добавка не обязательна, если белок добираешь едой. Сыворотка быстрее, казеин медленнее — на практике для роста мышц важна суточная сумма, а не тайминг.'},
+17922|  {k:['цинк','zinc'],n:'Цинк',
+17923|   why:'Иммунитет, синтез белка, гормональный фон. Дефицит возможен при скудном рационе и больших нагрузках.',
+17924|   how:'Обычно <b>10–25 мг в сутки</b>, с едой (натощак часто даёт тошноту).',
+17925|   note:'Долгий приём высоких доз мешает усвоению меди. Не превышать без анализов.'},
+17926|  {k:['кофеин','caffeine','предтрен','pre-workout','preworkout'],n:'Кофеин / предтреник',
+17927|   why:'Реально работающий стимулятор: снижает восприятие усилия, добавляет выносливости и концентрации.',
+17928|   how:'<b>3–6 мг на кг массы тела</b> за 30–60 мин до тренировки. Для 90 кг это ~270–540 мг, но начинать стоит с нижней границы.',
+17929|   note:'Нарушает сон, если пить позже, чем за 8–9 часов до сна. Развивается привыкание — эффективнее использовать не каждый день. Повышает пульс и давление: осторожно при проблемах с сердцем.'},
+17930|  {k:['бцаа','bcaa','еаа','eaa','аминокислот'],n:'BCAA / EAA',
+17931|   why:'Аминокислоты. При достаточном общем белке в рационе BCAA почти бесполезны — данные по приросту мышц слабые.',
+17932|   how:'Если общий белок в норме — добавка не нужна. EAA имеет чуть больше смысла, чем BCAA, но проще и дешевле добрать белком.',
+17933|   note:'Одна из самых переоценённых добавок. Деньги обычно выгоднее вложить в обычный белок.'},
+17934|  {k:['мультивитамин','multivitamin','витаминно-минеральн'],n:'Мультивитамины',
+17935|   why:'Страховка от дефицитов при неполноценном рационе. Не улучшает результаты сам по себе, если дефицитов нет.',
+17936|   how:'Обычно 1 порция в сутки с едой. Разумно — курсами или при явно бедном рационе.',
+17937|   note:'Не заменяет еду и не «разгоняет» рост. Лучше закрывать конкретные дефициты по анализам, чем пить всё подряд.'},
+17938| ];
+17939| /* ══════════════ СПОРТИВНЫЙ ВРАЧ ══════════════
+17940|    Роль заведена в COUNCIL.md, но до этого существовала только на бумаге:
+17941|    анализы приложение хранило, считало «N показателей вне референса» и
+17942|    упиралось в «распечатай и иди к врачу». Правильная фраза — и на этом всё.
+17943|    С тем, что человек будет делать ЗАВТРА в зале и на кухне, цифры не были
+17944|    связаны никак. Данные собраны, вывода нет.
+17945| 
+17946|    Что врач делает здесь и чего не делает.
+17947|    ДЕЛАЕТ: переводит показатель в решение по НАШЕЙ части — тренировка,
+17948|    питание, добавки. Знает спортивный контекст, которого часто нет у
+17949|    участкового: у тренирующегося на креатине высокий креатинин — обычная
+17950|    ложная тревога, и человека не надо этим пугать.
+17951|    НЕ ДЕЛАЕТ: диагнозов. Ни одного. Там, где цифра требует врача, приложение
+17952|    говорит об этом прямо и замолкает, а не советует поверх.
+17953| 
+17954|    Право вето сильнее прочих: то, что рискует здоровьем, останавливается
+17955|    независимо от пользы для результата. */
+17956| const DOC=[
+17957|  {k:'bps',when:(v)=>v>=160,lvl:'stop',
+17958|   t:'Систолическое давление '+'',
+17959|   say:'Давление на этой цифре — не повод «поберечься», а повод разобраться до того, как ты снова возьмёшь тяжёлый вес. Натуживание под штангой поднимает давление ещё выше, и это единственное место, где я скажу прямо: сначала врач, потом зал.'},
+17960|  {k:'bps',when:(v)=>v>=140&&v<160,lvl:'care',
+17961|   say:'Давление выше нормы. Это не запрет тренироваться, но два правила становятся обязательными: не задерживать дыхание под нагрузкой (выдох на усилии) и не ходить на разовые максимумы — именно они дают самый резкий скачок. И посмотри на предтреник с кофеином, если пьёшь: он поднимает давление.'},
+17962|  {k:'bpd',when:(v)=>v>=100,lvl:'stop',
+17963|   say:'Нижнее давление на этой цифре — к врачу до тяжёлых тренировок. Приложение тут не советчик.'},
+17964|  {k:'hgb',when:(v,R)=>v<R.lo,lvl:'care',
+17965|   say:'Гемоглобин ниже нормы. Для зала это важно: кислород к мышце носит именно он, и на низком гемоглобине усталость приходит раньше, а веса стоят. Если программа «перестала работать» — причина может быть здесь, а не в ней. Разбираться с этим надо у врача, а не добавками.'},
+17966|  {k:'hct',when:(v,R)=>v<R.lo,lvl:'care',
+17967|   say:'Гематокрит ниже нормы — та же история, что с гемоглобином: раньше приходит усталость, медленнее идёт восстановление. Не списывай застой на программу, пока не разобрался с этим.'},
+17968|  {k:'alt',when:(v)=>v>41,lvl:'care',
+17969|   say:'АЛТ выше нормы. У тренирующихся печёночные ферменты бывают повышены после тяжёлых тренировок — это известный ложный след. Но прежде чем списывать на нагрузку: пересмотри всё, что пьёшь, включая добавки и жиросжигатели. И не добавляй новых, пока не пересдал.'},
+17970|  {k:'ast',when:(v)=>v>40,lvl:'care',
+17971|   say:'АСТ выше нормы. Часто растёт просто от мышечной работы, особенно после непривычной нагрузки. Пересдай через неделю без тяжёлых тренировок перед сдачей — так цифра будет честнее.'},
+17972|  {k:'crea',when:(v,R)=>v>R.hi,lvl:'info',
+17973|   say:'Креатинин выше референса. У человека с мышечной массой и на креатине это самая частая ложная тревога: креатинин — продукт распада креатина, и добавка сама по себе его поднимает. Смотреть надо на СКФ, а не на креатинин отдельно. Пугаться рано, игнорировать нельзя.'},
+17974|  {k:'egfr',when:(v)=>v<60,lvl:'stop',
+17975|   say:'СКФ ниже 60 — это к врачу, и здесь приложение молчит. Высокий белок и креатин обсуждаются только с ним, а не со мной.'},
+17976|  {k:'tst',sex:'m',when:(v,R)=>v<R.lo,lvl:'care',
+17977|   say:'Тестостерон ниже нормы. Прежде чем думать о препаратах: первыми подозреваемыми идут затянувшийся дефицит калорий и недосып — оба валят его предсказуемо. Если ты сейчас на жёсткой сушке и спишь по шесть часов, цифра скорее следствие, чем причина.'},
+17978|  {k:'ldl',when:(v)=>v>3.0,lvl:'info',
+17979|   say:'ЛПНП выше нормы. Это к питанию, а не к тренировке: смотри на насыщенный жир и клетчатку. Тренировка помогает, но одной ею этот показатель обычно не двигают.'},
+17980| ];
+17981| /* ── БОЛЬ: СУСТАВ, А НЕ УПРАЖНЕНИЕ ──
+17982|    Второй кусок работы врача. До этого боль жила как свойство отдельного
+17983|    движения: человек отмечал «больно», упражнение уходило из программы, и на
+17984|    этом всё. Два дефекта сразу.
+17985|    ПЕРВЫЙ: никто не смотрел, что болит ОДНО И ТО ЖЕ место в разных движениях.
+17986|    Три упражнения на плечо, помеченные по очереди, — это не три неудачных
+17987|    упражнения, это плечо, и заменой движений оно не лечится.
+17988|    ВТОРОЙ, и он хуже: снять пометку было НЕЛЬЗЯ. Ни кнопкой, ни вопросом.
+17989|    Боль проходит за две недели, а упражнение уходило навсегда, и программа
+17990|    молча усыхала месяцами.
+17991|    Сустав определяем по роли движения — грубо и честно: задача не поставить
+17992|    диагноз, а увидеть, что несколько жалоб смотрят в одну сторону. */
+17993| const JOINT={knee:'колено',back:'поясница',shoulder:'плечо',elbow:'локоть',ankle:'голеностоп'};
+17994| const ROLE_JOINT={
+17995|  squat:'knee',lunge:'knee',quad:'knee',
+17996|  hinge:'back',ham:'back',glute:'back',abs:'back',obl:'back',core:'back',
+17997|  hpush:'shoulder',vpush:'shoulder',fly:'shoulder',delt:'shoulder',rear:'shoulder',
+17998|  hpull:'shoulder',vpull:'shoulder',shrug:'shoulder',
+17999|  tri:'elbow',bi:'elbow',curl:'elbow',assistant:'elbow',
+18000|  calves:'ankle'};

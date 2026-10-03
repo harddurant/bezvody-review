@@ -1,0 +1,413 @@
+// ИЗВЛЕЧЕНИЕ ДЛЯ ЧТЕНИЯ: tests/smoke.js, строки 14001–14412 из 14412. Номера строк совпадают с оригиналом. Код не менялся.
+14001|     {n:"Долг",dow:_v13w2,ex:[{n:"Жим лёжа",sets:4,lo:6,hi:10,main:1}]},
+14002|     {n:"Сегодняшний",dow:_v13w0,ex:[{n:"Тяга верхнего блока",sets:3,lo:10,hi:15}]}]};
+14003|   delete S.dayMap; S.moveWk=null; S.roll={}; S.daySkip={}; SETS=[]; vDay=null;
+14004|   if(debtDows(td()).indexOf(_v13w2)<0) __r.push("КРЭШ v644: долг двухдневной давности не виден очереди (debtDows)");
+14005|   rNext(); var _v13n=document.getElementById("nextBox").innerHTML||"";
+14006|   if(_v13n.indexOf('data-dotoday="'+_v13w2+'"')<0||_v13n.indexOf('Не сделан:')<0) __r.push("КРЭШ v644: на сегодняшнем экране нет строки «Не сделан: … · Сделать сегодня» для долга старше вчера");
+14007|   vDay=ds(dn(td())-2); rNext(); var _v13p=document.getElementById("nextBox").innerHTML||"";
+14008|   if(_v13p.indexOf('data-dotoday="'+_v13w2+'"')<0||_v13p.indexOf('Сделать сегодня')<0) __r.push("КРЭШ v644: на пропущенном дне двухдневной давности нет кнопки «Сделать сегодня» — человек снова запишет подходы в прошлое");
+14009|   vDay=null; S.dayMap={}; S.dayMap[td()]=_v13w2; rNext(); var _v13t=document.getElementById("nextBox").innerHTML||"";
+14010|   if(effDow(td())!==_v13w2) __r.push("КРЭШ v644: после «сделать сегодня» сегодня ведёт день "+effDow(td())+", а не выбранный "+_v13w2);
+14011|   if(_v13t.indexOf('вместо')<0||_v13t.indexOf('data-shiftoff')<0) __r.push("ВИД v644: после выбора дня строка не говорит «Сегодня Долг вместо Сегодняшний · Вернуть»");
+14012|   if(_v13t.indexOf('data-mvoff')>=0) __r.push("ВИД v644: при дне на сегодня стоит вторая отмена «Вернуть выходной» — две отмены одного события");
+14013|   if(_v13t.indexOf('Сдвинуть неделю')>=0) __r.push("ВИД v644: при дне на сегодня строка сдвига недели тоже стоит");
+14014|   if(typeof coachCtx==="function"&&String(coachCtx()).indexOf('перенесён')<0) __r.push("КРЭШ v644: тренер не видит, что сегодня ведётся перенесённый день");
+14015|   { var _v13g="window._pastAsk=td();", _v13q=__HTML.indexOf(_v13g), _v13ls=_v13q<0?0:__HTML.lastIndexOf(String.fromCharCode(10),_v13q)+1;
+14016|     if(_v13q<0||__HTML.slice(_v13ls,_v13q).trim().indexOf('//')===0) __r.push("КРЭШ v644: первый рабочий подход в прошлую дату не спрашивает «Это сегодняшняя тренировка?»"); }
+14017|   if(__HTML.indexOf("return debtDows(D)[0]||null;")<0) __r.push("КРЭШ v644: очередь (rollPick) и строка долга считают долг по-разному");
+14018|   { var _v13c="const D0=await pastDayAsk(vDay||td());", _v13cq=__HTML.indexOf(_v13c), _v13cl=_v13cq<0?0:__HTML.lastIndexOf(String.fromCharCode(10),_v13cq)+1;
+14019|     if(_v13cq<0||__HTML.slice(_v13cl,_v13cq).trim().indexOf('//')===0) __r.push("КРЭШ v644: карточка подхода пишет в прошлую дату, не спросив (pastDayAsk не у двери человека)"); }
+14020|   if(__HTML.slice(__HTML.indexOf("async function logWorkSet("),__HTML.indexOf("async function saveInlineSet(")).indexOf("await ask(")>=0) __r.push("КРЭШ v644: вопрос стоит внутри logWorkSet — голос, тренер и стенды повиснут на нём без ответа");
+14021|   if(__HTML.split("[data-dotoday]").length-1<2) __r.push("КРЭШ v644: обработчик «Сделать сегодня» стоит не в обоих местах — кнопка нарисована и мертва");
+14022| }catch(e){ __r.push("КРЭШ v644: "+e.message); }
+14023| finally{ try{ S.prog=_v13sv.p; if(_v13sv.m) S.dayMap=_v13sv.m; else delete S.dayMap; S.moveWk=_v13sv.mv; S.roll=_v13sv.r; S.daySkip=_v13sv.sk; SETS=_v13sv.sets; vDay=_v13sv.v; rNext(); }catch(e){} }
+14024| /* ── v645: РАМКИ ТАРЕЛКИ В «ЧТО СЪЕСТЬ» ──
+14025|    Живой прогон по аккаунту владельца 24.09: ужин «Мороженое манго 610 г +
+14026|    Мексиканская смесь 800 г», завтрак «Молоко 0,5 % 800 г + морковь по-
+14027|    корейски», обед-рецепт 1360 г (порция ×1.6), ужин в полдень объявлял себя
+14028|    всем остатком дня. Правило меряет выход: сладкое не основа приёма, напиток
+14029|    не больше 300 мл, тарелка из продуктов ≤ 850 г, готовый приём ≤ 750 г и
+14030|    ×0.75–1.25, в полдень ужин не забирает долю обеда, подбор идёт через рамки
+14031|    и фильтр приёма. Префикс _v14. */
+14032| try{
+14033|   if(typeof mlSolveRows!=="function"||typeof mealFrame!=="function") throw new Error("нет mlSolveRows/mealFrame");
+14034|   var _v14pool=[{n:"Мороженое манго с семенами чиа 6%",k:231,p:4,f:6,c:40,cat:"carb"},{n:"Молоко 0,5%",k:35,p:3,f:0.5,c:5,cat:"dairy"},
+14035|     {n:"Мексиканская смесь",k:60,p:3,f:0.5,c:10,cat:"carb"},{n:"Творог обезжиренный",k:90,p:18,f:0.5,c:3,cat:"dairy"},
+14036|     {n:"Куриная грудка",k:165,p:31,f:3.6,c:0,cat:"prot"},{n:"Рис отварной",k:130,p:2.7,f:0.3,c:28,cat:"carb"},{n:"Овощи",k:30,p:1.5,f:0.3,c:5,cat:"veg"},{n:"Кефир 1%",k:40,p:3,f:1,c:4,cat:"dairy"}];
+14037|   var _v14g={k:2000,p:140,f:45,c:240,left:{k:2000,p:140,f:45,c:240}};
+14038|   var _v14rows=mlSolveRows(_v14pool.map(function(o){return Object.assign({},o)}),_v14g,"dn")||[];
+14039|   if(!_v14rows.length) __r.push("КРЭШ v645: подбор из продуктов на ужин 2000 ккал не дал ничего");
+14040|   _v14rows.forEach(function(r){
+14041|     if(/морожен/i.test(r.o.n)) __r.push("КРЭШ v645: мороженое стало основой ужина — сладкое не приём");
+14042|     var cap=mealFrame(r.o,"dn"); if(r.g>cap+1) __r.push("КРЭШ v645: «"+r.o.n+"» "+Math.round(r.g)+" г при рамке приёма "+cap+" г");
+14043|   });
+14044|   { var _v14pm=plateMass(_v14rows); if(_v14pm>PLATE_SOLVE+1) __r.push("КРЭШ v645: тарелка из продуктов "+_v14pm+" г — больше "+PLATE_SOLVE); }
+14045|   if(!(mealFrame({n:"Молоко 0,5%",cat:"dairy"},"ln")<=300)) __r.push("КРЭШ v645: напиток без рамки 300 мл");
+14046|   if(mealFrame({n:"Мороженое манго",cat:"carb"},"ln")!==0||!(mealFrame({n:"Мороженое манго",cat:"carb"},"sn")<=80)) __r.push("КРЭШ v645: сладкое допущено в обед или без рамки в перекус");
+14047|   /* готовый приём: не раздувается */
+14048|   PPMEAL.forEach(function(m){ var sc=ppScaled(m,5000), lo=ppScaled(m,460);   /* v648: ниже 450 ккал цели порция ужимается до ×0.6 — это отдельное правило */
+14049|     var mass=sc.ing.reduce(function(a,x){return a+x.g},0);
+14050|     if(sc.fac>1.25+1e-9||mass>PLATE_MAX+40) __r.push("КРЭШ v645: «"+m.n+"» под 5000 ккал вышел ×"+sc.fac.toFixed(2)+" и "+mass+" г — тарелка раздута");
+14051|     if(lo.fac<0.75-1e-9) __r.push("КРЭШ v645: «"+m.n+"» ужат до ×"+lo.fac.toFixed(2)); });
+14052|   /* доля: в полдень обед впереди, вечером позади */
+14053|   if(!(slotShare("dn",new Set(["bf"]),12)<0.6)) __r.push("КРЭШ v645: в полдень ужин забирает долю обеда");
+14054|   if(slotShare("dn",new Set(["bf"]),20)!==1) __r.push("КРЭШ v645: вечером ужин не добирает остаток");
+14055|   /* экран идёт через рамки и фильтр приёма — живой строкой */
+14056|   ["let rows=mlSolveRows(pool,g,mlKind);","pool=pool.filter(o=>slotOKprod(o,mlKind)&&prefOK(o));"].forEach(function(t){
+14057|     var q=__HTML.indexOf(t), ls=q<0?0:__HTML.lastIndexOf(String.fromCharCode(10),q)+1;
+14058|     if(q<0||__HTML.slice(ls,q).trim().indexOf('//')===0) __r.push("КРЭШ v645: «Что съесть» обходит рамки: нет живой строки «"+t+"»"); });
+14059| }catch(e){ __r.push("КРЭШ v645: "+e.message); }
+14060| /* ── v646: ЛИЧНЫЙ СПИСОК ПРИЁМОВ И «ПОЧЕМУ УБРАЛ» ──
+14061|    Решение владельца 24.09 после аудита источников: четыре вшитых приёма
+14062|    заменены списком из N (3…8) от калорий, человек правит руками; старые
+14063|    метки читаются; «не люблю / дорого / не переношу» задают радиус; у
+14064|    основного приёма нижняя планка белка и белковый продукт в наборе.
+14065|    Правило меряет выход. Префикс _v15. */
+14066| try{
+14067|   if(typeof mealsSync!=="function"||typeof mealsDefaultN!=="function"||typeof prefOK!=="function"||typeof slotName!=="function") throw new Error("нет mealsSync/mealsDefaultN/prefOK/slotName");
+14068|   var _v15sv={meals:S.meals,mealsN:S.mealsN,slotB:S.slotB,pref:S.pref,plan:S.plan,km:S.kcalManual,tg:S.target,LOG:LOG,vDate:(typeof vDate!=="undefined")?vDate:null,mk:(typeof mlKind!=="undefined")?mlKind:null,bud:S.budget};
+14069|   /* число приёмов от калорий */
+14070|   [[1400,3],[2000,3],[2758,4],[4500,7],[8000,8]].forEach(function(x){ if(mealsDefaultN(x[0])!==x[1]) __r.push("КРЭШ v646: при "+x[0]+" ккал приёмов "+mealsDefaultN(x[0])+", ожидалось "+x[1]); });
+14071|   delete S.meals; delete S.slotB; S.mealsN=6; var _v15l=mealsSync();
+14072|   if(Object.keys(SLOTN).length!==6||_v15l.length!==6) __r.push("КРЭШ v646: выбрано 6 приёмов, а в списке "+Object.keys(SLOTN).length);
+14073|   { var _v15w=0; Object.keys(SLOTW).forEach(function(k){ _v15w+=SLOTW[k]; }); if(Math.abs(_v15w-1)>0.01) __r.push("КРЭШ v646: доли шести приёмов в сумме "+_v15w.toFixed(2)+", а не 1"); }
+14074|   if(slotOfHour(8)!=="bf"||slotOfHour(23)!=="m6") __r.push("КРЭШ v646: час → приём сломан: 8 ч = "+slotOfHour(8)+", 23 ч = "+slotOfHour(23));
+14075|   if(slotName("sn")!=="Полдник"||slotName("zzz")!=="Приём") __r.push("КРЭШ v646: имя приёма: sn = "+slotName("sn")+", неизвестный = "+slotName("zzz"));
+14076|   /* чипы — из списка */
+14077|   if(typeof renderMealChips==="function"){ mlKind="bf"; renderMealChips(); var _v15c=((document.getElementById("mlSlotSeg")||{}).innerHTML||"").split("data-ml=").length-1; if(_v15c!==6) __r.push("КРЭШ v646: в «Что съесть» чипов "+_v15c+" при шести приёмах"); } else __r.push("КРЭШ v646: нет renderMealChips");
+14078|   if(typeof renderRecChips==="function"){ renderRecChips(); var _v15r=((document.getElementById("recSlotSeg")||{}).innerHTML||"").split("data-rcslot=").length-1; if(_v15r!==6) __r.push("КРЭШ v646: в подборе чипов "+_v15r+" при шести приёмах"); } else __r.push("КРЭШ v646: нет renderRecChips");
+14079|   /* сумма ориентиров = день при шести приёмах */
+14080|   S.kcalManual=0; S.plan={kcal:3000,protein:180}; window.__hourNow=7; LOG=[]; var _v15acc=0, _v15eat=[];
+14081|   _v15l.map(function(m){return m[0]}).forEach(function(sl){ mlKind=sl; var g=mlTarget(); if(!g) return; _v15acc+=g.k; _v15eat.push({d:td(),k:g.k,p:0,f:0,c:0,sl:sl}); LOG=_v15eat.slice(); });
+14082|   if(Math.abs(_v15acc-3000)>3) __r.push("КРЭШ v646: сумма ориентиров шести приёмов "+Math.round(_v15acc)+" при цели 3000");
+14083|   /* планка белка у основного приёма */
+14084|   LOG=[]; mlKind="ln"; S.plan={kcal:3000,protein:60}; { var _v15g=mlTarget(); var _v15fl=0.4*(curW()||75); if(_v15g&&_v15g.p<Math.min(_v15fl,_v15g.left.p)-0.5) __r.push("КРЭШ v646: обед обещает белка "+Math.round(_v15g.p)+" г при планке "+Math.round(_v15fl)); }
+14085|   delete window.__hourNow;
+14086|   /* старая метка при трёх приёмах не роняет дневник и зовётся «Перекус» */
+14087|   S.mealsN=3; mealsSync(); if(typeof vDate!=="undefined") vDate=null;
+14088|   LOG=[{d:td(),n:"Кефир стенд",k:120,p:9,f:3,c:12,a:300,u:100,sl:"sn",ua:Date.now()}];
+14089|   rFood(); { var _v15d=(document.getElementById("dLog")||{}).innerHTML||""; if(_v15d.indexOf("Перекус")<0||_v15d.indexOf("Кефир стенд")<0) __r.push("КРЭШ v646: запись со старой меткой «перекус» при трёх приёмах не видна в дневнике"); }
+14090|   if(!(slotShare("sn",new Set(),12)>0&&slotShare("sn",new Set(),12)<=0.2)) __r.push("КРЭШ v646: доля старой метки вне списка "+slotShare("sn",new Set(),12)+" — должна быть малой (≈0.1)");
+14091|   /* «не люблю» с радиусом по имени, «дорого» на экономном бюджете */
+14092|   S.pref={no:{"Творог обезжиренный":1},pricey:{"Лосось":1},noDish:{}}; S.budget="eco";
+14093|   if(prefOK({n:"Творог обезжиренный"})||prefOK({n:"Творог 5%"})) __r.push("КРЭШ v646: «не люблю творог» не убирает творог или похожий по имени");
+14094|   if(prefOK({n:"Лосось"})) __r.push("КРЭШ v646: «дорого» на экономном бюджете всё равно предлагает");
+14095|   if(!prefOK({n:"Куриная грудка"})) __r.push("КРЭШ v646: prefOK режет продукт без причины");
+14096|   S.budget="mid"; if(!prefOK({n:"Лосось"})) __r.push("КРЭШ v646: «дорого» на среднем бюджете должно лишь опускать, а не убирать");
+14097|   if(ppOK({n:"Сырники из творога со сметаной",ing:[["Творог 5%",200,121,17,5,1.8]]})) __r.push("КРЭШ v646: блюдо с нелюбимым ингредиентом всё равно предлагается (ppOK не спрашивает предпочтения)");
+14098|   /* основной приём — с белком */
+14099|   { var _v15pool=[{n:"Рис отварной",k:130,p:2.7,f:0.3,c:28,cat:"carb"},{n:"Овощи",k:30,p:1.5,f:0.3,c:5,cat:"veg"},{n:"Батат",k:86,p:1.6,f:0.1,c:20,cat:"carb"},{n:"Куриная грудка",k:165,p:31,f:3.6,c:0,cat:"prot"},{n:"Кефир 1%",k:40,p:3,f:1,c:4,cat:"dairy"}];
+14100|     S.mealsN=4; mealsSync(); var _v15rows=mlSolveRows(_v15pool.map(function(o){return Object.assign({},o)}),{k:700,p:5,f:20,c:120,left:{k:2000,p:150}},"ln")||[];
+14101|     if(!_v15rows.some(function(r){return r.o.cat==="prot"})) __r.push("КРЭШ v646: обед из продуктов собран без белкового продукта"); }
+14102|   /* закуска не гарнир, сладкое в перекусе — ложка */
+14103|   if(!(mealFrame({n:"Морковь по-корейски",cat:"carb"},"ln")<=150)) __r.push("КРЭШ v646: морковь по-корейски без рамки закуски (≤150)");
+14104|   if(!(mealFrame({n:"Сгущенное молоко обезжиренное",cat:"dairy"},"sn")<=40)) __r.push("КРЭШ v646: сгущёнка в перекусе больше ложки (≤40)");
+14105|   /* скелет: белок и гарнир занимаются у общего каталога, если своих нет */
+14106|   { var _v15p2=[{n:"Молоко 3.2%",k:60,p:3,f:3.2,c:4.7,cat:"dairy"},{n:"Картофель по-деревенски",k:140,p:2.5,f:6,c:20,cat:"carb"},{n:"Морковь по-корейски",k:100,p:1.3,f:6,c:9,cat:"carb"}];
+14107|     var _v15r2=mlSolveRows(_v15p2.map(function(o){return Object.assign({},o)}),{k:900,p:60,f:25,c:110,left:{k:2000,p:150}},"dn")||[];
+14108|     if(!_v15r2.some(function(r){return r.o.cat==="prot"||(r.o.cat==="dairy"&&r.o.p>=15)||/яйц/i.test(r.o.n)})) __r.push("КРЭШ v646: ужин из молока, картошки и моркови — белок не занят у общего каталога");
+14109|     var _v15p3=[{n:"Куриная грудка",k:165,p:31,f:3.6,c:0,cat:"prot"},{n:"Морковь по-корейски",k:100,p:1.3,f:6,c:9,cat:"carb"},{n:"Огурцы",k:15,p:0.8,f:0.1,c:3,cat:"veg"}];
+14110|     var _v15r3=mlSolveRows(_v15p3.map(function(o){return Object.assign({},o)}),{k:900,p:60,f:25,c:110,left:{k:2000,p:150}},"ln")||[];
+14111|     if(!_v15r3.some(function(r){return r.o.cat==="carb"&&!/корейски/i.test(r.o.n)})) __r.push("КРЭШ v646: обед «курица + морковь по-корейски» без гарнира — гарнир не занят у общего каталога");
+14112|     var _v15r4=mlSolveRows(_v15p2.map(function(o){return Object.assign({},o)}),{k:300,p:20,f:8,c:35,left:{k:2000,p:150}},"sn")||[];
+14113|     if(!_v15r4.some(function(r){return r.o.cat==="prot"||(r.o.cat==="dairy"&&r.o.p>=8)||/яйц|орех|миндал|арахис/i.test(r.o.n)})) __r.push("КРЭШ v646: перекус без якоря (молочное с белком, яйца, орехи)"); }
+14114|   if(slotOKprod({n:"Индейка филе (сырое)",cat:"prot",k:105,p:20,f:2,c:0},"bf")||slotOKprod({n:"Индейка филе (сырое)",cat:"prot",k:105,p:20,f:2,c:0},"sn")) __r.push("КРЭШ v646: «сырое» прочитано как «сыр» — сырая индейка на завтрак или в перекус");
+14115|   { var _v15p5=[{n:"Молоко 3.2%",k:60,p:3,f:3.2,c:4.7,cat:"dairy"},{n:"Сгущенное молоко обезжиренное",k:270,p:9,f:0.5,c:58,cat:"dairy"}];
+14116|     var _v15r5=mlSolveRows(_v15p5.map(function(o){return Object.assign({},o)}),{k:300,p:20,f:8,c:35,left:{k:2000,p:150}},"sn")||[];
+14117|     if(!_v15r5.some(function(r){return !SWEET.test(r.o.n)&&(r.o.cat==="prot"||(r.o.cat==="dairy"&&r.o.p>=8)||/яйц|орех/i.test(r.o.n))})) __r.push("КРЭШ v646: сгущёнка сошла за якорь перекуса — настоящий белок не занят");
+14118|     var _v15p6=[{n:"Свинина (5 г жира)",k:140,p:20,f:5,c:0,cat:"prot"},{n:"Картофель",k:77,p:2,f:0.1,c:17,cat:"carb"},{n:"Картофель по-деревенски",k:140,p:2.5,f:6,c:20,cat:"carb"},{n:"Огурцы",k:15,p:0.8,f:0.1,c:3,cat:"veg"}];
+14119|     var _v15r6=mlSolveRows(_v15p6.map(function(o){return Object.assign({},o)}),{k:900,p:60,f:25,c:110,left:{k:2000,p:150}},"dn")||[];
+14120|     if(_v15r6.filter(function(r){return /картоф/i.test(r.o.n)}).length>1) __r.push("КРЭШ v646: два картофеля в одном ужине — один продукт на корень имени"); }
+14121|   if(foodToProd({n:"Индейка филе (сырое)",k:105,p:20,f:2,c:0,u:100}).cat==="dairy") __r.push("КРЭШ v646: «сырое» сделало индейку молочным продуктом");
+14122|   if(foodToProd({n:"Виноград",k:70,p:0.6,f:0.2,c:17,u:100}).cat!=="fruit") __r.push("КРЭШ v646: виноград не фрукт — встанет гарниром в обед");
+14123|   if(!(mealFrame({n:"Творог обезжиренный",cat:"dairy",p:18},"ln")<=200)) __r.push("КРЭШ v646: творог на обед без рамки 200 г");
+14124|   /* живые строки */
+14125|   ["if(!on&&i==='sh-why'&&typeof _whyRes==='function')","if(_mealsTouched){ const d=readMealsCfg();","L.push('Приёмов в день: '"].forEach(function(t){
+14126|     var q=__HTML.indexOf(t), ls=q<0?0:__HTML.lastIndexOf(String.fromCharCode(10),q)+1;
+14127|     if(q<0||__HTML.slice(ls,q).trim().indexOf('//')===0) __r.push("КРЭШ v646: нет живой строки «"+t.slice(0,40)+"»"); });
+14128|   if(typeof coachCtx==="function"&&String(coachCtx()).indexOf("Приёмов в день:")<0) __r.push("КРЭШ v646: тренер не знает числа приёмов — будет советовать «ешь чаще» мимо списка");
+14129|   if(__HTML.indexOf("['bf','ln','dn','sn']")>=0) __r.push("КРЭШ v646: в коде остался литерал четырёх приёмов ['bf','ln','dn','sn'] — личный список его не увидит");
+14130| }catch(e){ __r.push("КРЭШ v646: "+e.message); }
+14131| finally{ try{ delete window.__hourNow; if(_v15sv.meals) S.meals=_v15sv.meals; else delete S.meals; if(_v15sv.mealsN) S.mealsN=_v15sv.mealsN; else delete S.mealsN; if(_v15sv.slotB) S.slotB=_v15sv.slotB; else delete S.slotB; S.pref=_v15sv.pref; S.plan=_v15sv.plan; S.kcalManual=_v15sv.km; S.target=_v15sv.tg; S.budget=_v15sv.bud; LOG=_v15sv.LOG; if(typeof vDate!=="undefined") vDate=_v15sv.vDate; if(_v15sv.mk!==null) mlKind=_v15sv.mk; mealsSync(); rFood(); }catch(e){} }
+14132| /* ── v647: РОЛЬ И ПРАКТИЧНАЯ ПОРЦИЯ ──
+14133|    Полевой отчёт владельца 24.09: молоко 300 г строкой, сгущёнка 70 г как
+14134|    приём, лосось 60 г. Правило меряет выход: основа не ниже порции, добавка
+14135|    только к основе и ≤ 30 г, молоко только к каше/коктейлю, яйца штуками,
+14136|    сухая крупа подписана варёной. Префикс _v16. */
+14137| try{
+14138|   if(typeof portionSense!=="function"||typeof portionRule!=="function") throw new Error("нет portionSense/portionRule");
+14139|   var _v16a=portionRule({n:"Сгущенное молоко обезжиренное",cat:"carb"},"sn"); if(!(_v16a.role==="add"&&_v16a.max<=30)) __r.push("КРЭШ v647: сгущёнка не добавка ≤ 30 г");
+14140|   var _v16b=portionRule({n:"Лосось",cat:"prot"},"dn"); if(!(_v16b.min>=100)) __r.push("КРЭШ v647: рыба в основном приёме без минимума 100 г");
+14141|   var _v16r1=mlSolveRows([{n:"Лосось",k:208,p:20,f:13,c:0,cat:"prot"},{n:"Картофель",k:77,p:2,f:0.1,c:17,cat:"carb"},{n:"Овощи",k:30,p:1.5,f:0.3,c:5,cat:"veg"}].map(function(o){return Object.assign({},o)}),{k:600,p:15,f:20,c:100,left:{k:2000,p:150}},"dn")||[];
+14142|   if(!_v16r1.some(function(r){return r.o.cat==="prot"})) __r.push("КРЭШ v647: ужин без рыбы при рыбе в пуле");
+14143|   _v16r1.forEach(function(r){ if(r.o.cat==="prot"&&r.g<100) __r.push("КРЭШ v647: «"+r.o.n+"» "+Math.round(r.g)+" г — рыба меньше порции"); });
+14144|   var _v16r5=mlSolveRows([{n:"Яйцо",k:143,p:13,f:9.5,c:0.7,cat:"prot"},{n:"Сгущенное молоко обезжиренное",k:270,p:9,f:0.5,c:58,cat:"carb"},{n:"Виноград",k:70,p:0.6,f:0.2,c:17,cat:"fruit"}].map(function(o){return Object.assign({},o)}),{k:300,p:15,f:8,c:45,left:{k:2000,p:150}},"sn")||[];
+14145|   if(_v16r5.some(function(r){return /сгущ/i.test(r.o.n)})) __r.push("КРЭШ v647: сгущёнка к яйцу и винограду — добавка без основы");
+14146|   var _v16r2=mlSolveRows([{n:"Молоко 0,5%",k:35,p:3,f:0.5,c:5,cat:"dairy"},{n:"Сгущенное молоко обезжиренное",k:270,p:9,f:0.5,c:58,cat:"carb"},{n:"Творог обезжиренный",k:90,p:18,f:0.5,c:3,cat:"dairy"}].map(function(o){return Object.assign({},o)}),{k:300,p:20,f:5,c:35,left:{k:2000,p:150}},"sn")||[];
+14147|   if(_v16r2.some(function(r){return /сгущ/i.test(r.o.n)&&r.g>30})) __r.push("КРЭШ v647: сгущёнка больше 30 г");
+14148|   if(_v16r2.some(function(r){return /сгущ/i.test(r.o.n)})&&!_v16r2.some(function(r){return /творог/i.test(r.o.n)})) __r.push("КРЭШ v647: сгущёнка без творога — добавка без основы");
+14149|   if(_v16r2.some(function(r){return /^Молоко/i.test(r.o.n)})) __r.push("КРЭШ v647: стакан молока стоит отдельной строкой без каши или коктейля");
+14150|   var _v16r3=mlSolveRows([{n:"Молоко 0,5%",k:35,p:3,f:0.5,c:5,cat:"dairy"},{n:"Виноград",k:70,p:0.6,f:0.2,c:17,cat:"fruit"},{n:"Творог обезжиренный",k:90,p:18,f:0.5,c:3,cat:"dairy"}].map(function(o){return Object.assign({},o)}),{k:300,p:20,f:5,c:40,left:{k:2000,p:150}},"sn")||[];
+14151|   if(_v16r3.some(function(r){return /^Молоко/i.test(r.o.n)})) __r.push("КРЭШ v647: молоко к винограду — не приём");
+14152|   var _v16r4=mlSolveRows([{n:"Яйцо",k:143,p:13,f:9.5,c:0.7,cat:"prot"},{n:"Хлеб цельнозерновой",k:247,p:9,f:3.4,c:41,cat:"carb"},{n:"Овощи",k:30,p:1.5,f:0.3,c:5,cat:"veg"}].map(function(o){return Object.assign({},o)}),{k:500,p:30,f:18,c:50,left:{k:2000,p:150}},"bf")||[];
+14153|   _v16r4.forEach(function(r){ if(/яйц/i.test(r.o.n)&&Math.round(r.g)%55!==0) __r.push("КРЭШ v647: яйца "+Math.round(r.g)+" г — не штуками"); if(/хлеб/i.test(r.o.n)&&Math.round(r.g)%30!==0) __r.push("КРЭШ v647: хлеб "+Math.round(r.g)+" г — не ломтями"); });
+14154|   if(typeof mlRowSub!=="function"||mlRowSub({o:{n:"Рис (сухой)",k:350,p:7,f:1,c:78,cat:"carb",u:100},g:80}).indexOf("варёной")<0) __r.push("КРЭШ v647: сухая крупа в подборе не подписана варёной");
+14155| }catch(e){ __r.push("КРЭШ v647: "+e.message); }
+14156| /* ── v648: ПРАВИЛА НА ВЕСЬ ДИАПАЗОН 40–200 КГ ── планка белка от целевого веса и не выше 50; готовый приём для маленькой цели до ×0.6 */
+14157| try{
+14158|   var _v17sv={W:W,wg:S.wGoal,plan:S.plan,km:S.kcalManual,tg:S.target,LOG:LOG,mk:(typeof mlKind!=="undefined")?mlKind:null};
+14159|   W=[{d:td(),kg:200}]; S.wGoal=95; S.kcalManual=0; S.plan={kcal:3200,protein:200}; LOG=[]; window.__hourNow=7; mlKind="ln";
+14160|   var _v17g=mlTarget(); if(_v17g&&_v17g.p>Math.max(50,_v17g.left.p*0.45)+0.5) __r.push("КРЭШ v648: у человека 200 кг обед требует "+Math.round(_v17g.p)+" г белка — планка считана от фактического веса, а не от целевого");
+14161|   W=[{d:td(),kg:200}]; delete S.wGoal; S.plan={kcal:3200,protein:100}; LOG=[]; var _v17g2=mlTarget(); if(_v17g2&&_v17g2.p>50.5) __r.push("КРЭШ v648: без целевого веса планка белка "+Math.round(_v17g2.p)+" г — выше потолка 50");
+14162|   var _v17lo=ppScaled(PPMEAL.find(function(m){return m.slot==="ln"}),350); if(_v17lo.fac>0.6+1e-9) __r.push("КРЭШ v648: обед под 350 ккал (маленькая цель) ужат только до ×"+_v17lo.fac.toFixed(2));
+14163|   delete window.__hourNow;
+14164| }catch(e){ __r.push("КРЭШ v648: "+e.message); }
+14165| finally{ try{ delete window.__hourNow; W=_v17sv.W; if(_v17sv.wg) S.wGoal=_v17sv.wg; else delete S.wGoal; S.plan=_v17sv.plan; S.kcalManual=_v17sv.km; S.target=_v17sv.tg; LOG=_v17sv.LOG; if(_v17sv.mk!==null) mlKind=_v17sv.mk; }catch(e){} }
+14166| /* ── v649: БЕЗ ПЛИТЫ И В КАФЕ ──
+14167|    Владелец на работе, готовить не может; из обедов без плиты было ноль.
+14168|    Правило меряет выход: обедов без плиты не меньше пяти, ужинов — трёх;
+14169|    фильтр «Без плиты» живой строкой и через ppOK; «В кафе» даёт целую порцию,
+14170|    если она входит в цель с запасом 15 %, иначе половину; режим и переключатель
+14171|    есть в разметке. Префикс _v18. */
+14172| try{
+14173|   var _v18ln=PPMEAL.filter(function(m){return m.slot==="ln"&&!m.cook}).length, _v18dn=PPMEAL.filter(function(m){return m.slot==="dn"&&!m.cook}).length;
+14174|   if(_v18ln<5) __r.push("КРЭШ v649: обедов без плиты "+_v18ln+" — человек на работе снова получит только «с готовкой»");
+14175|   if(_v18dn<3) __r.push("КРЭШ v649: ужинов без плиты "+_v18dn);
+14176|   { var _v18t="PPMEAL.filter(m=>m.slot===ppKind(mlKind)&&ppOK(m)&&(!S.mlNoCook||!m.cook))", _v18q=__HTML.indexOf(_v18t), _v18ls=_v18q<0?0:__HTML.lastIndexOf(String.fromCharCode(10),_v18q)+1;
+14177|     if(_v18q<0||__HTML.slice(_v18ls,_v18q).trim().indexOf('//')===0) __r.push("КРЭШ v649: фильтр «Без плиты» не стоит в отборе готовых (или обходит ppOK)"); }
+14178|   if(typeof cafeScale!=="function") __r.push("КРЭШ v649: нет cafeScale");
+14179|   else { if(cafeScale({k:150,g:400},450)!==0.5) __r.push("КРЭШ v649: плов на 600 ккал под цель 450 — не половина"); if(cafeScale({k:150,g:400},700)!==1) __r.push("КРЭШ v649: плов на 600 ккал под цель 700 — не целая порция"); if(cafeScale({k:150,g:400},0)!==1) __r.push("КРЭШ v649: без цели — не целая порция"); }
+14180|   { var _v18f="&&!(small&&cafeScale(d,targetK)<1))", _v18fq=__HTML.indexOf(_v18f), _v18fl=_v18fq<0?0:__HTML.lastIndexOf(String.fromCharCode(10),_v18fq)+1;
+14181|     if(_v18fq<0||__HTML.slice(_v18fl,_v18fq).trim().indexOf('//')===0) __r.push("КРЭШ v650: в малый приём «В кафе» кладёт половину тяжёлого блюда"); }
+14182|   if(typeof cafeShort!=="function"||/творогом или яйцами/.test(cafeShort({k:500,p:20},{k:600,p:60}))||cafeShort({k:500,p:20},{k:600,p:60}).indexOf("белка на 40 г меньше")<0) __r.push("КРЭШ v650: подпись кафе не своя (советует «добери творогом» или молчит о белке)");
+14183|   if(__HTML.indexOf('data-mlv="cafe"')<0||__HTML.indexOf('id="mlCookSeg"')<0) __r.push("КРЭШ v649: в разметке нет режима «В кафе» или переключателя «Без плиты»");
+14184|   if(__HTML.indexOf("tags=cs.{общепит}")<0) __r.push("КРЭШ v649: «В кафе» читает не блюда общепита");
+14185|   PPMEAL.filter(function(m){return !m.cook}).forEach(function(m){ if(/омлет|сырник|запечь|жарен|тушён/i.test(m.n)&&!/кулинари/i.test(m.n)) __r.push("КРЭШ v649: «"+m.n+"» помечен «без плиты», а по названию требует готовки"); });
+14186| }catch(e){ __r.push("КРЭШ v649: "+e.message); }
+14187| // полевой тест — часть ворот деплоя (правка класса 18.08: баги живут
+14188| // на стыках функций, а не внутри них)
+14189| try{
+14190|   if(__VERCEL.indexOf('tests/field.js')<0)
+14191|     __r.push("КРЭШ ворота: полевой тест зала не в buildCommand — сквозной сценарий перестанет проверяться");
+14192|   if(__VERCEL.indexOf('tests/kitchen.js')<0)
+14193|     __r.push("КРЭШ ворота: полевой тест кухни не в buildCommand — половина приложения останется без сквозного сценария");
+14194| }catch(e){ __r.push("КРЭШ ворота: "+e.message); }
+14195| 
+14196| 
+14197| 
+14198| 
+14199| 
+14200| `;
+14201| try{ (0,eval)(js+test); }catch(e){ console.error(" ✗ ФАТАЛЬНЫЙ КРЭШ загрузки скрипта: "+e.message); process.exit(1); }
+14202| /* Повисший промис в __wait раньше давал ТИХИЙ ЗЕЛЁНЫЙ: цикл событий пустел, node
+14203|    выходил с кодом 0, не напечатав ни слова (поймано 14.09 на правиле со
+14204|    stub-таймером). Зелёный — только если дошли до вердикта. */
+14205| let __verdict=false;
+14206| process.on("exit",c=>{ if(!__verdict&&c===0){ console.error(" ✗ ГЕЙТ НЕ ДОШЁЛ ДО ВЕРДИКТА: асинхронное правило повисло — это не зелёный"); process.exitCode=1; } });
+14207| (async()=>{   // CommonJS: top-level await недоступен — доигрываем микрозадачи асинхронных тестов тут
+14208|   await new Promise(r=>setImmediate(r)); await new Promise(r=>setImmediate(r));
+14209|   // тяжёлые async-тесты (E2EE: PBKDF2 — реальная работа, не микрозадача) регистрируют промисы в __wait
+14210|   await Promise.all(globalThis.__wait||[]);
+14211|   // Отправщик пушей: тексты всех шести типов и отметка по типам
+14212|   try{
+14213|     const psrc=fs.readFileSync(path.join(ROOT,"api","push-send.js"),"utf8");
+14214|     ["workout:","weigh:","water:","food:","sleep:","week:"].forEach(k=>{
+14215|       if(psrc.indexOf(k)<0) globalThis.__r.push("КРЭШ push-send: нет текста типа "+k); });
+14216|     if(psrc.indexOf("rpc/push_mark")<0) globalThis.__r.push("КРЭШ push-send: отметка не по типам — второй тип дня не уйдёт");
+14217|   }catch(e){ globalThis.__r.push("КРЭШ push-send: "+e.message); }
+14218|   // Прокси /api/ai обязан зеркалить клиентскую защиту от «пустого ответа»:
+14219|   // Sonnet 5 без thinking думает по умолчанию и может съесть весь лимит.
+14220|   try{
+14221|     const api=fs.readFileSync(path.join(ROOT,"api","ai.js"),"utf8");
+14222|     if(api.indexOf("THINK_TASKS")<0||api.indexOf("thinking = { type: 'disabled' }")<0)
+14223|       globalThis.__r.push("КРЭШ api/ai.js: прокси не выключает размышление Sonnet 5 — пустые ответы вернутся у пользователей без ключа");
+14224|   }catch(e){ globalThis.__r.push("КРЭШ api/ai.js: "+e.message); }
+14225|   /* Простой режим: ежедневный минимум обязан остаться на виду. Проверяем
+14226|      ПО ВЛОЖЕННОСТИ, а не по соседним строкам: спрятать кольца КБЖУ или воду
+14227|      легче всего не пометив их самих, а завернув в скрытый блок. */
+14228|   try{
+14229|     const proRange=(h,from)=>{                    // границы элемента, открытого в позиции from
+14230|       const tag=(h.slice(from).match(/^<([a-z]+)/)||[])[1]; if(!tag) return null;
+14231|       const re=new RegExp("<"+tag+"\\b|</"+tag+">","g");
+14232|       re.lastIndex=from; let depth=0, m;
+14233|       while((m=re.exec(h))){
+14234|         depth+=m[0][1]==="/"?-1:1;
+14235|         if(depth===0) return [from,re.lastIndex];
+14236|       }
+14237|       return [from,h.length];
+14238|     };
+14239|     const H=__HTML, hidden=[];
+14240|     const open=/<(?:div|details|section|button)\b[^>]*class="[^"]*(?:^|[ "])pro(?:[ "]|$)[^>]*>/g;
+14241|     let mm;
+14242|     while((mm=open.exec(H))){ const r=proRange(H,mm.index); if(r) hidden.push(r); }
+14243|     // страховка: сама разметка режима должна существовать
+14244|     if(!hidden.length) globalThis.__r.push("КРЭШ режим: в разметке не осталось ни одного скрытого блока — простой режим ничего не упрощает");
+14245|     /* gK (плитка «ккал» в листе «Расход и цель») убран в v571 по решению
+14246|        владельца: то же число стояло героем строкой выше. Цель дня человек
+14247|        по-прежнему видит на «Еде», в кольцах, — их и стережём здесь.
+14248|        ОГОВОРКА в отчёт владельцу: герой показывает РАСХОД, а плитка
+14249|        показывала ЦЕЛЬ; они совпадают только при темпе ноль. */
+14250|     const MUST={kcalRow:'строка калорий',wVal:'вода',qSearch:'поиск еды',setLog:'журнал подходов',
+14251|                 wIn:'запись веса',bAsk:'чат тренера'};
+14252|     Object.keys(MUST).forEach(id=>{
+14253|       const at=H.indexOf('id="'+id+'"');
+14254|       if(at<0) return globalThis.__r.push("КРЭШ режим: элемент "+id+" ("+MUST[id]+") пропал из разметки");
+14255|       if(hidden.some(r=>at>r[0]&&at<r[1]))
+14256|         globalThis.__r.push("КРЭШ режим: "+MUST[id]+" скрыт в простом режиме — без этого день не прожить");
+14257|     });
+14258|   }catch(e){ globalThis.__r.push("КРЭШ режим (разметка): "+e.message); }
+14259|   // Ранний страж загрузки: отдельный <script> до главного показывает ошибку
+14260|   // вместо белого экрана. Главный скрипт ОБЯЗАН снимать его после старта,
+14261|   // иначе любая поздняя ошибка навсегда закроет приложение оверлеем.
+14262|   try{
+14263|     if(__HTML.indexOf("bvBootErr")<0||__HTML.indexOf("__bvBoot=false")<0)
+14264|       globalThis.__r.push("КРЭШ страж: ранний перехватчик загрузки пропал из index.html");
+14265|     if(js.indexOf("__bvBoot=true")<0)
+14266|       globalThis.__r.push("КРЭШ страж: главный скрипт не ставит __bvBoot=true после старта");
+14267|     if(__HTML.split("<script>").length-1!==2)
+14268|       globalThis.__r.push("КРЭШ страж: <script>-блоков не 2 — срез главного скрипта в смоуке может брать не то");
+14269|   }catch(e){ globalThis.__r.push("КРЭШ страж: "+e.message); }
+14270|   try{
+14271|   /* Функция, которую никто не зовёт, — это не починка. Смотрим ИМЕННО тело
+14272|      санитара, а не весь файл: слово trimDayMap есть и в самом определении.
+14273|      Перевод строки собираем кодом: обратный слэш внутри шаблонной строки
+14274|      этого файла схлопывается — на этом уже сгорели четыре правила. */
+14275|   {
+14276|     var _NL=String.fromCharCode(10);
+14277|     var _sa=js.indexOf("async function sanitizeData(");
+14278|     var _se=_sa>=0?js.indexOf(_NL+"async function ",_sa+10):-1;
+14279|     if(_se<0&&_sa>=0) _se=js.indexOf(_NL+"function ",_sa+10);
+14280|     var _sb=(_sa>=0&&_se>_sa)?js.slice(_sa,_se):"";
+14281|     if(!_sb) globalThis.__r.push("КРЭШ сдвиг: санитар данных не найден — правило про починку карты смотрит в пустоту");
+14282|     else if(_sb.indexOf("trimDayMap()")<0)
+14283|       globalThis.__r.push("КРЭШ сдвиг: санитар не зовёт trimDayMap — починка есть, но у человека на телефоне не сработает");
+14284|   }
+14285|   }catch(e){ globalThis.__r.push('КРЭШ сдвиг (связка): '+e.message); }
+14286|   /* ── ПРОЗА УЕХАЛА В СПРАВКУ, А ОРГАН УПРАВЛЕНИЯ ОСТАЛСЯ НА ЭКРАНЕ ──
+14287|      Полевой отчёт владельца 31.08: подсказки с рабочих экранов убраны, их
+14288|      текст живёт в «Настройки → Справка». Убирая их, я чуть не унёс вместе с
+14289|      прозой рабочее поле: в карточке шагов внутри подсказки лежал <input>
+14290|      с именем команды. Спрятали бы подсказку — человек потерял бы функцию,
+14291|      и молча: ни ошибки, ни пустого места, просто её больше нет.
+14292|      Правило: внутри section.view подсказка — это ТОЛЬКО текст. Появился
+14293|      внутри неё орган управления — он уедет в справку вместе с ней. */
+14294|   try{
+14295|     const H=__HTML;
+14296|     const ranges=[]; let at=0;
+14297|     while((at=H.indexOf('<section class="view',at))>=0){
+14298|       let i=at+8, d=1;
+14299|       while(d>0&&i<H.length){
+14300|         const a=H.indexOf('<section',i), b=H.indexOf('</section',i);
+14301|         if(b<0) break;
+14302|         if(a>=0&&a<b){ d++; i=a+8; } else { d--; i=b+9; }
+14303|       }
+14304|       ranges.push([at,i]); at=i;
+14305|     }
+14306|     if(!ranges.length) globalThis.__r.push("КРЭШ справка: в разметке не нашлось ни одного section.view — правило про прозу смотрит в пустоту");
+14307|     const CTRL=['<input','<select','<textarea','<button'];
+14308|     const found=[];
+14309|     ranges.forEach(rg=>{
+14310|       let p=rg[0];
+14311|       while((p=H.indexOf('<div class="note"',p))>=0&&p<rg[1]){
+14312|         let i=H.indexOf('>',p)+1, d=1;
+14313|         while(d>0&&i<H.length){
+14314|           const a=H.indexOf('<div',i), b=H.indexOf('</div',i);
+14315|           if(b<0) break;
+14316|           if(a>=0&&a<b){ d++; i=a+4; } else { d--; i=b+5; }
+14317|         }
+14318|         const body=H.slice(p,i);
+14319|         if(CTRL.some(c=>body.indexOf(c)>=0)) found.push(body.replace(/<[^>]*>/g,' ').replace(/  +/g,' ').trim().slice(0,60));
+14320|         p=i;
+14321|       }
+14322|     });
+14323|     if(found.length) globalThis.__r.push("КРЭШ справка: "+found.length+" подсказок на рабочих экранах содержат поле или кнопку внутри себя — вместе с прозой в «Справку» уедет рабочая функция, и человек потеряет её молча. Первая: «"+found[0]+"…»");
+14324|   }catch(e){ globalThis.__r.push("КРЭШ справка (разметка): "+e.message); }
+14325|   /* Проза, которую убрали с экрана, обязана куда-то приехать. Если раздела
+14326|      «Справка» нет или его никто не наполняет — мы не убрали объяснения,
+14327|      а стёрли их, и человеку негде узнать, откуда взялась цифра. */
+14328|   try{
+14329|     if(__HTML.indexOf('id="helpBox"')<0)
+14330|       globalThis.__r.push("КРЭШ справка: раздела «Справка» нет в настройках — проза с рабочих экранов ушла в никуда");
+14331|     if(js.indexOf("function rHelp(")<0)
+14332|       globalThis.__r.push("КРЭШ справка: rHelp пропал — «Справку» некому наполнять");
+14333|     const os=js.indexOf("function openSet(");
+14334|     const nx=os>=0?js.indexOf("\nfunction ",os+10):-1;
+14335|     if(os<0||nx<0||js.slice(os,nx).indexOf("rHelp()")<0)
+14336|       globalThis.__r.push("КРЭШ справка: openSet не зовёт rHelp — раздел «Справка» откроется пустым");
+14337|     /* Искать по всему файлу бесполезно: мутация M641 (замена условия на false)
+14338|        прошла мимо правила, потому что те же слова есть в соседней функции.
+14339|        Смотрим ИМЕННО тело _collapseHints, там где решается судьба кнопки. */
+14340|     const ch=js.indexOf("function _collapseHints(");
+14341|     const chEnd=ch>=0?js.indexOf("\nfunction ",ch+10):-1;
+14342|     const chBody=ch>=0&&chEnd>ch?js.slice(ch,chEnd):"";
+14343|     if(!chBody) globalThis.__r.push("КРЭШ справка: _collapseHints не найден — правило про прозу смотрит в пустоту");
+14344|     else if(chBody.indexOf("helpScreen(")<0||chBody.indexOf("helpCollect(")<0)
+14345|       globalThis.__r.push("КРЭШ справка: подсказки снова получают кнопку «Подробнее» — проза вернулась на экран");
+14346|     /* Справка обязана собирать и листы тоже (решение владельца 31.08:
+14347|        «убери и в настройках тоже, везде»). Соберёт только рабочие экраны —
+14348|        проза из настроек не исчезнет с глаз, а просто пропадёт. */
+14349|     const rh=js.indexOf("function rHelp(");
+14350|     const rhEnd=rh>=0?js.indexOf("\nfunction ",rh+10):-1;
+14351|     const rhBody=rh>=0&&rhEnd>rh?js.slice(rh,rhEnd):"";
+14352|     if(rhBody&&rhBody.indexOf(".sheet .note")<0)
+14353|       globalThis.__r.push("КРЭШ справка: «Справка» не собирает подсказки из листов — текст из настроек пропадёт, а не переедет");
+14354|     const hs=js.indexOf("function helpScreen(");
+14355|     const hsEnd=hs>=0?js.indexOf("\nfunction ",hs+10):-1;
+14356|     const hsBody=hs>=0&&hsEnd>hs?js.slice(hs,hsEnd):"";
+14357|     if(hsBody&&hsBody.indexOf("closest('.sheet')")<0)
+14358|       globalThis.__r.push("КРЭШ справка: подсказка из листа не знает своего раздела — она не попадёт в «Справку» вовсе");
+14359|   }catch(e){ globalThis.__r.push("КРЭШ справка (связка): "+e.message); }
+14360|   /* САМОПРОВЕРКА ТЕСТА: правило, которое не может сработать, — не правило.
+14361|      Тело этого файла исполняется как ШАБЛОННАЯ СТРОКА, а в ней обратный слэш
+14362|      схлопывается: обозначение цифры внутри регекспа молча становится буквой.
+14363|      Так уже умерли ЧЕТЫРЕ проверки — имя дня одной буквой (в двух местах),
+14364|      замена упражнения в наблюдателе и дубликаты id в разметке. Все четыре
+14365|      выглядели рабочими и не ловили ничего годами. Ищем такие регекспы в самом
+14366|      файле, до того как они успеют кого-нибудь обмануть. */
+14367|   try{
+14368|     const src=require('fs').readFileSync(__filename,'utf8');
+14369|     /* Границы берём по РЕАЛЬНОМУ шаблону: «const test=» в начале и одинокая
+14370|        кавычка в начале строки в конце. Искать последний backtick в файле
+14371|        нельзя — он теперь в этой же самопроверке, и зона расползалась
+14372|        на код после шаблона, где слэш живёт нормально. */
+14373|     const NL=String.fromCharCode(10), BT=String.fromCharCode(96);
+14374|     const a=src.indexOf("const test="+BT), b=src.indexOf(NL+BT+";", a);
+14375|     if(a>0&&b>a){
+14376|       const body=src.slice(a,b).split(NL);
+14377|       const start=src.slice(0,a).split(NL).length;
+14378|       const rx=new RegExp("/[^/\\n ][^/\\n]*\\\\[dswDSWb][^/\\n]*/[gimsuy]*");
+14379|       const dead=[];
+14380|       body.forEach((l,i)=>{ if(rx.test(l)) dead.push((start+i)+": "+l.trim().slice(0,80)); });
+14381|       if(dead.length) globalThis.__r.push("КРЭШ самопроверка: "+dead.length+" правил используют сокращения вида \\d или \\w внутри шаблонной строки — там слэш схлопывается, и правило не сработает никогда. Первое — строка "+dead[0]);
+14382|     }
+14383|   }catch(e){ globalThis.__r.push("КРЭШ самопроверка: "+e.message); }
+14384|   /* ── ДВА РАЗРЯДА ПРАВИЛ — решение владельца 11.09 ──
+14385|      Он переделал экран «Коуча» целиком, и шесть правил о том, ГДЕ стоят
+14386|      плиты, остановили выпуск исправной сборки. Его слово: «то, что я делаю,
+14387|      не должно блокироваться, но если правка попутно ломает — должно».
+14388|      Значит правила делятся по предмету, а не по важности:
+14389|        КРЭШ — сломано: краш, счёт, пропавшая кнопка, утечка, пустой экран.
+14390|               Это владелец увидеть заранее не может. Останавливает выпуск.
+14391|        ВИД  — композиция: где стоит блок и в каком порядке. Это ровно то,
+14392|               что владелец решает сам и видит глазами на первом же экране.
+14393|               Печатается громко, выпуск НЕ останавливает.
+14394|      Правило разряда ВИД, которое разошлось с экраном намеренно, обязано
+14395|      быть переписано под новый экран, иначе оно протухнет и перестанет
+14396|      ловить случайный сдвиг. Непереписанные висят в NEXT.md. */
+14397|   const all=(globalThis.__r||[]);
+14398|   const bad=all.filter(x=>x.includes("КРЭШ"));
+14399|   const look=all.filter(x=>x.includes("ВИД")&&!x.includes("КРЭШ"));
+14400|   bad.forEach(x=>console.error(" "+x));
+14401|   if(look.length){
+14402|     console.error(" ⚠ КОМПОЗИЦИЯ РАЗОШЛАСЬ С ПРАВИЛОМ: "+look.length+" — выпуск не остановлен");
+14403|     look.forEach(x=>console.error("   "+x));
+14404|     console.error("   Переделал экран сам — перепиши эти правила под новый вид.");
+14405|     console.error("   Не трогал — значит что-то сдвинуло его попутно, и это чинить.");
+14406|   }
+14407|   __verdict=true;
+14408|   if(bad.length){ console.error(" ✗ КРЭШЕЙ: "+bad.length+" — деплой остановлен"); process.exit(1); }
+14409|   console.log(" ✓ Все экраны рендерятся без крашей");
+14410|   process.exit(0);
+14411| })();
+14412| 

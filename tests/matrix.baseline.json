@@ -1,0 +1,8 @@
+{
+ "programs": 180,
+ "belowMEV": 90,
+ "overMRV": 3,
+ "noMainDaysIron": 72,
+ "noMainDaysBW": 120,
+ "lowFreq": 11
+}

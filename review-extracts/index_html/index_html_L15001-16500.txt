@@ -1,0 +1,1501 @@
+// ИЗВЛЕЧЕНИЕ ДЛЯ ЧТЕНИЯ: index.html, строки 15001–16500 из 31008. Номера строк совпадают с оригиналом. Код не менялся.
+15001|      Отбор шёл через `filter(slotScore>0)`: продукт попадал в список, только
+15002|      если человек ел его ИМЕННО В ЭТОТ ЧАС раньше. Замер 27.08: открыл поиск
+15003|      вечером — своих продуктов ноль, весь экран занимают три готовых приёма
+15004|      из нашей библиотеки, а творога, который он ест четырнадцатый день
+15005|      подряд, нет вовсе. Слот теперь ПОДНИМАЕТ наверх, а не отсекает. */
+15006|   /* ── ПОРЯДОК ЗАДАЁТ ЭТОТ ПРИЁМ, А НЕ ДЕНЬ ЦЕЛИКОМ ──
+15007|      Решение владельца 29.08: «формировать список так, какие продукты
+15008|      максимально часто используются в записи ЭТОГО приёма пищи».
+15009|      Было: один смешанный балл (частота в приёме ×2 плюс общая частота) —
+15010|      продукт, который человек ест каждый вечер, обгонял творог, который он
+15011|      ест каждое утро, и всплывал в завтраке. Стало два ключа: сначала
+15012|      частота в этом приёме, и только при равенстве — общая. Всё, что он ел
+15013|      в этом приёме, стоит выше всего, чего он в нём не ел. */
+15014|   const mineFoods=FOODS.map(f=>({f,ss:slotScore(f.n,slot),fs:freqScore(f)}))
+15015|     .filter(x=>x.ss>0||x.fs>0)
+15016|     .sort((a,b)=>(b.ss-a.ss)||(b.fs-a.fs))
+15017|     .slice(0,_nF).map(x=>x.f);
+15018|   // твои блюда
+15019|   const cmbs=CMB.slice(0,_full?10:1);
+15020|   let html=chips;
+15021|   /* «Как вчера» УБРАН из списка записи решением владельца 29.08. Карточка
+15022|      на две строки с зелёной чертой стояла первой и отжимала вниз ровно то,
+15023|      за чем человек сюда пришёл, — его собственные продукты. Повтор приёма
+15024|      целиком остался живым: он ждёт в пустом «Дневнике», где и полезен. */
+15025|   /* Заголовок над пустотой читается как поломка. Если анкета вычистила слот
+15026|      целиком — говорим об этом словами и ведём туда, где выбор остался. */
+15027|   /* ── СВОИ ПРОДУКТЫ ПЕРВЫМИ, ВЕРТИКАЛЬНЫМ СПИСКОМ ──
+15028|      Порядок задан жизнью, а не нашей библиотекой: человек записывает то, что
+15029|      ест обычно. Сначала его продукты и его блюда, потом готовые приёмы.
+15030|      Строка плотная (60px против 135) — список читается глазами целиком, и
+15031|      горизонтальная лента для этого не нужна: ни у кого её и нет. */
+15032|   const _cards=[]
+15033|     .concat(mineFoods.map(f=>{const a=lastAmt(f),m=f.u==100?a/100:a;
+15034|       return {k:'f',id:f.id,n:f.n+(f.br?' '+f.br:''),
+15035|         s:`${amtStr(f,a)} · ${r0(f.k*m)} ккал · Б${r1(f.p*m)} Ж${r1(f.f*m)} У${r1(f.c*m)}`,ic:f.sup?'i-bolt':null};}))
+15036|     .concat(cmbs.map(c=>{const t=(c.items||[]).reduce((a,i)=>({k:a.k+i.k,p:a.p+i.p,f:a.f+(i.f||0),c:a.c+(i.c||0)}),{k:0,p:0,f:0,c:0});
+15037|       return {k:'cb',id:c.id,n:c.n,
+15038|         s:`${(c.items||[]).length} поз. · ${r0(t.k)} ккал · Б${r0(t.p)} Ж${r0(t.f)} У${r0(t.c)}`,ic:'i-save'};}))
+15039|     .concat(curated.map((c,i)=>({k:'pp',i,n:c.m.n,
+15040|       s:r0(c.sc.k)+' ккал · Б'+r0(c.sc.p)+' Ж'+r0(c.sc.f)+' У'+r0(c.sc.c),ic:'i-dish'})));
+15041|   if(!_cards.length)
+15042|     html+=`<div class="empty">Пока пусто — найди первый продукт</div>`;
+15043|   else
+15044|     html+=_cards.map(c=>{
+15045|       const at=c.k==='pp'?`data-ppqx="${c.i}"`:(c.k==='cb'?`data-cbe="${c.id}"`:`data-qe="${c.id}"`);
+15046|       const ad=c.k==='pp'?`data-ppq="${c.i}"`:(c.k==='cb'?`data-cba="${c.id}"`:`data-qa="${c.id}"`);
+15047|       /* v600: состояние Done — продукт уже записан в выбранный приём сегодня:
+15048|          плюс сменяется галочкой и держится, пока запись живёт в этом приёме
+15049|          (micro-interactions.md §4). Считается от данных, не от клика. */
+15050|       const _dn=(function(){ try{ const dd=vDate||td(), nm=c.k==='f'?(FOODS.find(x=>x.id==c.id)||{}).n:c.n;
+15051|         return !!nm&&LOG.some(l=>l.d===dd&&l.n===nm&&(l.sl||slotOfHour(l.ua?new Date(l.ua).getHours():13))===slot); }catch(e){ return false; } })();
+15052|       return `<div class="qrow" ${at}>
+15053|         <div class="g"><div class="t">${c.ic?`<svg class="ic" style="width:13px;height:13px"><use href="#${c.ic}"/></svg> `:''}${esc(c.n)}</div>
+15054|         <div class="s">${esc(c.s)}</div></div>
+15055|         <button class="qadd2${_dn?' on':''}" ${ad} aria-label="${_dn?'записано в этот приём — добавить ещё':'записать'}" title="${_dn?'записано — добавить ещё':'записать'}"><svg class="ic ip"><use href="#i-plus"/></svg><svg class="ic ik"><use href="#i-check"/></svg></button></div>`;}).join('');
+15056|   /* «Ещё» на главном экране не разворачивает список на месте, а открывает
+15057|      полноэкранный поиск: там и место есть, и поле поиска рядом. */
+15058|   if(!_full) html+=`<button class="btn gho sm" id="qMoreB" data-qmore="1" style="width:100%;margin-top:8px">Все мои продукты</button>`;
+15059|   else html+=manualRow('',false);   // v635: вход для того, чего нет в базе, — здесь же
+15060|   box.innerHTML=html;
+15061|   /* ── ОДИН СЛУШАТЕЛЬ НА КЛАДОВУЮ (v625) ──
+15062|      Здесь стояли восемь циклов поштучных подписок: чипы приёма, курируемый
+15063|      приём и его состав, продукт и его «+», блюдо, его состав и удаление, плюс
+15064|      «Все мои продукты». Замер 19.09 на четырёх плитках — 33 подписки за
+15065|      рендер (13 onclick и 20 слушателей долгого тапа), и ставились они заново
+15066|      при каждой записи: rQuick() зовётся из rFood_.
+15067|      Делегирование уже было написано в v610 и стояло на выдаче поиска
+15068|      (#qList2) — кладовая главного экрана просто не была к нему подключена.
+15069|      Состояние, которое жило в замыкании подписки (выбранный приём и
+15070|      собранные курируемые варианты), переезжает на сам контейнер. */
+15071|   box._qslot=slot; box._qcur=curated;
+15072|   qListDelegate(box);
+15073| }
+15074| /* ── Долгое нажатие → контекстные действия (полевой запрос 04.08).
+15075|    Один жест на весь проект: зажал строку — «Изменить / Удалить», обычный тап не тронут.
+15076|    Отмена: увёл палец >10px (скролл) или отпустил раньше 0.5 с. */
+15077| let lpFired=false;
+15078| document.addEventListener('pointerdown',()=>{lpFired=false},true);
+15079| document.addEventListener('click',e=>{ if(lpFired){ lpFired=false; e.preventDefault(); e.stopPropagation(); } },true);
+15080| /* ── ОДИН ТАП — ОДНО ДЕЙСТВИЕ (v629) ──
+15081|    Замер 21.09: три быстрых тапа по «Записать подход» дают ТРИ одинаковых
+15082|    подхода 80×8, а три тапа по «Добавить» в форме продукта — ТРИ копии
+15083|    продукта в базе. Потный палец в зале так делает регулярно, и человек
+15084|    узнаёт об этом только в журнале: тоннаж завышен, прогрессия считает три
+15085|    подхода вместо одного.
+15086|    Причина общая для 42 обработчиков из 47: запись идёт через await, а
+15087|    кнопка всё это время живая, и второй тап входит в функцию раньше, чем
+15088|    первая успела записать. Чинится не в 42 местах, а один раз: повторный
+15089|    тап по ТОЙ ЖЕ кнопке в течение 600 мс до обработчика не доходит.
+15090|    Окно выбрано по замеру: быстрые тапы пальцем идут через 60–150 мс, запись
+15091|    в IndexedDB укладывается в 20–40 мс. Второй тап позже 600 мс — это уже
+15092|    намерение, и мы его пропускаем.
+15093|    Где повтор ОСМЫСЛЕН — исключения, и они названы поимённо: вода +250 и
+15094|    +500 (выпил три стакана — три тапа), быстрая запись порции, «+30» и «−30»
+15095|    на таймере, зоны фигуры боли, галочки подходов. */
+15096| const TAP_LOCK=600;
+15097| /* .wcheck в исключения НЕ попадает, хотя и выглядит переключателем: этим
+15098|    же классом нарисована кнопка «записать подход» ([data-add]) — самая
+15099|    частая кнопка в зале и главный пострадавший от гонки. Поймано замером:
+15100|    первая версия списка исключений оставила её без защиты. */
+15101| const TAP_RAPID='[data-rapid],[data-qa],[data-ppq],[data-ppqx],[data-joint],.rest button,.rest .numbtn';
+15102| const _tapT=new WeakMap();
+15103| document.addEventListener('click',e=>{
+15104|   const b=e.target&&e.target.closest?e.target.closest('button,[role="button"]'):null;
+15105|   if(!b||!b.matches) return;
+15106|   try{ if(b.matches(TAP_RAPID)||b.closest('[data-rapid]')) return; }catch(_e){ return; }
+15107|   const now=Date.now(), till=_tapT.get(b)||0;
+15108|   if(now<till){ try{ e.preventDefault(); e.stopImmediatePropagation(); }catch(_e){} return; }
+15109|   _tapT.set(b,now+TAP_LOCK);
+15110| },true);
+15111| function longPress(el,fn){
+15112|   let t=null,sx=0,sy=0;
+15113|   el.addEventListener('pointerdown',e=>{ sx=e.clientX; sy=e.clientY;
+15114|     t=setTimeout(()=>{ t=null; lpFired=true;
+15115|       try{ if(navigator.vibrate) navigator.vibrate(10); }catch(_e){}
+15116|       fn(); },500); });
+15117|   const lpCancel=()=>{ if(t){ clearTimeout(t); t=null; } };
+15118|   el.addEventListener('pointermove',e=>{ if(Math.abs(e.clientX-sx)>10||Math.abs(e.clientY-sy)>10) lpCancel(); });
+15119|   el.addEventListener('pointerup',lpCancel);
+15120|   el.addEventListener('pointercancel',lpCancel);
+15121|   el.addEventListener('contextmenu',e=>e.preventDefault());
+15122| }
+15123| function actSheet(title,sub,acts){
+15124|   $('actT').textContent=title;
+15125|   const s=$('actS'); s.textContent=sub||''; s.style.display=sub?'':'none';
+15126|   const box=$('actBtns'); box.innerHTML='';
+15127|   acts.forEach(a=>{ const b=document.createElement('button');
+15128|     b.className='btn '+(a.danger?'sec':'gho');
+15129|     b.style.cssText='width:100%;margin-top:8px'+(a.danger?';color:var(--bd)':'');
+15130|     b.textContent=a.t;
+15131|     b.onclick=()=>{ sheet('sh-act',false); a.fn(); };
+15132|     box.appendChild(b); });
+15133|   sheet('sh-act',true);
+15134| }
+15135| function foodAct(f){ if(!f) return;
+15136|   /* Сытость показываем ЗДЕСЬ, в карточке продукта, а не отдельным экраном:
+15137|      человек решает у полки или у плиты, а не в разделе аналитики. */
+15138|   const _vol=(f.u==100)?foodVolNote(f):'';
+15139|   actSheet(f.n+(f.br?' · '+f.br:''),
+15140|     r0(f.k)+' ккал · Б'+r1(f.p)+' Ж'+r1(f.f)+' У'+r1(f.c)+' — '+(f.u==100?'на 100 '+(f.un||'г'):'за '+(f.un||'порц'))
+15141|     +(_vol?'<br>'+_vol:''),[
+15142|     {t:'Изменить — название, бренд, КБЖУ',fn:()=>openF(false,f,f.id)},
+15143|     {t:'Удалить из моих продуктов',danger:true,fn:async()=>{
+15144|       // из базы продуктов; прошлые записи дневника не трогаем — там свои копии цифр
+15145|       await del('foods',f.id); FOODS=await all('foods');
+15146|       rQuick(); rLib(); rFood(); toast('Удалено: '+f.n.slice(0,24)); }}
+15147|   ]);
+15148| }
+15149| function cmbAct(c){ if(!c) return;
+15150|   const t=(c.items||[]).reduce((a,i)=>({k:a.k+i.k,p:a.p+i.p,f:a.f+(i.f||0),c:a.c+(i.c||0)}),{k:0,p:0,f:0,c:0});
+15151|   actSheet(c.n,(c.items||[]).length+' поз. · '+r0(t.k)+' ккал · Б'+r0(t.p)+' Ж'+r0(t.f)+' У'+r0(t.c),[
+15152|     {t:'Удалить блюдо',danger:true,fn:async()=>{
+15153|       await del('combos',c.id); CMB=await all('combos'); rQuick(); rFood(); toast('Удалено: '+c.n.slice(0,24)); }}
+15154|   ]);
+15155| }
+15156| const findOn=()=>{ const s=$('sh-find'); return !!(s&&s.classList&&s.classList.contains('on')); };
+15157| /* Продукт из встроенного пула: заводим в личную базу и сразу записываем
+15158|    порцию — без формы. Второй раз он найдётся уже как свой. (v610: наверх из rQuick) */
+15159| async function poolAdd(name,logIt){
+15160|   const x=PROD.find(y=>y.n===name); if(!x) return null;
+15161|   await put('foods',{n:x.n,u:100,un:'г',k:x.k,p:x.p,f:x.f,c:x.c,used:1,last:100});
+15162|   FOODS=await all('foods');
+15163|   const f=FOODS.find(y=>y.n===x.n);
+15164|   if(f&&logIt){
+15165|     await put('log',{d:(vDate||td()),n:f.n,u:100,un:'г',a:100,k:f.k,p:f.p,f:f.f,c:f.c});
+15166|     LOG=await all('log'); rFood(); rCoach(); toast('+'+r0(f.k)+' ккал · 100 г · «'+f.n.slice(0,18)+'» теперь в твоей базе');
+15167|   }
+15168|   return f;
+15169| }
+15170| /* ── ДЕЛЕГИРОВАНИЕ В ВЫДАЧЕ ПОИСКА (v610, AUDIT_POINT_A §4.3/§5.4 шаг 7) ──
+15171|    Раньше каждая строка #qList2 получала свой onclick и свой longPress
+15172|    (пять подписок на строку при каждом рендере). Теперь один click и один
+15173|    долгий тап на контейнере, действие — по ближайшему data-атрибуту цели:
+15174|    data-qa (+ порция) · data-qe (тап — порция, долгий — правка/удаление) ·
+15175|    data-pa / data-pp (пул) · data-cba / data-cbe / data-cbd (блюда).
+15176|    Подписка ставится один раз; перерисовка innerHTML её не трогает. */
+15177| /* v625: сюда добавлены чипы приёма, курируемый приём и кнопка «все продукты» —
+15178|    всё, на что раньше подписывался КАЖДЫЙ элемент кладовой главного экрана. */
+15179| const QLIST_SEL='[data-qa],[data-qe],[data-pa],[data-pp],[data-cba],[data-cbe],[data-cbd],[data-slot],[data-ppq],[data-ppqx],[data-qmore],[data-qmanual]';
+15180| /* v635: вход для того, чего нет в базе, — строкой в самой выдаче. Тихая внизу,
+15181|    когда есть что выбрать; первой и заметной, когда поиск ничего не нашёл:
+15182|    именно в этот момент она и нужна. Предзаполняем именем то, что человек
+15183|    уже набрал, — второй раз печатать не придётся. */
+15184| function manualRow(q,loud){
+15185|   return '<button type="button" class="qman'+(loud?' loud':'')+'" data-qmanual="1"><span class="qman-p">+</span>'+(loud&&q?('Добавить «'+esc(q)+'» вручную'):'Нет в базе — добавить вручную')+'</button>';
+15186| }
+15187| async function qListAct(t){
+15188|   const d=t.dataset||{};
+15189|   /* Контейнер держит состояние, которое раньше жило в замыкании поштучной
+15190|      подписки: выбранный приём и собранные курируемые варианты. */
+15191|   const bx=(t.closest&&(t.closest('#qList')||t.closest('#qList2')))||null;
+15192|   const _sl=(bx&&bx._qslot)||null;
+15193|   if(d.slot!=null){ uiSlot=d.slot; if(bx) slotSuggest(bx); return 'slot'; }
+15194|   if(d.qmore!=null){ openFind(); return 'qmore'; }
+15195|   if(d.qmanual!=null){ const q=((( $('qSearch2')||{}).value)||'').trim(); openF(true,q?{n:q}:null); return 'qmanual'; }
+15196|   if(d.ppq!=null){ const cur=(bx&&bx._qcur)||[], c=cur[+d.ppq]; if(!c) return 'ppq';
+15197|     await logPP(c.sc.ing,_sl||curSlot()); rFood(); rCoach();
+15198|     qFlash('data-ppq',d.ppq,'+'+r0(c.sc.k)+' ккал'); return 'ppq'; }
+15199|   if(d.ppqx!=null){ const cur=(bx&&bx._qcur)||[], c=cur[+d.ppqx]; if(!c) return 'ppqx';
+15200|     toast(c.sc.ing.map(x=>x.n+' '+x.g+'г').join(', ').slice(0,70)); return 'ppqx'; }
+15201|   if(d.pa!=null){ await poolAdd(d.pa,true); rQuick(); return 'pa'; }
+15202|   if(d.pp!=null){ const f=await poolAdd(d.pp,false); if(f){ rQuick(); askAmt(f); } return 'pp'; }
+15203|   if(d.qa!=null){   // + = записать прошлую порцию мгновенно
+15204|     const f=FOODS.find(x=>x.id==+d.qa); if(!f) return 'qa';
+15205|     const a=lastAmt(f), m=f.u==100?a/100:a;
+15206|     /* ПРИЁМ ПИЩИ БЕРЁТСЯ ИЗ ЧИПОВ (v625). Поштучная подписка писала `sl:slot`,
+15207|        а делегированная ветка — нет: запись падала в приём по часам, и продукт,
+15208|        добавленный в «Ужин» в четыре дня, уезжал в обед. */
+15209|     await put('log',{d:(vDate||td()),n:f.n,sup:!!f.sup,u:f.u,un:f.un,a,k:f.k*m,p:f.p*m,f:f.f*m,c:f.c*m,sl:(_sl||undefined)});
+15210|     f.used=(f.used||0)+1; f.last=a; await put('foods',f);
+15211|     LOG=await all('log'); FOODS=await all('foods');
+15212|     rFood(); rCoach();
+15213|     qFlash('data-qa',f.id,'+'+r1(a)+(f.u==100?' г':' порц')); return 'qa'; }
+15214|   if(d.qe!=null){ askAmt(FOODS.find(f=>f.id==+d.qe)); return 'qe'; }   // тап по названию = изменить порцию
+15215|   if(d.cba!=null){
+15216|     const c=CMB.find(x=>x.id==+d.cba); if(!c) return 'cba';
+15217|     for(const i of (c.items||[]))
+15218|       await put('log',{d:(vDate||td()),n:i.n,sup:!!i.sup,u:i.u,a:i.a,k:i.k,p:i.p,f:i.f,c:i.c,sl:(_sl||undefined)});
+15219|     LOG=await all('log'); rFood(); rCoach();
+15220|     qFlash('data-cba',c.id,'+'+r0((c.items||[]).reduce((a,i)=>a+i.k,0))+' ккал'); return 'cba'; }
+15221|   if(d.cbe!=null){ const c=CMB.find(x=>x.id==+d.cbe); if(c) toast((c.items||[]).map(i=>i.n+' '+r1(i.a)).join(', ').slice(0,60)); return 'cbe'; }
+15222|   if(d.cbd!=null){
+15223|     if(!await ask({title:'Удалить блюдо?',text:'Записи в дневнике останутся.',ok:'Удалить',danger:true})) return 'cbd';
+15224|     await del('combos',+d.cbd); CMB=await all('combos'); rFood(); toast('Блюдо удалено',{kind:'ok'}); return 'cbd'; }
+15225|   return null;
+15226| }
+15227| /* ── ЗАПИСЬ ОТВЕЧАЕТ ТАМ, ГДЕ НАЖАЛИ (v625) ──
+15228|    Было: всплывашка «+240 ккал · 150 г» поверх экрана. Она перекрывает низ
+15229|    списка ровно там, где палец, и уводит взгляд с того места, куда он смотрел.
+15230|    Стало: строка кладовой на секунду показывает записанное число зелёным —
+15231|    ответ приходит в точку нажатия и гаснет сам. Сколько именно записалось,
+15232|    человек по-прежнему видит: цифра осталась, ушёл только её конверт.
+15233|    Состояние «уже записано в этот приём» (галочка вместо плюса) считается от
+15234|    ДАННЫХ и живёт дальше — это не таймер, а факт. */
+15235| function qFlash(key,val,txt){
+15236|   try{
+15237|     /* Строку ищем в СВЕЖЕЙ разметке, а не по тому узлу, по которому нажали:
+15238|        запись зовёт rFood(), тот пересобирает кладовую через innerHTML, и
+15239|        прежний узел к этому моменту уже вне документа — значок повис бы на
+15240|        оторванном элементе и человек не увидел бы ничего (поймано замером).
+15241|        Продукт мог и выпасть из короткого списка — тогда честный тост. */
+15242|     const btn=document.querySelector('#qList ['+key+'="'+val+'"]')
+15243|       ||document.querySelector('#qList2 ['+key+'="'+val+'"]');
+15244|     const row=(btn&&btn.closest)?(btn.closest('.qrow')||btn.closest('.item')):null;
+15245|     if(!row){ toast(txt); return; }
+15246|     let b=row.querySelector('.q-added');
+15247|     if(!b){ b=document.createElement('span'); b.className='q-added'; row.appendChild(b); }
+15248|     b.textContent=txt;
+15249|     if(b._t) clearTimeout(b._t);
+15250|     /* Два кадра: сначала элемент появляется прозрачным, потом получает класс —
+15251|        иначе перехода не будет, браузер склеит оба состояния в одно. */
+15252|     requestAnimationFrame(()=>{ b.classList.add('on');
+15253|       b._t=setTimeout(()=>{ b.classList.remove('on');
+15254|         b._t=setTimeout(()=>{ try{ b.remove(); }catch(_){} },320); },1100); });
+15255|   }catch(e){ try{ toast(txt); }catch(_){} }
+15256| }
+15257| function qListLong(t){   // долгий тап: продукт — правка/удаление, блюдо — его действия
+15258|   const d=t.dataset||{};
+15259|   if(d.qe!=null) foodAct(FOODS.find(f=>f.id==+d.qe));
+15260|   else if(d.cbe!=null) cmbAct(CMB.find(x=>x.id==+d.cbe));
+15261| }
+15262| function qListDelegate(box){
+15263|   if(!box||box._dlg) return; box._dlg=1;
+15264|   box._onQ=e=>{ const t=e&&e.target&&e.target.closest?e.target.closest(QLIST_SEL):null; if(!t) return;
+15265|     if(t.dataset&&(t.dataset.qa!=null||t.dataset.pa!=null||t.dataset.cba!=null||t.dataset.cbd!=null)){ try{ e.stopPropagation(); }catch(_){} }
+15266|     qListAct(t); };
+15267|   if(box.addEventListener){ box.addEventListener('click',box._onQ); longPressDelegate(box,'[data-qe],[data-cbe]',qListLong); }
+15268| }
+15269| /* Долгий тап делегированием: один набор pointer-слушателей на контейнер, цель — по селектору.
+15270|    Четвёртым параметром — задержка: 500 мс по умолчанию, но там, где долгое
+15271|    нажатие ОТМЕНЯЕТ сделанное (таймер отдыха, v626), держать надо заметно
+15272|    дольше обычного тапа, иначе отдых будет гаснуть от медленного пальца. */
+15273| function longPressDelegate(box,sel,fn,ms){
+15274|   let t=null,sx=0,sy=0; const hold=ms||500;
+15275|   const cancel=()=>{ if(t){ clearTimeout(t); t=null; } };
+15276|   box.addEventListener('pointerdown',e=>{ const el=e.target&&e.target.closest?e.target.closest(sel):null; if(!el) return;
+15277|     sx=e.clientX; sy=e.clientY; cancel();
+15278|     /* Вибрацию просим только после настоящего касания в этой вкладке: иначе
+15279|        браузер её молча отклоняет и пишет в консоль ошибку, которая потом
+15280|        всплывает в краш-логе как настоящая (тот же закон, что в restDone). */
+15281|     t=setTimeout(()=>{ t=null; lpFired=true;
+15282|       try{ const _ua=navigator.userActivation;
+15283|         if(navigator.vibrate&&(!_ua||_ua.hasBeenActive)) navigator.vibrate(10); }catch(_e){}
+15284|       fn(el); },hold); });
+15285|   box.addEventListener('pointermove',e=>{ if(t&&(Math.abs(e.clientX-sx)>10||Math.abs(e.clientY-sy)>10)) cancel(); });
+15286|   box.addEventListener('pointerup',cancel); box.addEventListener('pointercancel',cancel);
+15287|   box.addEventListener('contextmenu',e=>{ if(e.target&&e.target.closest&&e.target.closest(sel)) e.preventDefault(); });
+15288| }
+15289| function rQuick(){
+15290|   // главный экран всегда показывает контекстный подбор; живой поиск — в sh-find
+15291|   if(!findOn()) return;   // v636: на первом экране списка нет — он живёт в листе записи
+15292|   return rFoodSearchList();
+15293| }
+15294| /* ── ВЫДАЧА ПОИСКА — ОТДЕЛЬНАЯ ФУНКЦИЯ (v616) ──
+15295|    Рисует РОВНО один контейнер #qList2 и ничего больше: ни шапку дня, ни кольца,
+15296|    ни полосы КБЖУ. Замер до правки: во вкладке «Еда» 155 узлов, в выдаче 14 —
+15297|    изоляция появилась ещё в v602 (до неё каждая буква пересобирала вкладку), но
+15298|    жила внутри rQuick вперемешку с контекстным подбором, и вернуть туда rFood()
+15299|    можно было одной строкой. Теперь у ввода отдельный вход, а гейт стережёт,
+15300|    что из него не зовут rFood/rFood_/renderAll. */
+15301| function rFoodSearchList(){
+15302|   const box=$('qList2'); if(!box) return;
+15303|   const q=((($('qSearch2')||{}).value)||'').toLowerCase().trim();
+15304|   if(!q){ slotSuggest(box); return; }   // без запроса — контекстный подбор по времени суток
+15305|   /* Ищем ПОСЛОВНО, а не целой фразой: «творог мягк» и «мягкий творог» — один
+15306|      и тот же запрос для человека. В кладовой так уже было с 03.08, а самый
+15307|      частый поиск дня оставался буквальным (найдено чтением экрана 18.08). */
+15308|   const toks=q.split(/\s+/).filter(w=>w.length>=2);
+15309|   const hit=t=>!q||toks.every(w=>String(t||'').toLowerCase().includes(w));
+15310|   const cmbs=CMB.filter(c=>hit(c.n));
+15311|   const _seenK=new Set();   // v657: до чистки базы два одинаковых продукта в выдаче не стоят
+15312|   const foods=FOODS.filter(f=>hit(f.n+' '+(f.br||'')))
+15313|     .map(f=>({f,s:freqScore(f)}))
+15314|     .sort((a,b)=>b.s-a.s)
+15315|     .filter(x=>{ const k=foodKey(x.f); if(_seenK.has(k)) return false; _seenK.add(k); return true; })
+15316|     .slice(0,q?20:8)
+15317|     .map(x=>x.f);
+15318|   let html='';
+15319|   if(cmbs.length) html+=cmbs.map(c=>{
+15320|     const t=(c.items||[]).reduce((a,i)=>({k:a.k+i.k,p:a.p+i.p,f:a.f+(i.f||0),c:a.c+(i.c||0)}),{k:0,p:0,f:0,c:0});
+15321|     return `<div class="item">
+15322|       <div class="g" data-cbe="${c.id}" style="cursor:pointer">
+15323|         <div class="t"><svg class="ic"><use href="#i-dish"/></svg> ${esc(c.n)}</div>
+15324|         <div class="s">${(c.items||[]).length} поз. · ${r0(t.k)} ккал · Б${r0(t.p)} Ж${r0(t.f)} У${r0(t.c)}</div></div>
+15325|       <button class="btn sm" data-cba="${c.id}" style="flex:0 0 auto"><svg class="ic"><use href="#i-plus"/></svg></button>
+15326|       <button class="x" data-cbd="${c.id}">×</button></div>`;
+15327|   }).join('');
+15328|   if(foods.length) html+=foods.map(f=>{
+15329|     const a=lastAmt(f), m=f.u==100?a/100:a;
+15330|     return `<div class="item">
+15331|       <div class="g" data-qe="${f.id}" style="cursor:pointer">
+15332|         <div class="t">${f.sup?'<svg class=\"ic\" style=\"width:12px;height:12px;stroke:var(--ac)\"><use href=\"#i-bolt\"/></svg> ':''}${esc(f.n)}${f.br?' <span style=\"opacity:.55;font-size:var(--fs1);line-height:var(--lh1)\">'+esc(f.br)+'</span>':''}</div>
+15333|         <div class="s">${amtStr(f,a)} · ${r0(f.k*m)} ккал · Б${r1(f.p*m)} Ж${r1(f.f*m)} У${r1(f.c*m)}</div></div>
+15334|       <button class="btn sm" data-qa="${f.id}" style="flex:0 0 auto"><svg class="ic"><use href="#i-plus"/></svg></button></div>`;
+15335|   }).join('');
+15336|   /* Встроенный пул продуктов (тот же, по которому собираются меню и закупка)
+15337|      до сих пор не был виден в поиске: новичок набирал «молоко» и получал
+15338|      «ничего не нашлось» плюс ссылку в Open Food Facts, для которой нужны сеть
+15339|      и вход. Теперь свои 54 выверенных продукта доступны сразу и офлайн. */
+15340|   const have=new Set(FOODS.map(f=>(f.n||'').toLowerCase()));
+15341|   const pool=q.length>=2?PROD.filter(x=>hit(x.n)&&!have.has(x.n.toLowerCase())).slice(0,6):[];
+15342|   if(pool.length) html+=pool.map(x=>`<div class="item">
+15343|       <div class="g" data-pp="${esc(x.n)}" style="cursor:pointer">
+15344|         <div class="t wt">${esc(x.n)} <span class="tag" style="background:#1a1f2b;color:#8E8E93">база</span></div>
+15345|         <div class="s">100 г · ${r0(x.k)} ккал · Б${r1(x.p)} Ж${r1(x.f)} У${r1(x.c)}</div></div>
+15346|       <button class="btn sm" data-pa="${esc(x.n)}" style="flex:0 0 auto"><svg class="ic"><use href="#i-plus"/></svg></button></div>`).join('');
+15347|   const searchingCat = q.length>=2 && !!sbTok;
+15348|   const _empty=!html;
+15349|   if(!html) html=q?(searchingCat?'<div class="empty" id="qSearching">Ищу в общем каталоге…</div>':'<div class="empty">Ничего не нашлось</div>')
+15350|     :'<div class="empty">Добавь продукты — они появятся здесь</div>';
+15351|   // глобальная база — строкой в выдаче (кнопка «Найти» удалена по решению 01.08)
+15352|   if(q.length>=2) html+='<div class="item" style="cursor:pointer" id="qOffGo"><div class="g"><div class="t" style="color:var(--ac2)"><svg class="ic"><use href="#i-search"/></svg> Искать «'+esc(q)+'» в общей базе</div><div class="s">Open Food Facts · ~2.5 млн товаров</div></div></div>';
+15353|   html=_empty&&!searchingCat?(manualRow(q,true)+html):(html+manualRow(q,false));
+15354|   box.innerHTML=html;
+15355|   const og=$('qOffGo'); if(og) og.onclick=()=>openOffSearch(((($('qSearch2')||{}).value)||'').trim());
+15356|   qListDelegate(box);   // v610: один слушатель на контейнер, строки — без своих подписок
+15357| 
+15358|   // ── ОБЩИЙ КАТАЛОГ (сервер): подмешиваем, если залогинен и запрос ≥2 ──
+15359|   if(searchingCat){
+15360|     const myq=q;
+15361|     catSearch(q,8).then(rows=>{
+15362|       if(((($('qSearch2')||{}).value)||'').toLowerCase().trim()!==myq) return;   // запрос устарел
+15363|       const local=new Set(FOODS.map(f=>f.n.toLowerCase()));
+15364|       const fresh=(rows||[]).filter(p=>!local.has((p.name||'').toLowerCase()));
+15365|       const searching=$('qSearching');
+15366|       if(!fresh.length){ if(searching){ searching.textContent='Ничего не нашлось'; const d=document.createElement('div'); d.innerHTML=manualRow(myq,true); box.insertBefore(d.firstChild,box.firstChild); } return; }
+15367|       const secHtml='<div class="s" style="margin:8px 2px 4px;opacity:.6">Общий каталог</div>'+
+15368|         fresh.map((p,i)=>`<div class="item"><div class="g" data-cat="${i}" style="cursor:pointer">
+15369|           <div class="t"><svg class="ic"><use href="#i-globe"/></svg> ${esc(p.name)}</div>
+15370|           <div class="s">на 100 г · ${r0(p.kcal_per_100g)} ккал · Б${r1(p.protein_per_100g||0)} Ж${r1(p.fat_per_100g||0)} У${r1(p.carb_per_100g||0)}</div></div>
+15371|           <button class="btn sm" data-cat="${i}" style="flex:0 0 auto"><svg class="ic"><use href="#i-plus"/></svg></button></div>`).join('');
+15372|       if(searching){ box.innerHTML=secHtml; }
+15373|       else { const d=document.createElement('div'); d.innerHTML=secHtml; box.appendChild(d); }
+15374|       box.querySelectorAll('[data-cat]').forEach(el=>el.onclick=ev=>{
+15375|         ev.stopPropagation(); openF(true, catToPre(fresh[+el.dataset.cat]));
+15376|       });
+15377|     }).catch(()=>{ const s=$('qSearching'); if(s) s.textContent='Ничего не нашлось'; });
+15378|   }
+15379| }
+15380| /* Полноэкранный поиск еды: строка сверху, выдача сразу под ней, клавиатура
+15381|    ничего не хоронит. Фокус ставится синхронно в жесте — iOS открывает клавиатуру. */
+15382| function pastSlot(d){
+15383|   const list=mealsSync(), eaten=new Set(LOG.filter(l=>l.d===d&&l.sl).map(l=>l.sl));
+15384|   const m=list.find(x=>!eaten.has(x[0])); return (m||list[list.length-1])[0];
+15385| }
+15386| function openFind(){
+15387|   /* v660: дописывая вчерашний ужин в 10 утра, человек получал чип «Завтрак»
+15388|      по текущему часу (сценарий 10). Для прошлого дня — первый приём без
+15389|      записей, все записаны — последний. */
+15390|   uiSlot=((vDate||td())<td())?pastSlot(vDate):null;
+15391|   sheet('sh-find',true);
+15392|   const i=$('qSearch2'); if(i){ i.value=''; try{ i.focus(); }catch(e){} }
+15393|   rQuick();
+15394| }
+15395| $('qSearch').onclick=openFind;
+15396| /* v616: ввод буквы трогает ТОЛЬКО выдачу. Дебаунс 120 мс — как было: он гасит
+15397|    очередь рендеров на быстром наборе, а не прячет тяжесть рендера. */
+15398| $('qSearch2')&&($('qSearch2').oninput=debounce(rFoodSearchList,120));
+15399| $('wA250')&&($('wA250').onclick=()=>addWater(250));
+15400| $('wA500')&&($('wA500').onclick=()=>addWater(500));
+15401| $('wEdit')&&($('wEdit').onclick=setWater);
+15402| $('stEdit')&&($('stEdit').onclick=()=>stepsToggle());
+15403| $('stPill')&&($('stPill').onclick=()=>stepsToggle(true));   // v634: видимая цель там же, где у воды пилюли
+15404| $('bStQuick')&&($('bStQuick').onclick=async()=>{
+15405|   const q=$('stQuick'); if(!q) return;
+15406|   await stepsWrite(num(q), vDate||td());
+15407|   stepsToggle(false);
+15408| });
+15409| /* Enter на клавиатуре телефона = «Записать»: тянуться к кнопке не надо. */
+15410| $('stQuick')&&($('stQuick').onkeydown=e=>{ if(e.key==='Enter'){ e.preventDefault(); const b=$('bStQuick'); if(b) b.onclick(); } });
+15411| /* ── РЕЦЕПТЫ: подбор готовых блюд под остаток дня (сервер) ── */
+15412| let recCook=true, recMode='kbju', recSlot=null;
+15413| const SLOTCAT={bf:'Завтрак',ln:'Обед',dn:'Ужин',sn:'Перекус'};
+15414| /* v646: чипы приёмов рисуются из личного списка; обработчик один, на контейнере */
+15415| function renderRecChips(){ const seg=$('recSlotSeg'); if(!seg) return; seg.innerHTML=mealsSync().map(m=>`<button data-rcslot="${m[0]}" class="${m[0]===recSlot?'on':''}">${esc(m[1])}</button>`).join(''); }
+15416| $('bRec')&&($('bRec').onclick=()=>{recSlot=curSlot(); renderRecChips();
+15417|   sheet('sh-rec',true);recLoad()});
+15418| $('recSlotSeg')&&($('recSlotSeg').onclick=e=>{ const b=e.target.closest?e.target.closest('[data-rcslot]'):null; if(!b) return;
+15419|   document.querySelectorAll('[data-rcslot]').forEach(x=>x.classList.remove('on'));b.classList.add('on');
+15420|   recSlot=b.dataset.rcslot;recLoad();
+15421| });
+15422| document.querySelectorAll('[data-rc]').forEach(b=>b.onclick=()=>{
+15423|   document.querySelectorAll('[data-rc]').forEach(x=>x.classList.remove('on'));b.classList.add('on');
+15424|   recCook=b.dataset.rc==='cook';recLoad();
+15425| });
+15426| let recQT=null;
+15427| if($('recQ')) $('recQ').oninput=()=>{ clearTimeout(recQT); recQT=setTimeout(recLoad,350); };
+15428| document.querySelectorAll('[data-rcmode]').forEach(b=>b.onclick=()=>{
+15429|   document.querySelectorAll('[data-rcmode]').forEach(x=>x.classList.remove('on'));b.classList.add('on');
+15430|   recMode=b.dataset.rcmode;recLoad();
+15431| });
+15432| /* Оценки блюд: <svg class="ic"><use href="#i-down"/></svg> — никогда не предлагать, <svg class="ic"><use href="#i-up"/></svg> — бонус в подборе. Хранится в S.recRate. */
+15433| function recBanIds(){ return Object.entries(S.recRate||{}).filter(([,v])=>v===-1).map(([k])=>k); }
+15434| function recLikeIds(){ return Object.entries(S.recRate||{}).filter(([,v])=>v===1).map(([k])=>k); }
+15435| /* Поиск блюда по названию — «вызвать борщ» руками, без подбора */
+15436| async function catSearchRecipes(q){
+15437|   const r=await sbFetch('/rest/v1/rpc/search_recipes',{method:'POST',body:JSON.stringify({p_q:q,max_results:20})});
+15438|   if(!r.ok) throw new Error('Поиск блюд: '+r.status); return r.json();
+15439| }
+15440| function recPickLabel(){
+15441|   const el=$('recPick'); if(!el) return;
+15442|   el.textContent=(recSlot?slotName(recSlot):'любой приём')+' · '+(recCook?'готовлю':'без готовки');
+15443| }
+15444| /* Строка «Подбор» не должна быть пустой до первого запроса: она и есть
+15445|    единственное место, где виден текущий выбор. */
+15446| try{ recPickLabel(); }catch(e){}
+15447| async function recLoad(){
+15448|   const out=$('recOut'),gap=$('recGap'); if(!out) return;
+15449|   recPickLabel();
+15450|   const shop=shops()[S.shop||0]||shops()[0];
+15451|   /* Говорим о входе ДО запроса, а не после падения. Раньше человек видел
+15452|      «Не получилось: Подбор рецептов: 404. Нужен вход в аккаунт» — технический
+15453|      код вперемешку с догадкой о причине (найдено чтением экрана 18.08). */
+15454|   if(!sbTok){
+15455|     out.innerHTML='<div class="ib">База рецептов живёт на сервере — нужен вход в аккаунт. '
+15456|       +'Это минута, и она же включает синхронизацию между устройствами.'
+15457|       +'<button class="btn sec sm" id="recSync" style="margin-top:12px">Подключить</button></div>';
+15458|     const b=$('recSync'); if(b) b.onclick=()=>{ sheet('sh-rec',false);
+15459|       openSync('Рецепты подбираются на сервере по твоей цели и остатку дня. Для этого нужен вход.'); };
+15460|     return;
+15461|   }
+15462|   out.innerHTML='<div class="ib"><span class="load"></span>Подбираю…</div>';
+15463|   try{
+15464|     // Поиск по названию перекрывает режимы: набрал «борщ» — получил борщ
+15465|     const q=($('recQ')&&$('recQ').value.trim())||'';
+15466|     if(q.length>=2){
+15467|       if($('recSlotSeg')) $('recSlotSeg').style.display='none';
+15468|       if($('recMore')) $('recMore').style.display='none';
+15469|       if(gap) gap.textContent='Поиск: «'+q+'»';
+15470|       const rows=await catSearchRecipes(q);
+15471|       if(!rows.length){out.innerHTML='<div class="empty">Не нашёл «'+esc(q)+'».<br>Попробуй короче («борщ», «сырники») — или скажи, какого блюда не хватает, добавим в базу.</div>';return}
+15472|       out.innerHTML=rows.map((r,i)=>`<div class="item"><div class="g" data-rec="${i}" style="cursor:pointer">
+15473|         <div class="t wt">${esc(r.name)}${r.needs_cooking?'':' <span class="tag">без готовки</span>'}</div>
+15474|         <div class="s">${esc(r.category||'')} · ${r0(r.kcal_serv)} ккал · Б${r1(r.protein_serv)} Ж${r1(r.fat_serv)} У${r1(r.carb_serv)}</div></div>
+15475|         <div style="color:var(--t3)"><svg class="ic"><use href="#i-chev"/></svg></div></div>`).join('')
+15476|         +'<div class="note">Тапни блюдо — состав, граммовки и как готовить. Оттуда же можно записать в дневник.</div>';
+15477|       out.querySelectorAll('[data-rec]').forEach(el=>el.onclick=()=>recDetail(rows[+el.dataset.rec]));
+15478|       return;
+15479|     }
+15480|     if(recMode==='day'){
+15481|       if($('recSlotSeg')) $('recSlotSeg').style.display='none';
+15482|       if($('recMore')) $('recMore').style.display='none';
+15483|       const t=tg();
+15484|       if(!t){ out.innerHTML='<div class="wb">Нужен таргет — запиши свой вес (поле под дневником на «Еде»).</div>'; if(gap) gap.textContent=''; return; }
+15485|       if(gap) gap.textContent='Целый день под '+t.k+' ккал · Б'+t.p+' — завтрак, обед, ужин';
+15486|       const rows=await catSuggestDay({target_kcal:t.k,target_protein:t.p,can_cook:recCook,meals:3,tolerance:0.2,
+15487|         p_exclude:foodBanArr(),p_seed:recSeed(),p_ban:recBanIds(),p_like:recLikeIds()});
+15488|       if(!rows.length){ out.innerHTML='<div class="wb">Не удалось собрать день — попробуй режим «без готовки» или каталог.</div>'; return; }
+15489|       const mul=r=>+r.servings_mult>0?+r.servings_mult:1;
+15490|       const totK=rows.reduce((a,r)=>a+ (+r.kcal_serv)*mul(r),0), totP=rows.reduce((a,r)=>a+ (+r.protein_serv)*mul(r),0);
+15491|       out.innerHTML=`<div class="${Math.abs(totK-t.k)<=t.k*0.2?'ob':'wb'}" style="margin-bottom:12px">
+15492|           Итого за день: <b>${r0(totK)} ккал</b> · Б${r0(totP)} (цель ${t.k} · Б${t.p})</div>`
+15493|         +rows.map((r,i)=>{const m=mul(r);return `<div class="item"><div class="g" data-recd="${i}" style="cursor:pointer">
+15494|           <div class="t wt">${esc(r.category||'')} · ${esc(r.name)}${Math.abs(m-1)>0.05?' <span class="tag">×'+r1(m)+' порц</span>':''}</div>
+15495|           <div class="s">${r0(r.kcal_serv*m)} ккал · Б${r1(r.protein_serv*m)} Ж${r1((r.fat_serv||0)*m)} У${r1((r.carb_serv||0)*m)}</div></div>
+15496|           <button class="btn sm" data-recadd="${i}" style="flex:0 0 auto"><svg class="ic"><use href="#i-plus"/></svg></button></div>`}).join('')
+15497|         +`<div class="row" style="margin-top:12px">
+15498|             <button class="btn sec" id="recReroll" style="width:auto;flex:0 0 auto">Другой вариант</button>
+15499|             <button class="btn" id="recDayAll">Записать весь день</button></div>
+15500|           <button class="btn sec" id="recCart" style="margin-top:8px"><svg class="ic"><use href="#i-cart"/></svg> Корзина на день — купить в 1 клик</button>
+15501|           <div id="recCartOut" style="margin-top:8px"></div>
+15502|           <div class="note">Готовые блюда из базы под твой суточный таргет, порции масштабированы под калории (× порц). Тапни блюдо — состав и как готовить.  в составе — заказать ингредиент в «${esc(shop.n)}».${foodBanArr().length?`<br><br>Исключено по анкете: <b>${esc(foodBanArr().join(', '))}</b> — блюда с этим не предлагаются.`:''}</div>`;
+15503|       const logRec=async r=>{ const m=mul(r); await put('log',{d:(vDate||td()),n:r.name+(Math.abs(m-1)>0.05?' ×'+r1(m):''),u:1,a:1,un:'порц',k:r0(r.kcal_serv*m),p:r1(r.protein_serv*m),f:r1((r.fat_serv||0)*m),c:r1((r.carb_serv||0)*m)}); };
+15504|       out.querySelectorAll('[data-recd]').forEach(el=>el.onclick=()=>recDetail(rows[+el.dataset.recd]));
+15505|       out.querySelectorAll('[data-recadd]').forEach(b=>b.onclick=async()=>{ await logRec(rows[+b.dataset.recadd]); LOG=await all('log'); rFood(); rCoach(); toast('Записано: '+rows[+b.dataset.recadd].name.slice(0,20)); });
+15506|       $('recDayAll').onclick=async()=>{ for(const r of rows) await logRec(r); LOG=await all('log'); sheet('sh-rec',false); rFood(); rCoach(); toast('День записан'); };
+15507|       if($('recReroll')) $('recReroll').onclick=()=>{ recShuffle++; recLoad(); };
+15508|       // Корзина в 1 клик: сводный список покупок на предложенный день.
+15509|       // Честно: у сервисов доставки нет публичного API корзины, поэтому «1 клик» =
+15510|       // готовый список (то, чего нет дома — кладовая вычитается) + копирование + переход в магазин.
+15511|       if($('recCart')) $('recCart').onclick=async()=>{
+15512|         const cb=$('recCartOut'); cb.innerHTML='<div class="mini">Собираю корзину…</div>';
+15513|         try{
+15514|           const plan=rows.map(r=>({recipe_id:r.recipe_id,servings:mul(r)}));
+15515|           const list=await catShoppingList(plan);
+15516|           const buy=list.filter(x=>!x.in_pantry), home=list.filter(x=>x.in_pantry);
+15517|           if(!buy.length){ cb.innerHTML='<div class="ob">Всё уже есть дома — по кладовой докупать нечего.</div>'; return; }
+15518|           // packages_qty: сколько магазинных упаковок покрывает нужные граммы (2 банки по 185 г)
+15519|           const pkg=x=>(+x.packages_qty>0&&x.package_label)?`${r0(x.packages_qty)} × ${x.package_label}`:null;
+15520|           const txt=buy.map(x=>`${x.product_name} — ${pkg(x)||r0(x.needed_g)+' г'}`).join('\n');
+15521|           cb.innerHTML=`<div class="card t" style="margin:0">
+15522|             ${buy.map(x=>`<div class="stat"><span class="l">${esc(x.product_name)}</span>
+15523|               <span class="v">${pkg(x)?`<b>${esc(pkg(x))}</b> <span class="mini" style="color:var(--t3)">(нужно ${r0(x.needed_g)} г)</span>`:r0(x.needed_g)+' г'} <a href="${shop.u}${encodeURIComponent(x.product_name)}" target="_blank" rel="noopener" style="color:var(--ac2);text-decoration:none;padding:0 4px"><svg class="ic"><use href="#i-ext"/></svg></a></span></div>`).join('')}
+15524|             ${home.length?`<div class="mini" style="margin-top:8px;color:var(--t3)">Дома уже есть: ${esc(home.map(x=>x.product_name).join(', '))}</div>`:''}
+15525|             <div class="row" style="margin-top:12px">
+15526|               <button class="btn sec" id="recCartCopy" style="width:auto;flex:0 0 auto">Скопировать</button>
+15527|               <button class="btn" id="recCartGo">Открыть ${esc(shop.n)}</button>
+15528|             </div>
+15529|             <div class="mini" style="margin-top:8px;color:var(--t3)"> у позиции — сразу поиск этого продукта в «${esc(shop.n)}». Магазин меняется в настройках заказа.</div></div>`;
+15530|           $('recCartCopy').onclick=async()=>{ try{ await navigator.clipboard.writeText(txt); toast('Список скопирован'); }catch(e){ askText({title:'Скопируй список',value:txt,ok:'Готово'}); } };
+15531|           $('recCartGo').onclick=()=>window.open(shop.u+encodeURIComponent(buy[0].product_name),'_blank');
+15532|         }catch(e){ cb.innerHTML='<div class="eb">Не собралось: '+esc(e.message)+'</div>'; }
+15533|       };
+15534|       return;
+15535|     }
+15536|     if(recMode==='pantry'){
+15537|       if($('recSlotSeg')) $('recSlotSeg').style.display='none';
+15538|       if($('recMore')) $('recMore').style.display='none';
+15539|       if(gap) gap.textContent='Сверху — что можно приготовить из того, что дома';
+15540|       const rows=await catFromPantry(recCook);
+15541|       if(!rows.length){
+15542|         // Пустой результат почти всегда = пустая кладовая. Говорим прямо и ведём туда.
+15543|         let pnN=0; try{ pnN=(await catPantryHas()).size; }catch(e){}
+15544|         out.innerHTML=pnN
+15545|           ? '<div class="wb">Из отмеченных дома продуктов пока ничего не собрать — блюдам нужны другие ингредиенты. Добавь ещё продуктов в кладовую или посмотри режим «Под калории».</div>'
+15546|           : `<div class="ib"><b>Кладовая пуста — подбору не из чего собирать.</b><br>
+15547|              Отметь, что есть дома (курица, гречка, яйца, творог…) — и здесь появятся блюда, которые можно приготовить прямо сейчас, без магазина.
+15548|              <button class="btn sm" id="recOpenPn" style="margin-top:8px">Открыть кладовую</button></div>`;
+15549|         const b=$('recOpenPn');
+15550|         if(b) b.onclick=()=>{ sheet('sh-rec',false); if($('bPantry')) $('bPantry').onclick(); };
+15551|         return;
+15552|       }
+15553|       out.innerHTML=rows.map((r,i)=>{
+15554|         const full=r.have_ing>=r.total_ing;
+15555|         const badge=full?'<span class="tag">✓ всё дома</span>':`<span class="tag">дома ${r.have_ing}/${r.total_ing}</span>`;
+15556|         const miss=(!full&&r.missing)?`<div class="s">не хватает: ${esc(r.missing)} <a href="${shop.u}${encodeURIComponent((r.missing||'').split(',')[0].trim())}" target="_blank" rel="noopener" style="color:var(--ac2)"><svg class="ic"><use href="#i-ext"/></svg></a></div>`:'';
+15557|         return `<div class="item"><div class="g" data-rec="${i}" style="cursor:pointer">
+15558|           <div class="t">${esc(r.name)} ${badge}</div>
+15559|           <div class="s">${r0(r.kcal_serv)} ккал · Б${r1(r.protein_serv)} Ж${r1(r.fat_serv)} У${r1(r.carb_serv)}</div>${miss}</div>
+15560|           <button class="btn sm" data-rec="${i}" style="flex:0 0 auto"><svg class="ic"><use href="#i-plus"/></svg></button></div>`;
+15561|       }).join('')+'<div class="note">Наполняй кладовую на экране «Кладовая» — там поиск и быстрые продукты. Чем полнее кладовая, тем точнее подбор.</div>';
+15562|       out.querySelectorAll('[data-rec]').forEach(el=>el.onclick=()=>recDetail(rows[+el.dataset.rec]));
+15563|       return;
+15564|     }
+15565|     if($('recSlotSeg')) $('recSlotSeg').style.display='flex';
+15566|     if($('recMore')) $('recMore').style.display='';
+15567|     const slot=recSlot||curSlot();
+15568|     const t=tg(),mine=LOG.filter(l=>l.d===(vDate||td()));
+15569|     const s=mine.reduce((a,l)=>({k:a.k+l.k,p:a.p+l.p}),{k:0,p:0});
+15570|     const g=slotTarget(slot,vDate||td());
+15571|     const leftDay=t?Math.max(0,r0(t.k-s.k)):600, leftPDay=t?Math.max(0,r0(t.p-s.p)):40;
+15572|     const left=g?r0(g.k):600, leftP=g?r0(g.p):40;
+15573|     const _pg=preGymSoon();   // v642: до зала — легче и меньше жира, сказано в момент выбора
+15574|     if(gap) gap.textContent=(t?(slotName(slot)+': цель приёма ~'+left+' ккал'+(leftP>0?' · Б'+leftP:'')+(leftDay!==left?' (остаток дня '+leftDay+')':'')):'Подбор под ~'+ (left||600) +' ккал')+(_pg?' · до зала ~'+_pg+' ч: легче, меньше жира':'');
+15575|     const rows=await catSuggestRecipes({target_kcal:left||600,target_protein:leftP||30,can_cook:recCook,tolerance:0.35,max_results:8,
+15576|       p_category:SLOTCAT[ppKind(slot)],p_exclude:foodBanArr(),p_ban:recBanIds(),p_like:recLikeIds()});
+15577|     if(!rows.length){out.innerHTML='<div class="wb">Ничего не подобралось — попробуй другой режим.</div>';return}
+15578|     out.innerHTML=rows.map((r,i)=>`<div class="item"><div class="g" data-rec="${i}" style="cursor:pointer">
+15579|       <div class="t wt">${esc(r.name)}${r.needs_cooking?'':' <span class="tag">без готовки</span>'}</div>
+15580|       <div class="s">${r0(r.kcal_serv)} ккал · Б${r1(r.protein_serv)} Ж${r1(r.fat_serv)} У${r1(r.carb_serv)}</div></div>
+15581|       <button class="btn sm" data-rec="${i}" style="flex:0 0 auto"><svg class="ic"><use href="#i-plus"/></svg></button></div>`).join('');
+15582|     out.querySelectorAll('[data-rec]').forEach(el=>el.onclick=()=>recDetail(rows[+el.dataset.rec]));
+15583|   }catch(e){
+15584|     /* Строку выбора прячут режимы «На день» и «Из наличия». Если запрос упал,
+15585|        не оставляем человека без единственной ручки управления. */
+15586|     if($('recMore')) $('recMore').style.display='';
+15587|     // вход уже проверен выше — значит дело в сети или сервере, так и говорим
+15588|     out.innerHTML='<div class="eb">Не получилось подобрать рецепты: '+esc(e.message||'нет связи')
+15589|       +'.<br>Похоже на сеть — попробуй ещё раз, лучше по Wi-Fi.</div>';
+15590|   }
+15591| }
+15592| /* Карточка блюда: состав с граммами, как готовить, и запись порции */
+15593| async function recDetail(r){
+15594|   const out=$('recOut'); if(!out) return;
+15595|   out.innerHTML='<div class="ib"><span class="load"></span>Открываю рецепт…</div>';
+15596|   try{
+15597|     const d=await catRecipe(r.recipe_id);
+15598|     const rec=d.recipe||{}, ing=d.ingredients||[];
+15599|     const shop=shops()[S.shop||0]||shops()[0];
+15600|     const have=await catPantryHas();
+15601|     out.innerHTML=`
+15602|       <button class="btn sec sm" id="recBack" style="margin-bottom:12px"><svg class="ic chevl"><use href="#i-chev"/></svg> К списку</button>
+15603|       <div class="ob"><b>${esc(rec.name||r.name)}</b>${rec.needs_cooking?'':' · без готовки'}${rec.prep_minutes?` · ${rec.prep_minutes} мин`:''}<br>
+15604|         ${r0(r.kcal_serv)} ккал · Б${r1(r.protein_serv)} Ж${r1(r.fat_serv)} У${r1(r.carb_serv)} на порцию</div>
+15605|       <div class="row" style="margin-top:8px">
+15606|         <button class="btn sec sm" data-rate="1" style="flex:1${(S.recRate||{})[r.recipe_id]===1?';border-color:var(--ac);color:var(--ac)':''}"><svg class="ic"><use href="#i-up"/></svg> Нравится</button>
+15607|         <button class="btn sec sm" data-rate="-1" style="flex:1${(S.recRate||{})[r.recipe_id]===-1?';border-color:var(--bd);color:var(--bd)':''}"><svg class="ic"><use href="#i-down"/></svg> Не предлагать</button>
+15608|       </div>
+15609|       <div style="margin-top:12px"><b>Состав${rec.servings>1?' (на '+rec.servings+' порц.)':''}:</b>
+15610|         ${ing.length?ing.map(x=>{const nm=x.product&&x.product.name?x.product.name:'';const q=nm.replace(/,[^,]*$/,'').replace(/\s*\(.*?\)/g,'').trim();
+15611|           return `<div class="stat"><span class="l">${esc(nm||'—')}</span><span class="v">${r0(x.grams)} г${nm?` <a href="${shop.u}${encodeURIComponent(q||nm)}" target="_blank" rel="noopener" style="color:var(--ac2);text-decoration:none;padding:0 4px;font-size:var(--fs3);line-height:var(--lh3)"><svg class="ic"><use href="#i-ext"/></svg></a>`:''}${x.product_id?` <button class="btn sm sec" data-ptog="${x.product_id}" style="padding:0px 7px;font-size:var(--fs1);line-height:var(--lh1);margin-left:2px">${have.has(x.product_id)?'✓ дома':'+ дома'}</button>`:''}</span></div>`;}).join(''):'<div class="s">состав не указан</div>'}</div>
+15612|       ${rec.instructions?`<div class="tech" style="margin-top:12px"><b style="color:var(--ac)">Как готовить</b>
+15613|         <ol>${rec.instructions.split(/\.\s+(?=[А-ЯЁ])/).map(st=>st.trim()).filter(Boolean).map(st=>`<li><span>${esc(st.endsWith('.')?st:st+'.')}</span></li>`).join('')}</ol></div>`:''}
+15614|       <div class="note" style="margin-top:8px"> — заказать ингредиент в <b>${esc(shop.n)}</b> (сменить магазин — в Настройках). Собери состав в корзину и оформи доставку.</div>
+15615|       <button class="btn" style="margin-top:12px" id="recLog">Записать порцию в дневник</button>`;
+15616|     $('recBack').onclick=recLoad;
+15617|     out.querySelectorAll('[data-rate]').forEach(b=>b.onclick=async()=>{
+15618|       const v=+b.dataset.rate; S.recRate=S.recRate||{};
+15619|       if(S.recRate[r.recipe_id]===v) delete S.recRate[r.recipe_id]; else S.recRate[r.recipe_id]=v;
+15620|       await put('settings',S,'main');
+15621|       toast(S.recRate[r.recipe_id]===1?'Буду предлагать чаще':S.recRate[r.recipe_id]===-1?'Больше не предложу':'Оценка снята');
+15622|       recDetail(r);
+15623|     });
+15624|     out.querySelectorAll('[data-ptog]').forEach(b=>b.onclick=async()=>{
+15625|       const pid=b.dataset.ptog, on=!!b.querySelector('use');
+15626|       try{ if(on) await catPantryDel(pid); else await catPantryAdd(pid); recDetail(r); }catch(e){toast(netErr(e))}
+15627|     });
+15628|     $('recLog').onclick=async()=>{
+15629|       await put('log',{d:(vDate||td()),n:r.name,u:1,a:1,k:r0(r.kcal_serv),p:r1(r.protein_serv),f:r1(r.fat_serv),c:r1(r.carb_serv)});
+15630|       LOG=await all('log');sheet('sh-rec',false);rFood();rCoach();toast('Записано: '+r.name.slice(0,22));
+15631|     };
+15632|   }catch(e){out.innerHTML='<div class="eb">Не открылся рецепт: '+esc(e.message)+'</div><button class="btn sec sm" id="recBack">← к списку</button>';const bb=$('recBack');if(bb)bb.onclick=recLoad}
+15633| }
+15634| 
+15635| /* ── КЛАДОВАЯ ── */
+15636| const PN_QUICK=[
+15637|   {id:'e9c3f817-35c0-474d-a8e7-10e960df24f8',n:'Яйца'},
+15638|   {id:'7a57a613-451e-49c0-a39a-1d5fe18dbecd',n:'Оливковое масло'},
+15639|   {id:'8d64270e-c790-42f9-9175-7f1b461b84c0',n:'Подсолн. масло'},
+15640|   {id:'be643c6d-37c9-4f13-bc59-da95699e8006',n:'Сливочное масло'},
+15641|   {id:'ea2473df-f9b3-4149-87a3-4cc491d23102',n:'Рис'},
+15642|   {id:'d1724371-98ee-40ca-9e90-a3896a986746',n:'Гречка'},
+15643|   {id:'a245cd2e-0968-44a1-a7ac-34839f4facd4',n:'Овсянка'},
+15644|   {id:'920499f1-f7a5-4b98-abbb-1ceb10b8c639',n:'Молоко'},
+15645|   {id:'0b67de6e-6813-43b2-9da6-6993739510a6',n:'Лук'},
+15646|   {id:'fe510a57-aa1b-457f-acd0-70099d988508',n:'Хлеб ЦЗ'},
+15647|   {id:'8d3387a6-4dd9-4ed0-a5c4-220969681ef8',n:'Сахар'},
+15648|   {id:'18130131-aeab-41ef-a0b3-dba49098c428',n:'Фасоль'},
+15649| ];
+15650| let pnHave=new Set();
+15651| $('bPantry')&&($('bPantry').onclick=async()=>{
+15652|   if(!sbTok){ return openSync('Кладовая живёт в облаке: она общая для домашних и переживает смену телефона. Поэтому нужен вход — минута, и вернёшься сюда же.'); }
+15653|   sheet('sh-pantry',true); $('pn_q').value=''; $('pnSearch').innerHTML='';
+15654|   await pnRefresh();
+15655| });
+15656| /* «Название (Бренд)» → две строки: имя крупно, бренд мелко под ним —
+15657|    ряд не распирает и не режется многоточием (полевой отчёт 02.08) */
+15658| function prodSplit(full){
+15659|   const m=String(full||'').match(/^(.*?)\s*\(([^()]{2,40})\)$/);
+15660|   return m?{n:m[1],br:m[2]}:{n:String(full||'—'),br:''};
+15661| }
+15662| async function pnHouse(){
+15663|   const box=$('pnHouseBox'); if(!box) return;
+15664|   let info=null; try{ info=await catHouseInfo(); }catch(e){}
+15665|   const sum=$('pnHouseSum');
+15666|   if(sum) sum.textContent=info?('· '+info.members+' '+plural(info.members,'участник','участника','участников')):'· личная';
+15667|   if(info){
+15668|     box.innerHTML=`<div class="ob"><b>Общий дом · ${info.members} участник${info.members===1?'':(info.members<5?'а':'ов')}.</b><br>
+15669|       Кладовая и список покупок — общие. Здоровье и тренировки у каждого свои.
+15670|       <div class="row" style="margin-top:12px">
+15671|         <button class="btn sec sm" id="pnInvite">Код приглашения</button>
+15672|         <button class="btn gho sm" id="pnLeave" style="flex:0 0 auto">Выйти</button>
+15673|       </div><div id="pnCode" class="mini" style="margin-top:8px"></div></div>`;
+15674|     $('pnInvite').onclick=async()=>{try{const c=await catHouseInvite();
+15675|       $('pnCode').innerHTML='Код для второго телефона: <b style="font-size:var(--fs3);line-height:var(--lh3);color:var(--ac)">'+esc(c)+'</b> · действует 14 дней';}catch(e){toast(netErr(e))}};
+15676|     $('pnLeave').onclick=async()=>{if(!await ask({title:'Выйти из общего дома?',text:'Продукты, которые ты добавлял, снова станут личными.',ok:'Выйти',danger:true}))return;
+15677|       try{await catHouseLeave();toast('Вышел');pnRefresh();}catch(e){toast(netErr(e))}};
+15678|   }else{
+15679|     box.innerHTML=`<div class="ib"><b>Кладовая пока личная.</b> Сделай её общей с партнёром — сканируете вместе, видите одно и то же.
+15680|       <button class="btn sm" id="pnMk" style="width:100%;margin-top:12px">Создать общий дом</button>
+15681|       <div class="row" style="margin-top:8px">
+15682|         <input id="pnJoin" placeholder="или код от партнёра" style="text-transform:uppercase">
+15683|         <button class="btn sec" style="flex:0 0 80px" id="pnJoinBtn">Войти</button>
+15684|       </div><div id="pnCode" class="mini" style="margin-top:8px"></div></div>`;
+15685|     $('pnMk').onclick=async()=>{try{const c=await catHouseInvite();
+15686|       toast('Общий дом создан');
+15687|       await pnRefresh();
+15688|       if($('pnCode')) $('pnCode').innerHTML='Код для партнёра: <b style="font-size:var(--fs3);line-height:var(--lh3);color:var(--ac)">'+esc(c)+'</b> — пусть введёт его в своей кладовой.';
+15689|     }catch(e){toast(netErr(e))}};
+15690|     $('pnJoinBtn').onclick=async()=>{const c=$('pnJoin').value.trim(); if(!c)return toast('Введи код');
+15691|       try{await catHouseJoin(c);toast('Вошёл в общий дом');pnRefresh();}catch(e){toast(netErr(e))}};
+15692|   }
+15693| }
+15694| async function pnRefresh(){
+15695|   pnHouse();
+15696|   try{ pnHave=await catPantryHas(); }catch(e){ pnHave=new Set() }
+15697|   // быстрые продукты
+15698|   $('pnQuick').innerHTML=PN_QUICK.map(x=>
+15699|     `<div class="chip ${pnHave.has(x.id)?'on':''}" data-pnq="${x.id}">${pnHave.has(x.id)?'✓ ':''}${esc(x.n)}</div>`).join('');
+15700|   $('pnQuick').querySelectorAll('[data-pnq]').forEach(c=>c.onclick=()=>pnToggle(c.dataset.pnq));
+15701|   // список
+15702|   try{
+15703|     const list=await catPantryList();
+15704|     $('pnCount').textContent=list.length?list.length+' поз.':'';
+15705|     $('pnList').innerHTML=list.length?list.map(x=>{const ps=prodSplit(x.name);
+15706|       const sub=[ps.br,x.category||''].filter(Boolean).join(' · ');
+15707|       return `<div class="item">
+15708|       <div class="g"><div class="t">${esc(ps.n)}</div>
+15709|       ${sub?`<div class="s">${esc(sub)}</div>`:''}</div>
+15710|       <input type="number" inputmode="numeric" placeholder="г" value="${x.qty_g||''}"
+15711|         data-pnqty="${x.product_id}" style="flex:0 0 76px;min-height:36px;padding:6px 8px;text-align:right"
+15712|         title="сколько грамм дома (необязательно)">
+15713|       <button class="x" data-pndel="${x.product_id}">×</button></div>`}).join('')
+15714|       :'<div class="empty">Пока пусто. Найди продукт в поиске сверху — или раскрой «Быстрый старт» ниже и отметь, что всегда есть дома.</div>';
+15715|     const sd=$('pnSeedDet'); if(sd&&!list.length) sd.open=true;   // пустая кладовая — сеялка раскрыта сама
+15716|     $('pnList').querySelectorAll('[data-pndel]').forEach(b=>b.onclick=()=>pnToggle(b.dataset.pndel,true));
+15717|     // Количество: сохраняется по уходу из поля. Пусто = «есть, но не считал» — это нормально.
+15718|     $('pnList').querySelectorAll('[data-pnqty]').forEach(inp=>inp.onchange=async()=>{
+15719|       const v=parseInt(inp.value);
+15720|       try{ await catPantryQty(inp.dataset.pnqty, (v>0?v:null)); toast(v>0?'Записано: '+v+' г':'Количество снято'); }
+15721|       catch(e){ toast(e.message||'Не сохранилось'); }
+15722|     });
+15723|   }catch(e){ $('pnList').innerHTML='<div class="eb">Не загрузилось: '+esc(e.message)+'</div>' }
+15724| }
+15725| /* Продукта нет в общем каталоге — заводим прямо отсюда.
+15726|    Раньше здесь был тупик: «заведи в поиске на экране Еда». Но тот продукт
+15727|    попадает в ЛОКАЛЬНУЮ базу, а кладовая хранит id из общего каталога —
+15728|    то есть совет не работал в принципе. */
+15729| /* Продукт, которого нет в серверном каталоге, часто уже есть в ТВОЁМ дневнике
+15730|    или справочнике — КБЖУ не вводим дважды (полевой отчёт 02.08: «точно был
+15731|    введён в дневник, а пишет что таких нет»). Ищем по локальным данным. */
+15732| /* anyU=1 — искать И штучные продукты («Яйцо 1 шт», «Скуп протеина»).
+15733|    Кладовая ищет только то, что меряется граммами, а тренеру нужна вся база:
+15734|    он говорил «у тебя такого нет» про продукт, который у человека записан
+15735|    штуками, и человек заводил дубль (аудит 22.08). */
+15736| function pnLocalList(q,lim,anyU){
+15737|   q=String(q||'').trim().toLowerCase(); if(q.length<2) return [];
+15738|   lim=lim||4;
+15739|   // пословно, порядок не важен: «творог мягк» находит «Творог мягкий обезжиренный»,
+15740|   // и «мягкий творог» — тоже (полевой отчёт 03.08: фраза целиком ничего не находила)
+15741|   const toks=q.split(/\s+/).filter(w=>w.length>=2);
+15742|   if(!toks.length) return [];
+15743|   const match=h=>toks.every(w=>h.includes(w));
+15744|   const out=[], seen=new Set();
+15745|   const push=x=>{ const k=x.n.toLowerCase(); if(!seen.has(k)&&out.length<lim){ seen.add(k); out.push(x); } };
+15746|   const hay=f=>((f.n||'')+' '+(f.br||'')).toLowerCase();   // ищем и по названию, и по бренду
+15747|   FOODS.filter(f=>(anyU||f.u==100)&&match(hay(f)))
+15748|     .forEach(f=>push({n:f.n,br:f.br||'',k:f.k,p:f.p,f:f.f,c:f.c,
+15749|       id:f.id,u:f.u,un:f.un||'г',sup:!!f.sup}));
+15750|   [...LOG].sort((a,b)=>(b.ua||0)-(a.ua||0))
+15751|     .filter(l=>l.u==100&&l.a>0&&match((l.n||'').toLowerCase()))
+15752|     .forEach(l=>push({n:l.n,br:'',k:l.k/l.a*100,p:l.p/l.a*100,f:l.f/l.a*100,c:l.c/l.a*100,
+15753|       u:100,un:l.un||'г',sup:!!l.sup}));
+15754|   return out;
+15755| }
+15756| function pnLocalFood(q,anyU){ return pnLocalList(q,1,anyU)[0]||null; }
+15757| /* Один тап «+ домой» для продукта из дневника: тихо заводим в каталог
+15758|    с его КБЖУ и сразу кладём в кладовую — без формы (полевой отчёт 03.08:
+15759|    «зачем мне второй раз добавлять его вручную») */
+15760| async function pnQuickAddLocal(loc){
+15761|   try{
+15762|     const prod=await catAdd({name:loc.n+(loc.br?' ('+loc.br+')':''),
+15763|       kcal_per_100g:r0(loc.k),protein_per_100g:r1(loc.p),fat_per_100g:r1(loc.f),carb_per_100g:r1(loc.c)});
+15764|     if(prod&&prod.id){
+15765|       await catPantryAdd(prod.id);
+15766|       toast('«'+loc.n+'» заведён из дневника и лежит дома');
+15767|       $('pn_q').value=''; $('pnSearch').innerHTML='';
+15768|       await pnRefresh();
+15769|     }
+15770|   }catch(e){ toast((e.message||'Не вышло')+' — попробуй ещё раз'); }
+15771| }
+15772| function pnNewProduct(name){
+15773|   $('aiT').textContent='Новый продукт';
+15774|   sheet('sh-ai',true);
+15775|   const loc=pnLocalFood(name);
+15776|   voiceProduct(loc?{name:loc.n,brand:loc.br,kc:loc.k,p:loc.p,f:loc.f,cb:loc.c,fromDiary:1}:{name:name});
+15777| }
+15778| async function pnToggle(pid,forceDel){
+15779|   const has=forceDel||pnHave.has(pid);
+15780|   try{
+15781|     if(has){ await catPantryDel(pid); pnHave.delete(pid); }
+15782|     else   { await catPantryAdd(pid); pnHave.add(pid); }
+15783|     await pnRefresh();
+15784|   }catch(e){ toast(netErr(e)) }
+15785| }
+15786| let pnTimer=null;
+15787| $('pn_q')&&($('pn_q').oninput=()=>{
+15788|   clearTimeout(pnTimer);
+15789|   const q=$('pn_q').value.trim();
+15790|   if(q.length<2){ $('pnSearch').innerHTML=''; return }
+15791|   pnTimer=setTimeout(async()=>{
+15792|     try{
+15793|       const rows=await catSearch(q,10);
+15794|       // локальные совпадения (справочник + дневник) — одним тапом, без формы;
+15795|       // прячем те, что уже есть в каталожной выдаче под тем же именем
+15796|       const catNames=new Set(rows.map(r=>prodSplit(r.name).n.toLowerCase()));
+15797|       const locs=pnLocalList(q,4).filter(l=>!catNames.has(l.n.toLowerCase()));
+15798|       let html='';
+15799|       if(rows.length) html+=rows.map(r=>{const ps=prodSplit(r.name);
+15800|         const sub=[r.brand||ps.br,r0(r.kcal_per_100g)+' ккал · Б'+r1(r.protein_per_100g)+' / 100 г'].filter(Boolean).join(' · ');
+15801|         return `<div class="item">
+15802|         <div class="g"><div class="t">${esc(ps.n)}</div>
+15803|         <div class="s">${esc(sub)}</div></div>
+15804|         <button class="btn sm ${pnHave.has(r.id)?'sec':''}" data-pnadd="${r.id}" style="flex:0 0 auto">${pnHave.has(r.id)?'✓ дома':'+ домой'}</button></div>`}).join('');
+15805|       if(locs.length) html+='<div class="mini" style="margin:8px 0 4px;color:var(--t3)">Из твоего дневника — одним тапом</div>'
+15806|         +locs.map((l,i)=>{const sub=[l.br,r0(l.k)+' ккал · Б'+r1(l.p)+' / 100 г'].filter(Boolean).join(' · ');
+15807|           return `<div class="item">
+15808|           <div class="g"><div class="t">${esc(l.n)}</div>
+15809|           <div class="s">${esc(sub)}</div></div>
+15810|           <button class="btn sm" data-pnloc="${i}" style="flex:0 0 auto">+ домой</button></div>`}).join('');
+15811|       if(!html) html=`<div class="wb" style="margin:8px 0">Ни в каталоге, ни в твоём дневнике такого нет.
+15812|              <button class="btn sm" id="pnNew" style="width:100%;margin-top:8px">Завести «${esc(q)}» с КБЖУ</button></div>`;
+15813|       $('pnSearch').innerHTML=html;
+15814|       if($('pnNew')) $('pnNew').onclick=()=>pnNewProduct(q);
+15815|       $('pnSearch').querySelectorAll('[data-pnadd]').forEach(b=>b.onclick=async()=>{
+15816|         await pnToggle(b.dataset.pnadd);
+15817|         const q2=$('pn_q').value.trim(); if(q2.length>=2) $('pn_q').dispatchEvent(new Event('input'));
+15818|       });
+15819|       $('pnSearch').querySelectorAll('[data-pnloc]').forEach(b=>b.onclick=()=>{
+15820|         b.disabled=true; pnQuickAddLocal(locs[+b.dataset.pnloc]);
+15821|       });
+15822|     }catch(e){ $('pnSearch').innerHTML='<div class="eb">Поиск не сработал: '+esc(e.message)+'</div>' }
+15823|   },300);
+15824| });
+15825| 
+15826| /* ── БЛЮДА ── */
+15827| /* v635: сохранить съеденное как блюдо — по долгому нажатию на строку приёма.
+15828|    Кнопки на экране больше нет; приём передаётся слотом, и отмечены по
+15829|    умолчанию только его позиции — человек держал палец именно на нём. */
+15830| function saveAsDish(slot){
+15831|   const mine=LOG.filter(l=>l.d===td());
+15832|   if(!mine.length) return toast('Сначала запиши, что ел — потом сохраню это как блюдо');
+15833|   const inSlot=l=>!slot||(l.sl||slotOfHour(l.ua?new Date(l.ua).getHours():13))===slot;
+15834|   $('cb_n').value='';
+15835|   $('cbPick').innerHTML=mine.map((l,i)=>`<div class="item" data-cbi="${i}" data-on="${inSlot(l)?'1':'0'}" style="cursor:pointer${inSlot(l)?'':';opacity:.45'}">
+15836|     <div style="flex:0 0 22px;color:${inSlot(l)?'var(--ac)':'var(--t3)'}${inSlot(l)?'':';opacity:.3'}" class="chk"><svg class="ic lg"><use href="#i-check"/></svg></div>
+15837|     <div class="g"><div class="t">${esc(l.n)}</div>
+15838|       <div class="s">${amtStr(l,l.a)} · ${r0(l.k)} ккал</div></div></div>`).join('');
+15839|   const upd=()=>{
+15840|     const on=[...$('cbPick').querySelectorAll('[data-cbi]')].filter(e=>e.dataset.on!=='0');
+15841|     const t=on.reduce((a,e)=>{const l=mine[+e.dataset.cbi];
+15842|       return {k:a.k+l.k,p:a.p+l.p,f:a.f+l.f,c:a.c+l.c}},{k:0,p:0,f:0,c:0});
+15843|     $('cbSum').innerHTML=on.length+' поз. · '+nvS(t.k,t.p,t.f,t.c,1);
+15844|   };
+15845|   $('cbPick').querySelectorAll('[data-cbi]').forEach(e=>e.onclick=()=>{
+15846|     const off=e.dataset.on==='0';
+15847|     e.dataset.on=off?'1':'0';
+15848|     e.querySelector('.chk').style.opacity=off?'1':'.3';
+15849|     e.querySelector('.chk').style.color=off?'var(--ac)':'var(--t3)';
+15850|     e.style.opacity=off?'1':'.45';
+15851|     upd();
+15852|   });
+15853|   upd(); sheet('sh-cmb',true);
+15854|   setTimeout(()=>$('cb_n').focus(),250);
+15855| }
+15856| $('bCbOk').onclick=async()=>{
+15857|   const n=$('cb_n').value.trim();
+15858|   if(!n) return toast('Назови блюдо');
+15859|   const mine=LOG.filter(l=>l.d===td());
+15860|   const items=[...$('cbPick').querySelectorAll('[data-cbi]')]
+15861|     .filter(e=>e.dataset.on!=='0')
+15862|     .map(e=>{const l=mine[+e.dataset.cbi];
+15863|       return {n:l.n,sup:!!l.sup,u:l.u,a:l.a,k:l.k,p:l.p,f:l.f,c:l.c}});
+15864|   if(!items.length) return toast('Выбери хотя бы одну позицию');
+15865|   await put('combos',{n,items});
+15866|   CMB=await all('combos'); sheet('sh-cmb',false); rFood();
+15867|   toast('Блюдо «'+n+'» сохранено');
+15868| };
+15869| 
+15870| /* ══════════════ RENDER: COACH ══════════════ */
+15871| /* Значения строк-входов «Коуча». Цифра цели — из tg(), как и везде: второго
+15872|    расчёта нет. «План от тренера» — есть или нет. */
+15873| function coachRows(){
+15874|   try{ const v=$('tdeeRowV'); if(v){ const t=tg(); v.textContent=(t&&t.k>0)?r0(t.k)+' ккал':''; } }catch(_){}
+15875|   try{ const v=$('planRowV'); if(v) v.textContent=(S.plan&&(S.plan.kcal||S.plan.txt||S.plan.text))?'есть':''; }catch(_){}
+15876| }
+15877| function rCoach_(){
+15878|   try{ coachRows(); }catch(_){}
+15879|   try{ rExList(); }catch(_){}   // v615: база знаний
+15880|   try{ rVol(); }catch(_){}      // v615: недельный объём
+15881|   if(!$('tdV')) return;   // вкладка «Коуч» не смонтирована — рендерить нечего
+15882|   // Что приложение заметило в поведении и предлагает поправить
+15883|   const ib=$('insBox');
+15884|   if(ib){
+15885|     ib.innerHTML=insightHTML();
+15886|     ib.querySelectorAll('[data-ins]').forEach(b=>b.onclick=()=>insightAct(b.dataset.ins));
+15887|     ib.querySelectorAll('[data-insno]').forEach(b=>b.onclick=async()=>{
+15888|       S.insHid=[...new Set([...(S.insHid||[]),b.dataset.insno])];
+15889|       await put('settings',S,'main').catch(()=>{}); rCoach();
+15890|     });
+15891|     try{ behaviorReport(); }catch(e){}
+15892|   }
+15893|   const r=estTDEE(), b=$('tdB');
+15894|   /* Первый запуск: ни цели, ни расхода, ни веса. Карточка показывала пять
+15895|      прочерков подряд и «не задан» — человек в первый день читает это как
+15896|      «приложение не работает» (прогон новичка 19.08). Даём одну понятную
+15897|      строку и путь. */
+15898|   {
+15899|     /* Условие было слишком узким — требовало ещё и отсутствия веса. Но
+15900|        таблица «— — — —» появляется всегда, когда нет ЦЕЛИ: например, вес
+15901|        записан, а пересчёт не прошёл (третий день, 19.08). Смотрим на цель. */
+15902|     /* НЕ ПРОСИМ ЖАТЬ КНОПКУ, КОТОРАЯ НЕ МОЖЕТ ПОМОЧЬ.
+15903|        Здесь стояло «Вес есть, а цели пока нет — нажми "Пересчитать", и калории
+15904|        с БЖУ появятся». Пересчёт считает расход ПО ФАКТУ и на четырёх
+15905|        взвешиваниях честно отказывается: человек жал, получал тост «Данных не
+15906|        хватает» — и надпись снова просила жать. Инструкция, которую нельзя
+15907|        выполнить, хуже её отсутствия (найдено прогоном редкого пользователя
+15908|        23.08).
+15909|        Приложение при этом умеет поставить цель прямо сейчас — формулой по
+15910|        росту, весу и возрасту: ровно это делает seed() при первом взвешивании
+15911|        через поле на «Еде». Но вес приезжает и мимо того поля — импортом,
+15912|        синком, восстановлением из бэкапа, — и тогда человек оставался вообще
+15913|        без цели. Ставим её здесь тем же способом, а не отправляем нажимать. */
+15914|     if(!tg()&&curW()&&bmrOf(curW())>0&&!(S.kcalManual>0)&&!(S.plan&&Number(S.plan.kcal)>0)){
+15915|       seed(); put('settings',S,'main').catch(()=>{});
+15916|     }
+15917|     const empty=!tg();
+15918|     const ge=$('gEmpty'), gb=$('gBody'), det=$('tdDet');
+15919|     if(ge&&gb){
+15920|       ge.style.display=empty?'':'none'; gb.style.display=empty?'none':'';
+15921|       if(det) det.style.display=empty?'none':'';
+15922|       if(empty){
+15923|         /* Сюда теперь попадают только те, у кого не хватает не записей, а
+15924|            анкеты: без роста и возраста формулу не построить. Так и говорим —
+15925|            что именно нужно и сколько это займёт. */
+15926|         const miss=[!(S.h>0)&&'рост',!(S.age>0)&&'возраст',!curW()&&'вес'].filter(Boolean);
+15927|         /* Закон экрана: первая фраза объясняла наш подход, а не то, что делать
+15928|            человеку. На экране остаётся действие, объяснение уходит за жест. */
+15929|         ge.innerHTML=''
+15930|           +(miss.length?'Не хватает: <b>'+miss.join(', ')+'</b>.'
+15931|                        :'Нужны рост, вес и пара дней записей — тогда здесь появятся калории и БЖУ под тебя.')
+15932|           +'<button class="btn" id="gEmptyGo">Заполнить за 2 минуты</button>';
+15933|         const g=$('gEmptyGo');
+15934|         if(g) g.onclick=()=>{ const bp=$('bPack'); if(bp&&bp.onclick) bp.onclick(); };
+15935|         return;
+15936|       }
+15937|     }
+15938|   }
+15939|   /* Пока расхода нет, большой прочерк вместо цифры — это не «данных мало»,
+15940|      а «сломано». Говорим словами, сколько осталось (третий день, 19.08). */
+15941|   {
+15942|     const row=$('tdVRow'), soon=$('tdSoon'), none=(S.tdee==null);
+15943|     if(row) row.style.display=none?'none':'';
+15944|     if(soon){
+15945|       soon.style.display=none?'':'none';
+15946|       if(none) soon.textContent=r.ok?'Считаю расход по твоим записям — цифра появится сама.'
+15947|         :'Расход по факту появится: '+tdeeWhy(r)+'.';
+15948|     }
+15949|   }
+15950|   /* Показываем ТОТ ЖЕ расход, что и на Еде, — через tdeeSane. Раньше здесь
+15951|      стояла сырая цифра, та самая, которую приложение на соседней вкладке
+15952|      само называет невозможной («ниже базового обмена — так не бывает»).
+15953|      Человек видел 1605 на Коуче и 1867 на Еде, и ни одна не сходилась с
+15954|      целью на этой же карточке (аудит 22.08). */
+15955|   const _tsC=(typeof tdeeSane==='function')?tdeeSane():null;
+15956|   $('tdV').textContent=_tsC?r0(_tsC.v):'—';
+15957|   if(!r.ok){
+15958|     const m={w:`Нужно минимум ${r.need} дней с весом. Есть: ${r.have}.`,
+15959|       sw:`Мало взвешиваний за 2 недели: ${r.have} из ${r.need}.`,
+15960|       sh:`Нужно минимум 7 дней между первым и последним взвешиванием.`,
+15961|       f:`Нужно записать питание минимум за ${r.need} дней из последних 14. Есть: ${r.have}.`}[r.r];
+15962|     b.innerHTML=`<div class="wb">${m} · формула Миффлина · ошибка ±300 ккал</div>`;
+15963|     $('tdS').textContent=S.tdee!=null?'формула (не адаптировано)':'';
+15964|     /* Раньше здесь раскрывался блок «Как посчитано» — 934 символа про EMA,
+15965|        энергобаланс и систематическую ошибку. Открывался он ровно у того, кто
+15966|        только зарегистрировался: у новичка данных мало по определению. Жена
+15967|        владельца собрала программу 31.08 и получила эту стену первым экраном.
+15968|        Строка выше уже сказала, чего не хватает и сколько осталось; «Как
+15969|        посчитано» стоит рядом и открывается пальцем, когда станет интересно. */
+15970|   }else{
+15971|     b.innerHTML=`<div class="ob">За ${r.n} дней тренд веса ${r.dw<0?'снизился':(r.dw>0?'вырос':'не изменился')} на
+15972|       <b>${r1(Math.abs(r.dw))} кг</b> при среднем потреблении <b>${r0(r.avg)} ккал</b>.<br>
+15973|       ⇒ ${r0(r.avg)} ${r.dw<0?'+':'−'} (${r1(Math.abs(r.dw))} × 7700 / ${r.n}) = <b>${r0(r.obs)} ккал</b> расход.<br>
+15974|       После сглаживания: <b>${r0(r.est)} ккал</b>.
+15975|       ${r.cov<.85?'<br><br>Питание записано за '+r0(r.cov*100)+'% дней. Ошибка тут не случайная: пропускают чаще те дни, где съедено больше, поэтому <b>расход посчитан ниже настоящего</b>, а цель — жёстче, чем нужно.':''}</div>`;
+15976|     /* Строкой выше уже написано «расход по факту» — второе «по факту»
+15977|        подряд ничего не добавляло, а выглядело недоделкой (19.08). */
+15978|     $('tdS').textContent=`обновлено ${S.lastCalc?fd(S.lastCalc):'—'}`;
+15979|   }
+15980|   // и та же оговорка, что на Еде: почему показанная цифра не равна расчётной
+15981|   if(_tsC&&_tsC.low) b.innerHTML+=`<div class="wb" style="margin-top:8px">Расчёт дал ${_tsC.raw} ккал — это ниже твоего базового обмена (${_tsC.bmr}), а столько тело тратит просто чтобы жить. Так не бывает: почти всегда часть еды не записана. Показываю ${_tsC.bmr}, пока данные не выправятся.</div>`;
+15982|   const t=tg();
+15983|   // единицы живут в подписях плиток — в значениях только числа
+15984|   // gK убран из разметки в v571 (то же число стоит героем выше), но
+15985|   // проверяем наличие: элемент может вернуться, и падать на этом нельзя
+15986|   { const k=$('gK'); if(k) k.textContent=t?t.k:'—'; }
+15987|   $('gP').textContent=t?t.p:'—';
+15988|   $('gF').textContent=t?t.f:'—';$('gC').textContent=t?t.c:'—';
+15989|   // Откуда цифра цели и кто её менял последним — чтобы «скачки» имели имя
+15990|   // и дату, а не выглядели магией (полевая жалоба: «всё скачет без логики»)
+15991|   {const gs=$('gSrc');
+15992|    if(gs){
+15993|      /* «Адаптивный расчёт по твоему весу» — правда только когда расход уже
+15994|         посчитан по факту. Пока фактa нет, за целью стоит формула по росту,
+15995|         весу и возрасту, и называть её адаптивной — обещать точность, которой
+15996|         нет: человек видит «адаптивный», не худеет и решает, что приложение
+15997|         врёт, вместо того чтобы понять, что цифра ещё грубая (23.08). */
+15998|      const src=S.kcalManual>0?'ручной калораж':(S.plan&&S.plan.kcal?'план тренера'
+15999|        :(S.tdee!=null?'адаптивный расчёт по твоему весу':'формула по росту, весу и возрасту'));
+16000|      const lastK=[...(S.progLog||[])].reverse().find(x=>/калори/i.test(x.txt||''));
+16001|      gs.textContent=t?('Источник цели — '+src+(lastK?(' · менялась '+fd(lastK.d)+': '+lastK.src):'')):'';
+16002|    }}
+16003|   {const gl=$('gKcalLog');
+16004|    if(gl) gl.innerHTML=(function(){try{return kcalLogHTML()}catch(e){return ''}})();}
+16005|   $('gR').textContent=(S.rate>0?'+':'')+S.rate+' кг/нед';
+16006|   const a=actRate(), e=$('gRA');
+16007|   if(a==null){e.textContent='—';e.style.color=''}
+16008|   else{e.textContent=(a>0?'+':'')+r1(a)+' кг/нед';
+16009|     e.style.color=rateCol(a)}
+16010|   {const gw=$('gW'), ge=$('gETA'), row=$('gWrow');
+16011|    if(gw){ gw.textContent=S.wGoal>0?(r1(S.wGoal)+' кг'):'не задан'; }
+16012|    if(ge){ ge.textContent=S.wGoal>0?goalETAText():'Тап по строке — куда идём. Без финиша темп «−0.5 кг/нед» ни о чём не говорит.'; }
+16013|    if(row) row.onclick=()=>setGoalW();}
+16014|   const pb=$('packBox');
+16015|   if(pb){
+16016|     const parts=[];
+16017|     if(S.pack){ const pt=tg(), PG={cut:'похудение',recomp:'рекомпозиция',bulk:'набор массы'};
+16018|       parts.push(`<div class="note" style="margin:0">Пакет от ${fd(S.pack.d)}: ${PG[S.pack.goal]||''}${pt?' · '+pt.k+' ккал':''}${S.prog&&+S.prog.cfg.days>0?' · '+S.prog.cfg.days+' трен/нед':''} · ${S.stepGoal||8000} шагов · ${(waterGoalOf()/1000).toFixed(1)} л воды. Плита «Стартовый пакет» пересоберёт заново.</div>`); }
+16019|     else parts.push('<div class="note" style="margin:0 0 12px">Стартовый пакет по анкете, разбор твоей статистики за месяц и оценка телосложения по фото — три шага одного тренера.</div>');
+16020|     if(S.lastAna) parts.push(`<div class="note" style="margin:8px 0 ${S.pack?'0':'12px'}">Последний разбор — ${fd(S.lastAna.d)}, открывается плитой «Разбор и план».</div>`);
+16021|     pb.innerHTML=parts.join('');
+16022|   }
+16023|   rLib(); rPlanCard(); rSync(); rLever(); rRecap(); rReads();
+16024| }
+16025| 
+16026| /* ══════════════ RENDER: TRAIN ══════════════ */
+16027| /* ── СПРАВОЧНИК УПРАЖНЕНИЙ — СВОЙ РЕНДЕР (v602, AUDIT_POINT_A §4.1/§5.3) ──
+16028|    Раньше поиск по справочнику (exSearch) звал rTrain() целиком — вся вкладка
+16029|    на каждую клавишу (1000–1250 мс на 20×). Теперь список #exList рисует
+16030|    только эта функция; rTrain зовёт её как один из своих шагов. */
+16031| function rExList(){
+16032|   if(!$('exList')) return;
+16033|   /* ── СВЁРНУТАЯ КАРТОЧКА НЕ ДЕРЖИТ СПИСОК (v623) ──
+16034|      Замер 19.09: пока группа не выбрана, справочник — это 11 строк групп
+16035|      (77 узлов), и «270 упражнений на каждый рендер» не происходило. Но стоит
+16036|      выбрать «Грудь» — в `#exList` 348 узлов и 39 строк, и они оставались
+16037|      там навсегда: `rCoach_` звал `rExList` при КАЖДОМ рендере вкладки, даже
+16038|      когда карточка закрыта. «Коуч» таскал 732 узла вместо 457 и тратил
+16039|      3.5 мс на пересборку того, чего не видно.
+16040|      Теперь: закрыта — список стирается и не собирается; открыли — собрался.
+16041|      Счётчик движений в шапке карточки обновляется всегда: он-то как раз
+16042|      виден, и он единственное, что видно у закрытой карточки. */
+16043|   { const kb=$('kbCard');
+16044|     { const kc=$('kbCnt'); if(kc) kc.textContent=EX.length+' '+plural(EX.length,'движение','движения','движений'); }
+16045|     if(kb&&kb.addEventListener&&!kb._kbl){ kb._kbl=1;
+16046|       kb.addEventListener('toggle',()=>{ if(kb.open) rExList(); }); }
+16047|     if(kb&&kb.open===false){ const _el=$('exList'); if(_el&&_el.innerHTML) _el.innerHTML=''; return; } }
+16048|   const es=$('exSearch').value.toLowerCase().trim();
+16049|   const el=$('exList');
+16050|   /* ── СПРАВОЧНИК ГРУППИРУЕТСЯ ПО МЫШЦАМ ──
+16051|      Решение владельца 01.09 по скриншоту чужого приложения: сначала список
+16052|      групп, потом упражнения внутри. Прокручиваемый ряд из одиннадцати чипов
+16053|      был компромиссом со «стеной чипов» и заставлял помнить, что фильтр
+16054|      вообще есть; двухуровневый список отвечает на вопрос «что тут есть»
+16055|      сразу, без единого фильтра. Элемент #exChips остался ДЕРЖАТЕЛЕМ
+16056|      СОСТОЯНИЯ (._mus / ._sub) и больше не рисует кнопок. */
+16057|   {const ch=$('exChips');
+16058|    if(ch&&!ch._init){ ch._init=1; ch.innerHTML=''; ch.style.display='none';
+16059|   /* Место под закреплённую панель ввода резервируем только там, где она есть,
+16060|      иначе на остальных вкладках внизу появится пустая полоса. Высоту не
+16061|      зашиваем — её меряет barsSync там же, где меряет все остальные полосы. */
+16062|   try{ document.body.style.removeProperty('--foodb'); barsSync(); }catch(e){}
+16063|    }}
+16064|   { const kc=$('kbCnt'); if(kc) kc.textContent=EX.length+' '+plural(EX.length,'движение','движения','движений'); }
+16065|   const exMus=($('exChips')&&$('exChips')._mus)||'';
+16066|   const exSub=($('exChips')&&$('exChips')._sub)||'';
+16067|   const exMusF=(exMus==='*')?'':exMus;      // «*» фильтрует всё, но экран уже второй
+16068|   // второй уровень: Спина → Широчайшие / Трапеции / Разгибатели и т.п.
+16069|   {const sc=$('exSubChips');
+16070|    if(sc){
+16071|      if(exMusF&&SUBM[exMusF]){
+16072|        sc.style.display='';
+16073|        sc.innerHTML=[`<button class="chip ${exSub?'':'on'}" data-exsub="">Все</button>`]
+16074|          .concat(Object.entries(SUBM[exMusF]).map(([k,v])=>`<button class="chip ${exSub===k?'on':''}" data-exsub="${k}">${v}</button>`)).join('');
+16075|        sc.querySelectorAll('[data-exsub]').forEach(b=>b.onclick=()=>{ $('exChips')._sub=b.dataset.exsub; rExList(); });
+16076|      } else { sc.style.display='none'; sc.innerHTML=''; }
+16077|    }}
+16078|   const fx=EX.filter(e=>(!exMusF||e.m[exMusF])
+16079|     &&(!exSub||(e.sub&&e.sub.includes(exSub)))
+16080|     &&(!es||e.n.toLowerCase().includes(es)||(e.eq&&e.eq.toLowerCase().includes(es))||
+16081|     Object.keys(e.m).some(m=>MUS[m].toLowerCase().includes(es))))
+16082|     .sort((a,b)=>exMusF?((b.m[exMusF]||0)-(a.m[exMusF]||0)):0);
+16083|   /* ── ПЕРВЫЙ УРОВЕНЬ: ГРУППЫ МЫШЦ ──
+16084|      Показывается, пока не выбрана группа и не введён поиск. Поиск идёт мимо
+16085|      группировки: человек, который печатает «жим», ищет во всём справочнике,
+16086|      а не внутри случайной группы. */
+16087|   const _группы=(!exMus&&!es);
+16088|   if(_группы){
+16089|     const строки=Object.entries(MUS).map(([k,v])=>{
+16090|       const n=EX.filter(e=>e.m&&e.m[k]).length;
+16091|       return n?`<div class="item exrow" data-exmus2="${k}" style="cursor:pointer">
+16092|         <div class="g"><div class="t">${esc(v)}</div>
+16093|         <div class="s">${n} ${plural(n,'упражнение','упражнения','упражнений')}</div></div>
+16094|         <div style="color:var(--t3)"><svg class="ic"><use href="#i-chev"/></svg></div></div>`:'';
+16095|     }).join('');
+16096|     el.innerHTML=`<div class="item exrow" data-exmus2="" style="cursor:pointer">
+16097|         <div class="g"><div class="t">Все упражнения</div>
+16098|         <div class="s">${EX.length} ${plural(EX.length,'движение','движения','движений')}</div></div>
+16099|         <div style="color:var(--t3)"><svg class="ic"><use href="#i-chev"/></svg></div></div>`+строки;
+16100|     el.querySelectorAll('[data-exmus2]').forEach(b=>b.onclick=()=>{
+16101|       const ch=$('exChips'); if(!ch) return;
+16102|       /* «*» — это «все упражнения», но уже ВНУТРИ списка: группа не выбрана,
+16103|          а к экрану групп мы больше не относимся. Пустая строка означала бы
+16104|          возврат на первый уровень, и тап по «Все упражнения» ничего бы не
+16105|          сделал. */
+16106|       ch._mus=b.dataset.exmus2||'*'; ch._sub=''; rExList();   // v615: справочник живёт в «Коуче», «Зал» тут ни при чём
+16107|       try{ el.scrollIntoView({block:'start'}); }catch(_){}
+16108|     });
+16109|   }
+16110|   /* ── СТРОКА СПРАВОЧНИКА С КАРТИНКОЙ ──
+16111|      Полевой отчёт владельца 01.09 со скриншотом чужого приложения: список
+16112|      упражнений там — строка, картинка слева, шеврон справа, волосяная линия
+16113|      между. Ничего лишнего, и движение узнаётся глазом раньше, чем читается.
+16114|      Постер берём тот же, что у видео (103 движения из 270). Где его нет —
+16115|      место остаётся пустым, чтобы строки не поехали: пустой слот честнее
+16116|      выдуманной иконки, и ряд остаётся ровным. */
+16117|   /* Возврат к группам — строкой над списком, как «‹ Упражнения» в шапке у
+16118|      образца. Строится вместе со списком, а не дописывается после: вставка
+16119|      через insertAdjacentHTML не переживала фейковый DOM в гейте, и правило
+16120|      честно говорило, что пути назад нет. */
+16121|   const _назад=(!_группы&&!es&&exMus)
+16122|     ? `<div class="item exrow" data-exback="1" style="cursor:pointer">
+16123|         <div style="color:var(--t3);transform:rotate(180deg);display:flex"><svg class="ic"><use href="#i-chev"/></svg></div>
+16124|         <div class="g"><div class="t" style="color:var(--t2)">Все группы</div></div></div>` : '';
+16125|   if(!_группы) el.innerHTML=_назад+(fx.length?fx.map((e,i)=>{
+16126|     /* pendvid сюда НЕ берём: это «запланированное» видео, файла может не быть,
+16127|        а в списке из 270 строк каждый несуществующий ассет — свой запрос и своя
+16128|        404 в консоли. В листе упражнения такой промах стоит одного запроса и
+16129|        прячется по onerror; в списке это 167 промахов подряд. */
+16130|     const _sl=exSlug(e);
+16131|     return `<div class="item exrow" data-ex="${EX.indexOf(e)}" style="cursor:pointer">
+16132|     <span class="exth">${_sl?`<img src="${EXBASE}${esc(_sl)}.webp" alt="" loading="lazy" onerror="this.style.display='none'">`:''}</span>
+16133|     <div class="g"><div class="t">${esc(e.n)}${exEquipOK(e)?'':' <span class="mini" style="color:var(--wn)">· нет снаряда</span>'}</div>
+16134|     <div class="s">${Object.entries(e.m).map(([m,w])=>MUS[m]+(w<1?' ½':'')).join(' · ')}${
+16135|       (EM[e.n]&&({gym:' · зал',db:' · гантели',bw:' · без инвентаря'})[EM[e.n].eq])||(e.eq?' · '+e.eq:'')}</div></div>
+16136|     <div style="color:var(--t3)"><svg class="ic"><use href="#i-chev"/></svg></div></div>`;
+16137|   }).join(''):'<div class="empty">Не нашлось.<br>Попробуй короче — «жим», «тяга» — или сбрось фильтр группы мышц.</div>');
+16138|   el.querySelectorAll('[data-ex]').forEach(x=>x.onclick=()=>showEx(EX[+x.dataset.ex]));
+16139|   el.querySelectorAll('[data-exback]').forEach(b=>b.onclick=()=>{
+16140|     const ch=$('exChips'); if(!ch) return; ch._mus=''; ch._sub=''; rExList();
+16141|   });
+16142| }
+16143| /* ── v613: СЕМЬ КАРТОЧЕК ТРЕНЕРА — ОДНОЙ ФУНКЦИЕЙ, БЕЗ ПРИВЯЗКИ К ВКЛАДКЕ ──
+16144|    Раньше считались внутри rTrain_, а rTrain() на скрытой вкладке лишь ставит
+16145|    метку TAB_DIRTY: лист «Тренер», открытый из «Коуча», после действия в карточке
+16146|    не обновлялся (аудит v612, узел 1). Теперь расчёт живёт здесь и зовётся
+16147|    из rTrain_, при открытии листа и после каждого действия в хабе.
+16148|    Порядок прежний: починка, разбор, боль, турник, ограничения, что ушло, спад. */
+16149| /* ── v633: ОГОВОРКА ВРАЧА — ОТДЕЛЬНАЯ ФУНКЦИЯ И КАРТА ХАБА ──
+16150|    Текст жил внутри рендера «Еды» и печатался на главном экране. Решение
+16151|    владельца: на экране еды ему не место, место — в хабе тренера, где
+16152|    человек читает всё, что приложение хочет сказать. Вынесен как есть,
+16153|    слово в слово: это предупреждение врача, и переписывать его нельзя. */
+16154| function cutNoteOf(t){
+16155|   if(!t) return '';
+16156|   const _tdEff=t.tdeeLow?t.tdeeLow.bmr:S.tdee;
+16157|   const _rateReal=(t.floored&&_tdEff>0&&t.k>0)?((t.k-_tdEff)*7/KPK):null;
+16158|   return t.manLow
+16159|       ? `Цель ${t.manLow.k} ккал стоит вручную, и она ниже безопасной черты (${t.manLow.floor}). Ниже этой черты из еды уже не набрать ни белка, ни витаминов, каким бы ни был дефицит. Я оставил твою цифру — она твоя, — но считаю нужным сказать: если это опечатка, поправь её в Настройках, а если так назначил врач, ему и решать.`
+16160|       : t.thin
+16161|       ? `ИМТ ${t.thin.bmi} — это ниже нормы (18.5). При таком весе дефицит снимает не жир: первыми уходят мышцы, а за ними гормональный фон, сон и цикл. Заданные ${t.thin.rate} кг/нед я не считаю — цель стоит на удержании. Если снижение всё-таки нужно по медицинским причинам, это разговор с врачом, а не с приложением. Хочешь набрать — поставь плюсовой темп, тут я помогу с удовольствием.`
+16162|       : t.fast
+16163|       ? `${t.fast.set} кг/нед при твоём весе — это ${t.fast.pct} % массы в неделю. Считаю по ${t.fast.cap}: быстрее уходят мышцы и цикл, а не жир. Хочешь быстрее — только с врачом.`
+16164|       : t.tdeeLow
+16165|       ? `Расчётный расход вышел ${t.tdeeLow.raw} ккал — ниже твоего базового обмена (${t.tdeeLow.bmr}), а столько тело тратит, просто чтобы жить: дышать, греться, гонять кровь. Так не бывает, и причина почти всегда одна — часть еды не записана (масло на сковороде, соус, «кусочек»). Считаю по ${t.tdeeLow.bmr}, пока данные не выправятся. Записывай неделю подряд как есть, даже срывы, — расход сойдётся сам.`
+16166|       : t.floored
+16167|       ? `Расчёт дал ${t.floored.raw} ккал — ниже этого не опускаюсь. ${t.floored.floor} ккал — черта, за которой из еды уже не набрать ни белка, ни витаминов, каким бы ни был дефицит.${_rateReal!=null?` Значит и темп будет другим: при цели ${t.k} ккал выходит примерно ${_rateReal>0?'+':''}${r1(_rateReal)} кг/нед, а не заданные ${S.rate>0?'+':''}${S.rate}. Это не сбой — это арифметика: быстрее можно только движением, а не срезанием тарелки дальше.`:' Если хочешь худеть быстрее, это делается движением, а не срезанием тарелки дальше.'}`
+16168|       : t.tight
+16169|       ? `Цель жёсткая для твоего веса: даже при минимальных жирах и белке углеводов остаётся мало. Смягчи темп — будет чем тренироваться.`
+16170|       : t.cut==='fat' ? `Жиры ужаты до ${t.f} г, чтобы осталось на углеводы — так дефицит переносится легче.`
+16171|       : t.cut ? `Белок и жиры ужаты до нижней границы: иначе на углеводы ничего не остаётся.`
+16172|       : '';
+16173| }
+16174| /* Карта хаба: та же оговорка, но там, где человек её прочитает. */
+16175| function safeCard(){
+16176|   let t=null; try{ t=tg(); }catch(e){ return ''; }
+16177|   const n=cutNoteOf(t); if(!n) return '';
+16178|   const шапка=t.manLow?'Цель ниже безопасной черты':t.thin?'Вес ниже нормы — темп не считаю'
+16179|     :t.fast?'Темп сдержан':t.tdeeLow?'Расход занижен':t.floored?'Цель не опускается ниже черты':'Почему такие Б/Ж/У';
+16180|   return '<div class="ask-card-h"><svg class="ic" style="stroke:var(--wn)"><use href="#i-shield"/></svg> '
+16181|     +esc(шапка)+'</div><div class="mini" style="line-height:var(--lhb)">'+esc(n)+'</div>';
+16182| }
+16183| function coachCards(){
+16184|   const mk=f=>{ try{ return f()||''; }catch(e){ return ''; } };
+16185|   const c=[mk(safeCard),mk(fixCard),mk(skeptCard),mk(painCard),mk(barCard),mk(injCard),mk(lostCard),mk(slumpCard)].filter(Boolean);
+16186|   window._coachMsg=c; window._coachN=c.length;   // бадж на строке «Спросить тренера» (v598/v611)
+16187|   return c;
+16188| }
+16189| /* Бадж в подвале «Зала» — точечно, без rNext: после действия в хабе число
+16190|    меняется сразу, полная перерисовка вкладки придёт своим чередом. */
+16191| function coachBadgeSync(){
+16192|   try{ const gf=$('gymFoot'); if(!gf||!gf.querySelector) return;
+16193|     const b=gf.querySelector('.badge'), n=window._coachN||0;
+16194|     if(b){ if(n) b.textContent=n; else b.remove(); } }catch(e){}
+16195| }
+16196| /* ── v615: ИСТОРИЯ СЕССИЙ — в листе «Закрыть тренировку» (sh-sess) ── */
+16197| function rSessList(){
+16198|   const sl=$('sessList'); if(!sl) return;
+16199|   const ss2=[...SESS].sort((a,b)=>a.d<b.d?1:-1).slice(0,14);
+16200|   sl.innerHTML=ss2.length?ss2.map(s=>{
+16201|     const open=!s.act&&!(s.min&&s.rpe);
+16202|     // авто-оценку помечаем: это наша прикидка по режиму усилия, а не его слово
+16203|     const sub=s.min?(s.min+' мин'+(s.rpe?(' · RPE '+s.rpe+(s.rpeAuto?' (авто)':'')):' · RPE ?')):(s.start?('начало '+s.start+' — не закрыта'):'—');
+16204|     const load=(s.min&&s.rpe)?r0(s.min*s.rpe):'—';
+16205|     return `<div class="item"><div class="g" ${s.act?'':`data-sedit="${s.d}" style="cursor:pointer"`}>
+16206|     <div class="t wt">${fd(s.d)}${(s.n||1)>1?' · '+s.n+'-я':''}${s.act?' · '+esc(s.act)+' <span class="tag">актив</span>':''}${open?' <span class="tag">открыта</span>':''}</div><div class="s">${sub}</div></div>
+16207|     <div class="k">${load}</div><button class="x" data-dss="${s.id}">×</button></div>`}).join('')
+16208|     :'<div class="empty">Сессий пока нет.<br>Время старта проставляется само при первом подходе — тебе останется закрыть тренировку.</div>';
+16209|   sl.querySelectorAll('[data-dss]').forEach(x=>x.onclick=async()=>{
+16210|     await del('sess',+x.dataset.dss);SESS=await all('sess');rTrain()});
+16211|   sl.querySelectorAll('[data-sedit]').forEach(el=>el.onclick=()=>{
+16212|     const s=gymSess(el.dataset.sedit)||{};
+16213|     window.__ssEditD=el.dataset.sedit===td()?null:el.dataset.sedit;
+16214|     $('ss_start').value=s.start||'';$('ss_end').value=s.end||'';$('ss_rpe').value=s.rpe||'';
+16215|     if($('ssAuto')&&window.__ssEditD) $('ssAuto').textContent='правка '+fd(window.__ssEditD)+' — сохрани внизу';
+16216|     ssPrev();toast('Правка сессии '+fd(el.dataset.sedit)+' — поменяй время и нажми «Сохранить»');
+16217|     const sd=$('sessDet'); if(sd) sd.open=true;
+16218|     try{ sheet('sh-sess',true); }catch(e){}
+16219|     const sf=$('ss_start'); if(sf&&sf.scrollIntoView) sf.scrollIntoView({block:'center',behavior:'smooth'});});
+16220| }
+16221| /* ── v615: НЕДЕЛЬНЫЙ ОБЪЁМ — карточка в «Коуче» (#volBox), а не подвкладка «Зала» ── */
+16222| function rVol(){
+16223|   const vb=$('volBox'); if(!vb) return;
+16224|   /* volume */
+16225|   const v=volume(7);
+16226|   const _sc=strengthScores()||{};   // связка с «Что отстаёт»: слабой группе мало «минимума»
+16227|   const _pv=S.prog?progVolume(S.prog):null;   // плановый недельный объём программы
+16228|   /* Отдельная оговорка про ПЛАН ниже диапазона. На трёх тренировках в неделю
+16229|      все десять групп физически не помещаются в верхний диапазон — иначе это
+16230|      20+ подходов за занятие. Без этой строки экран читается как «программа
+16231|      недодаёт по всем фронтам» (найдено чтением экрана 18.08). */
+16232|   const _dz=(S.prog&&S.prog.cfg&&+S.prog.cfg.days)||0;
+16233|   const _planLow=_dz>0&&_dz<=4;
+16234|   /* ПЕРВАЯ НЕДЕЛЯ — НЕ ПРИГОВОР. «Факт» здесь это скользящее окно в 7 дней, и
+16235|      у человека, который начал тренироваться позавчера, оно физически неполное:
+16236|      девять групп из десяти покажут «ниже MEV», и экран прочитается как
+16237|      «программа недодаёт» или «я не тяну». Ни то ни другое не правда — он просто
+16238|      ещё не дожил до полной недели. Тот же принцип уже выписан у наблюдателя
+16239|      поведения: «замечать поведение можно, когда поведение уже есть» (19.08),
+16240|      сюда его не донесли. Цифры оставляем — это факт; убираем ПРИГОВОР. */
+16241|   const _firstSet=SETS.filter(x=>!x.wu).map(x=>x.d).sort()[0];
+16242|   const _daysIn=_firstSet?dn(td())-dn(_firstSet):-1;
+16243|   const _weekOne=_daysIn>=0&&_daysIn<6;
+16244|   /* ── ОДНА МЫСЛЬ — ОДИН РАЗ ──
+16245|      Объяснение «неделя недовыполнена (пропуск, замена или разгрузка)»
+16246|      печаталось у КАЖДОЙ группы: замер 25.08 показал десять почти дословных
+16247|      повторов подряд, плюс «план даёт N» дублировался внутри строки, потому
+16248|      что он уже стоит строкой выше. Ровно то, что стережёт редактор: две
+16249|      фразы об одном — стена, а десять — тем более.
+16250|      Считаем, у скольких групп причина ОДНА И ТА ЖЕ. Две и больше — выносим
+16251|      её один раз над списком, строки остаются короткими. Одна — объяснение
+16252|      остаётся при ней: иначе человек с одной просевшей группой теряет причину
+16253|      совсем (поймано полевым гейтом при первой же правке — возражение
+16254|      скептика против слепого схлопывания оказалось буквально верным). */
+16255|   const _undoneN=Object.keys(MUS).filter(m=>{
+16256|     const pvm=_pv?_pv[m]:null, val=v[m], mev=LM[m][0];
+16257|     return pvm!=null&&pvm>=mev&&val<pvm*0.6;
+16258|   }).length;
+16259|   /* Методичка «как это считается» — за одним тапом. Двенадцать строк серого
+16260|      текста над цифрами человек не читает, а пролистывает вместе с цифрами
+16261|      (сверка скриншота 19.08). */
+16262|   vb.innerHTML=`<details class="det" style="margin-bottom:12px"><summary style="font-size:var(--fs2);line-height:var(--lh2)">Как это считается</summary><div class="mini" style="margin-top:8px">«Факт» — рабочие подходы из журнала за 7 дней; базовые делятся между мышцами долями (присед: квадрицепсу подход, ягодицам — полподхода), поэтому числа дробные. «План» — что даёт программа при полном выполнении недели. Если факт ушёл от плана — причина в пропусках, заменах и разгрузке, а не в программе.${_planLow?` При ${_dz} ${plural(_dz,'тренировке','тренировках','тренировках')} в неделю план у части групп ниже диапазона — и это норма: всё сразу в верх диапазона не помещается, приоритет держат база и отстающие. Хочешь подтянуть конкретную группу — блок специализации.`:''}</div></details>`
+16263|    /* В первую неделю про недовыполнение молчим: соседняя плашка прямо
+16264|       говорит «окно ещё не заполнилось, это не недовыполнение», и две
+16265|       надписи спорили бы друг с другом на одном экране. Противоречие между
+16266|       сообщениями — дефект, а не два мнения (поймано правилом 25.08). */
+16267|    +((_undoneN>=2&&!_weekOne)?`<div class="note" style="margin:0 0 10px">У ${_undoneN} ${plural(_undoneN,'группы','групп','групп')} сделано заметно меньше плана — это <b>недовыполненная неделя</b>: пропуск, замена или разгрузка. Программа тут ни при чём, добавлять объём не надо.</div>`:'')
+16268|    +(_weekOne?`<div class="ob" style="margin:0 0 10px"><b>Первая неделя</b> · ${_daysIn===0?'первый день':_daysIn+' '+plural(_daysIn,'день','дня','дней')} с первой тренировки
+16269|      <details class="det" style="margin-top:8px"><summary class="mini">почему цифры неполные</summary><div class="mini" style="margin-top:8px">«Факт» считается за 7 дней, окно ещё не заполнилось: ниже — то, что уже сделано, а не недовыполнение.</div></details></div>`:'')
+16270|    +((function(){
+16271|       const _f=(S.prog&&S.prog.focus)||[];
+16272|       if(!_f.length) return '';
+16273|       const _n=Object.keys(MUS).filter(m=>!_f.includes(m)).length;
+16274|       if(_n<2) return '';
+16275|       return `<div class="note" style="margin:0 0 10px">Идёт блок на <b>${_f.map(x=>MUS[x]||x).join(', ')}</b> — остальные группы держим на поддерживающем минимуме: растить всё сразу нельзя, это размен. Снять блок — «Настроить блок».</div>`;
+16276|     })())
+16277|    +Object.keys(MUS).map(m=>{
+16278|     const [mev,mav1,mav2,mrv]=LM[m], val=v[m], max=mrv*1.25;
+16279|     const pct=x=>Math.min(100,x/max*100);
+16280|     /* v282: пороги с запасом. Верх диапазона — это хорошее место, а не тревога;
+16281|        и полподхода сверх MRV не делают неделю провальной. Красное — только
+16282|        за реальным перебором (>MRV+10%). */
+16283|     let col='var(--t3)', st=_weekOne?'идёт первая неделя':'ниже MEV';
+16284|     if(val>=mrv*1.1){col='var(--bd)';st='выше MRV — перебор'}
+16285|     else if(val>=mav2){col='var(--ac)';st=val>=mrv?'у потолка':'верх диапазона'}
+16286|     else if(val>=mav1){col='var(--ac)';st='рабочий диапазон'}
+16287|     else if(val>=mev){col='var(--t2)';st='минимум для роста'}
+16288|     const lag=_sc[m]!=null&&_sc[m]<1;
+16289|     const pvm=_pv?_pv[m]:null;
+16290|     const isLess=(S.less||[]).includes(m);
+16291|     // Программа объясняет свои решения на месте (принцип из поля 18.08:
+16292|     // «это ещё я дотошный — другой не спросит, а уйдёт»). Урезали группу —
+16293|     // говорим почему прямо здесь, а не оставляем голую цифру.
+16294|     const _fo=(S.prog&&S.prog.focus)||[];
+16295|     const inFocus=_fo.includes(m);
+16296|     const focusN=_fo.map(x=>MUS[x]||x).join(', ');
+16297|     return `<div class="vol">
+16298|       <div class="h"><span class="n">${MUS[m]}${lag?' <span class="tag">отстаёт</span>':''}${isLess?' <span class="tag">поменьше</span>':''}${inFocus?' <span class="tag ac">приоритет</span>':(_fo.length&&!isLess?' <span class="tag">поддержка</span>':'')}
+16299|         <button class="wc-del" data-less="${m}" aria-label="${isLess?'вернуть обычный объём':'держать на минимуме'}"><svg class="ic"><use href="#${isLess?'i-repeat':'i-minus'}"/></svg></button></span>
+16300|         <span class="v"><span style="color:${col}">${r1(val)}</span> / ${mav1}–${mav2}</span></div>
+16301|       <div class="vt">
+16302|         <div class="zone" style="left:${pct(mav1)}%;width:${pct(mav2)-pct(mav1)}%"></div>
+16303|         <div class="mrv" style="left:${pct(mrv)}%"></div>
+16304|         <div class="fill" style="--fill:${pct(val)/100};background:${col}"></div>
+16305|       </div>
+16306|       <div class="mini" style="margin:6px 0 0">${st}${pvm!=null?' · план даёт '+r1(pvm):''}</div>
+16307|       ${isLess?`<div class="mini" style="margin:2px 0 6px;color:var(--t3)">ты выбрал «поменьше»: держим на поддерживающем минимуме (${mev} подх/нед), в блоки специализации не берём. Вернуть — кнопка ↺</div>`
+16308|         :inFocus?`<div class="mini" style="margin:2px 0 6px;color:var(--ac)">в приоритете блока: объём к верху диапазона (${mav1}–${mav2}), при нехватке добавляется второе упражнение. Цена — остальные группы стоят в поддержке</div>`
+16309|         /* Причина «идёт блок на X» общая для всех неприоритетных групп и
+16310|            печаталась под каждой — восемь дословных повторов подряд. Вынесена
+16311|            один раз над списком (12.09), здесь ветка пустая. */
+16312|         :_fo.length?``
+16313|         /* СНАЧАЛА объясняем недовыполненную неделю и только потом советуем
+16314|            добавлять объём. Иначе выходит вредный совет: человек сделал одну
+16315|            тренировку из трёх, а ему пишут «добавь ~11 подходов в неделю» —
+16316|            хотя добавлять нечего, неделя просто не доделана (найдено чтением
+16317|            экрана 18.08). Совет про объём имеет смысл, когда план ВЫПОЛНЕН,
+16318|            а его всё равно мало. */
+16319|         :pvm!=null&&pvm>=mev&&val<pvm*0.6?`<div class="mini" style="margin:2px 0 6px">сделано ${r1(val)}${_undoneN>=2?'':' — неделя недовыполнена (пропуск, замена или разгрузка)'+(lag?', так что дело не в объёме программы':', программа тут ни при чём')}</div>`
+16320|         :(lag&&val<mav1&&!_weekOne)?`<div class="mini" style="margin:2px 0 6px">отстаёт по силе, объём ниже рабочего диапазона — добавь ~${Math.max(1,Math.ceil(mav1-val))} подх/нед</div>`:''}
+16321|     </div>`;
+16322|   }).join('')
+16323|   /* Куда идти с этим — сказано один раз внизу, а не приписано к каждой
+16324|      отстающей группе: три одинаковых хвоста «Программа → Настроить блок»
+16325|      подряд перестают быть подсказкой и становятся шумом (19.08). */
+16326|   +(function(){ if(_weekOne) return '';
+16327|     const need=Object.keys(MUS).filter(m=>_sc[m]!=null&&_sc[m]<1&&(v[m]||0)<LM[m][1]);
+16328|     return need.length?`<div class="ob" style="margin-top:12px">Не хватает объёма: <b>${need.map(m=>MUS[m].toLowerCase()).join(', ')}</b>. Добавь подходы в программу или собери блок специализации — Программа → «Настроить блок».</div>`:''; })()
+16329|   /* ── КАРТА ТЕЛА ──
+16330|      «Плечи 17 подходов» может означать семнадцать подходов на переднюю дельту
+16331|      и ноль на заднюю — по группам это не видно. Раскрывашка, а не постоянный
+16332|      блок: двадцать шесть строк поверх десяти основных превращают экран в
+16333|      таблицу, а таблицу не читают (замечание владельца 21.08). */
+16334|   +(function(){
+16335|     const sv=subVolume(7), pv=S.prog?progSubVolume(S.prog):null;
+16336|     const rows=Object.entries(SUBM).map(([m,subs])=>{
+16337|       const inner=Object.entries(subs).map(([sk,nm])=>{
+16338|         const fact=sv[sk]||0, plan=pv?(pv[sk]||0):null;
+16339|         /* Группа, от которой человек ОТКАЗАЛСЯ, — не дыра, а его решение.
+16340|            Метить её «нет работы» значит спорить с ним каждую неделю. */
+16341|         const _отказ=(function(){ try{ return skipMus().has(m); }catch(e){ return false; } })();
+16342|         const dead=!_отказ&&fact<=0&&(plan==null||plan<=0);
+16343|         const fix=dead?subFixEx(sk):null;
+16344|         return `<div style="display:flex;justify-content:space-between;gap:8px;padding:3px 0">
+16345|           <span style="color:${dead?'var(--wn)':'var(--t2)'}">${dead?'◦ ':'• '}${esc(nm)}${dead&&fix?` <span class="mini" style="color:var(--t3)">— закрыть: ${esc(fix)}</span> <button class="chip sm" data-ins="addex:${esc(fix)}" style="margin-left:2px" title="день станет длиннее — приложение скажет, насколько">Закрыть</button>`:''}</span>
+16346|           <span class="mini" style="white-space:nowrap;color:${dead?'var(--wn)':'var(--t3)'}">${dead?'нет работы':r1(fact)+(plan!=null?' / '+r1(plan):'')}</span></div>`;
+16347|       }).join('');
+16348|       const _отк=(function(){ try{ return skipMus().has(m); }catch(e){ return false; } })();
+16349|       const zero=_отк?0:Object.keys(subs).filter(sk=>(sv[sk]||0)<=0&&(!pv||(pv[sk]||0)<=0)).length;
+16350|       return `<div style="margin-top:12px"><b>${MUS[m]}</b>${_отк?' <span class="tag">не делаю</span>':(zero?` <span class="tag wn">без работы: ${zero}</span>`:'')}${inner}</div>`;
+16351|     }).join('');
+16352|     return `<details class="det" style="margin-top:12px"><summary style="font-size:var(--fs2);line-height:var(--lh2)">Карта тела — что внутри групп</summary>
+16353|       <div class="mini" style="margin-top:8px;color:var(--t3)">Слева — подгруппа, справа <b>сделано за 7 дней / даёт программа</b>, в подходах. Здесь подход считается целиком: жим лёжа — это подход на середину груди, а не полподхода. Долями делится только вклад в большие группы, потому что одно движение грузит несколько сразу.</div>
+16354|       ${rows}
+16355|       <div class="ib" style="margin-top:12px">Приложение закрывает такие дыры само при сборке программы — но
+16356|         только пока день укладывается в обещанное время. Что осталось — закрывается кнопкой рядом с находкой:
+16357|         день станет длиннее, и на сколько именно, приложение скажет. <b>Подгруппа — не мышца:</b> «низ груди» или
+16358|         «прямая мышца» нормально закрывать раз в две-три недели, а не каждую.</div>
+16359|       <div class="note" style="margin-top:12px"><b>Честно про эту таблицу.</b> Диапазонов «сколько подходов нужно подгруппе» не существует — их никто не мерил, и выдумывать их значило бы врать точностью. Поэтому здесь только два ответа: работа есть или работы нет.<br><br>
+16360|       И закрыть все двадцать шесть строк на двух-трёх тренировках в неделю физически нельзя: это тридцать с лишним подходов за занятие. Ноль в редкой строке — норма, а вот <b>ноль в той, что тебе важна</b> — повод заменить одну подсобку (кнопка ⚡ в карточке) или собрать блок специализации.</div>
+16361|     </details>`;
+16362|   })();
+16363|   // Ручка «поменьше»: применяем к текущей программе сразу, без пересборки —
+16364|   // человек видит результат там же, где нажал (поле 18.08)
+16365|   /* Кнопка «Закрыть» у найденной дыры. Обработчик тот же, что на «Коуче»
+16366|      (insightAct) — второго механизма для одного действия не заводим.
+16367|      До 31.08 разбор находил дыру, называл лекарство и оставлял человека
+16368|      нажимать самому: «не корректирует мои упражнения» (полевой отчёт). */
+16369|   vb.querySelectorAll('[data-ins]').forEach(b=>b.onclick=async()=>{
+16370|     b.disabled=true; b.textContent='Добавляю…';
+16371|     try{ await insightAct(b.dataset.ins); }catch(e){}
+16372|     try{ rCoach(); rTrain(); }catch(e){}
+16373|   });
+16374|   vb.querySelectorAll('[data-less]').forEach(b=>b.onclick=async()=>{
+16375|     const m=b.dataset.less, cur=new Set(S.less||[]);
+16376|     if(cur.has(m)) cur.delete(m); else cur.add(m);
+16377|     S.less=[...cur];
+16378|     if(S.prog){
+16379|       if(cur.has(m)) applyLess(S.prog);
+16380|       else S.prog=genProgram({...S.prog.cfg});   // вернули объём — пересобираем честно
+16381|     }
+16382|     await put('settings',S,'main');
+16383|     toast(cur.has(m)?(MUS[m]+' — держим на минимуме'):(MUS[m]+' — обычный объём, программа пересобрана'));
+16384|     rCoach(); rTrain();   // экран объёма — в «Коуче», программа — в «Зале»
+16385|   });
+16386| }
+16387| /* ── v615: «МОЁ СОСТОЯНИЕ» — опросник готовности и график в листе «Тренер» ──
+16388|    Раньше форма стояла в подвкладке «Разбор» и рисовалась при каждом rTrain.
+16389|    Теперь — при открытии листа и после записи; между перерисовками чата форма
+16390|    не трогается, чтобы не стереть выбранные, но ещё не сохранённые ответы:
+16391|    ключ перерисовки — дата плюс слепок сегодняшней записи. */
+16392| function rAskStatus(force){
+16393|   const f=$('rdForm'); if(!f) return;
+16394|   const R=RDY.find(x=>x.d===td())||{};
+16395|   const key=td()+'|'+JSON.stringify(R);
+16396|   if(!force&&f.dataset&&f.dataset.k===key) return;
+16397|   if(f.dataset) f.dataset.k=key;
+16398|   const dt=$('rdDate'); if(dt) dt.textContent=fd(td());
+16399|   f.innerHTML=RQ.map(q=>q.type==='num'
+16400|     ? '<div class="field"><label>'+q.n+'</label><input type="text" step="0.5" inputmode="decimal" id="rq_'+q.k+'" value="'+(R[q.k]||'')+'" placeholder="'+q.ph+'"></div>'
+16401|     : '<div class="field"><label>'+q.n+' <span style="color:var(--t3)">('+q.lo+' → '+q.hi+')</span></label>'
+16402|       +'<div class="rp" data-rq="'+q.k+'">'+[1,2,3,4,5].map(i=>'<button class="'+(R[q.k]===i?'on':'')+'" data-val="'+i+'">'+i+'</button>').join('')+'</div></div>').join('');
+16403|   /* один слушатель на форму вместо цикла по каждой кнопке */
+16404|   f.onclick=e=>{ const t=e&&e.target, bt=t&&t.closest?t.closest('[data-rq] button'):null; if(!bt) return;
+16405|     const g=bt.closest('[data-rq]'); g.querySelectorAll('button').forEach(x=>x.classList.remove('on')); bt.classList.add('on'); };
+16406|   const hr=$('rd_hr'); if(hr) hr.value=R.hr||'';
+16407|   /* график в свёрнутой раскрывашке: без ширины не рисуется — дорисуем при раскрытии */
+16408|   try{ const cv=$('rdChart'), det=cv&&cv.closest?cv.closest('details'):null;
+16409|     if(det&&!det._rd){ det._rd=1; det.addEventListener('toggle',()=>setTimeout(drawRd,30)); } }catch(e){}
+16410|   drawRd();
+16411| }
+16412| function rTrain_(){
+16413|   const sb=$('startBox');
+16414|   if(sb){
+16415|     /* Починка доезжает до человека БЕЗ пересборки: один проход на версию.
+16416|        Программа при этом остаётся его — меняется только нарушающее правило. */
+16417|     /* Вчерашняя разовая замена не живёт в сегодняшнем плане. */
+16418|     if(S.prog){ let _bk=0; try{ _bk=swapExpire(S.prog); }catch(e){}
+16419|       if(_bk){ S.ua=Date.now(); put('settings',S,'main').catch(()=>{}); } }
+16420|     if(S.prog&&S.progFixVer!==APP_VER){
+16421|       S.progFixVer=APP_VER;
+16422|       let _mg=null; try{ _mg=progMigrate(S.prog); }catch(e){}
+16423|       /* Сначала подмена движения, потом инвариант схемы: миграция может
+16424|          принести новое движение, и схему проверяем уже для него. */
+16425|       let _sf=null; try{ _sf=schemeFix(S.prog); }catch(e){}
+16426|       if(_mg||_sf) S.progFix={d:td(),list:(_mg||[]).concat(_sf||[])};
+16427|       put('settings',S,'main').catch(()=>{});
+16428|     }
+16429|     /* ── v612: СЛУЖЕБНЫЕ КАРТОЧКИ ТРЕНЕРА ЖИВУТ В ЛИСТЕ «ТРЕНЕР», А НЕ НА ЭКРАНЕ ──
+16430|        Полевой отчёт 27.08 («за четыре экрана до тренировки не дошёл») свернул их в
+16431|        строку «Сообщения тренера» над подвалом; с v611 та же информация дублировалась
+16432|        баджем на строке «Спросить тренера». Один вход: бадж в подвале, карточки —
+16433|        блоком «Уведомления от тренера» над диалогом (renderAsk). #startBox остаётся
+16434|        под онбординг «Первые две недели». v613: считает coachCards(); открытый лист
+16435|        здесь НЕ перерисовывается — действия в хабе меняют свою карточку точечно. */
+16436|     coachCards();
+16437|     sb.innerHTML=startCard(); wireStartCard();
+16438|   }
+16439|   const dl=$('deloadBox');
+16440|   if(dl){
+16441|     const dlA=dlActive();
+16442|     /* ── СООБЩЕНИЕ ОБЯЗАНО ОТНОСИТЬСЯ К СЕГОДНЯШНЕМУ ДНЮ ──
+16443|        Адресная разгрузка на квадрицепс висела красной плашкой во весь верх
+16444|        экрана и в день верха тела, где ни одно упражнение её не касается.
+16445|        Группу она называла честно, но человек всё равно читает предупреждение
+16446|        про «веса ×0.6» перед тренировкой, к которой оно не имеет отношения:
+16447|        так предупреждения и перестают работать — их учатся пролистывать.
+16448|        Считаем, задет ли хоть один сегодняшний движок. Не задет — короткая
+16449|        спокойная строка вместо плашки: разгрузка идёт, но не про этот день.
+16450|        Та же болезнь уже чинилась в подсказке веса (dlHits в stallNote). */
+16451|     const _dlD=(S.prog&&S.prog.plan||[]).find(x=>x.dow===effDow(vDay||td()));
+16452|     const _dlTouch=!dlA||!_dlD||(_dlD.ex||[]).some(i=>!i.hidden&&dlHits(i.n,dlA));
+16453|     if(dlA&&!_dlTouch)
+16454|       /* Тихая строка, а не предупреждение: в день верха разгрузка квадрицепса
+16455|          не значит ничего, но знать о ней и уметь снять человек обязан
+16456|          (правила 24.08). Здесь стоял `.note` — а `.note` без `.keep` скрыт
+16457|          правилом стилей ВСЕГДА: и строка, и ссылка «снять досрочно» не
+16458|          существовали для человека, хотя оба правила гейта были зелёными,
+16459|          потому что искали текст в разметке, а не на экране (аудит 27.08). */
+16460|       dl.innerHTML=`<div class="note keep" style="margin-bottom:12px">Разгрузка ${dlLbl(dlA).toLowerCase()} до ${fd(dlA.until)} · сегодня не касается · <a data-dloff2="1" style="color:var(--ac2);cursor:pointer">снять</a></div>`;
+16461|     else if(dlA)
+16462|       /* Плашка висит на КАЖДОМ экране зала все дни разгрузки. Наверху —
+16463|          то, что нужно прямо сейчас (сколько ставить), объяснение — под тап. */
+16464|       dl.innerHTML=`<div class="wb" style="margin-bottom:12px"><b>Разгрузка ${dlLbl(dlA).toLowerCase()} до ${fd(dlA.until)}</b> · ${
+16465|         dlA.src==='meso'?'подходов вдвое меньше · вес прежний'
+16466|         :'веса '+(dlA.m==='all'?'':'на эту группу ')+'×0.6'}
+16467|         <details class="det" style="margin-top:8px"><summary class="mini">зачем и откуда</summary><div class="mini" style="margin-top:8px">${
+16468|         dlA.src==='meso'
+16469|           ?'Конец цикла, так и было запланировано: снимаем усталость, не теряя навыка.'
+16470|           :'Амплитуда комфортная, боль — закончить упражнение. '+(dlA.src==='ai'?'Назначено ИИ-анализом.':'Включена тобой.')}</div></details>
+16471|         <button class="btn gho sm" style="margin-top:8px" id="bDlOff">Снять досрочно</button></div>`;
+16472|     /* ── ГДЕ ЧЕЛОВЕК В ЦИКЛЕ ──
+16473|        Без этой строки прибавка подходов выглядит как «приложение само что-то
+16474|        крутит». Неделя и её смысл — то, что тренер говорит вслух. */
+16475|     else if(S.prog&&S.prog.meso&&!(S.prog.cfg&&S.prog.cfg.fromCoach)){
+16476|       const _w=mesoWeek(S.prog), _l=mesoLen(S.prog);
+16477|       const _last=(S.mesoSayD===td()&&S.mesoSay)?1:0;
+16478|       /* Строка про место в цикле висит на КАЖДОМ экране зала каждый день.
+16479|          Данные — в заголовке, объяснение — под тап (аудит 27.08). */
+16480|       /* Место в цикле — это ДАННЫЕ, и они теперь в подзаголовке дня одной
+16481|          строкой («цикл 1, нед 1/4»). Карточка занимала 96 px и несла к двум
+16482|          цифрам абзац объяснения, один и тот же каждый день. Осталось только
+16483|          СОБЫТИЕ: последняя неделя накопления и разовая реплика тренера —
+16484|          то, что меняется и что человек ещё не читал. */
+16485|       dl.innerHTML=(_last||_w>=_l)
+16486|         ? `<div class="ib sb sb-info" style="margin-bottom:12px"><svg class="ic sb-i"><use href="#i-bolt"/></svg><div>${_last?esc(S.mesoSay)
+16487|             :'Последняя неделя накопления — дальше разгрузка.'}</div></div>`
+16488|         : '';
+16489|     }
+16490|     if(!dlA&&S.deload&&S.deload.until&&dn(td())>dn(S.deload.until)){ delete S.deload; put('settings',S,'main'); }
+16491|     if(!dlA&&!(S.prog&&S.prog.meso&&!(S.prog.cfg&&S.prog.cfg.fromCoach))) dl.innerHTML='';
+16492|     /* Снятие — такое же событие программы, как назначение: обе кнопки ходят
+16493|        через одну функцию, чтобы запись в «Истории программы» и закрытие окна
+16494|        разгрузки не зависели от того, где нажали. */
+16495|     const off=$('bDlOff'); if(off) off.onclick=deloadOff;
+16496|     const off2=dl.querySelector('[data-dloff2]'); if(off2) off2.onclick=deloadOff;
+16497|   }
+16498|   const d=td(), mine=SETS.filter(s=>s.d===d);
+16499|   const b=$('setLog'); if(!b) return;   // вкладка «Тренировки» не смонтирована (был краш v71)
+16500|   const byEx={}; mine.forEach(s=>{(byEx[s.e]=byEx[s.e]||[]).push(s)});
